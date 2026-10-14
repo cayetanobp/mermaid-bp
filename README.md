@@ -73,3 +73,15 @@ Mermaid permanece fijado en 11.7.0 por compatibilidad con BookStack. `npm audit`
 La instalación no incluye KaTeX como hoja de estilos global para fórmulas; el objetivo de compatibilidad es el script de BookStack facilitado, que tampoco la añade. Los diagramas especialmente grandes o una sintaxis patológica pueden bloquear temporalmente el hilo del navegador. No se incluye aislamiento en un proceso separado.
 
 El historial Git es exclusivamente local; no hay remoto configurado. El servidor Docker se entrega preparado, pero su arranque requiere Docker instalado.
+
+## Verificación de esta entrega
+
+Verificado el 15 de octubre de 2026 en Windows con Chromium y Node.js 24.15, y compilado también con Node.js 22 en Docker.
+
+- 12 pruebas unitarias aprobadas.
+- 12 pruebas de navegador aprobadas sobre la compilación de producción.
+- Coincidencia de posiciones y dimensiones con la simulación de BookStack en tres flujos.
+- Imagen `mermaid-bp:local` construida y arrancada; editor y comprobación BookStack accesibles, con el ejemplo renderizado en el navegador.
+- Dos avisos de auditoría pendientes, uno bajo y otro moderado, asociados a la cadena Mermaid y KaTeX fijada por compatibilidad.
+
+El contenedor de comprobación se ha detenido. La imagen queda disponible localmente.
