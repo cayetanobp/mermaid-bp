@@ -83,3 +83,28 @@ dialog input, dialog textarea, dialog select { width: 100%; border: 1px solid #d
 .file-drag::after { content: "Suelta tu archivo .mmd para abrirlo"; position: fixed; inset: 12px; display: grid; place-items: center; background: #eaf4e8ed; border: 3px dashed #74946d; border-radius: 12px; z-index: 20; pointer-events: none; color: #486843; font-size: 20px; }
 @media (max-width: 1000px) { .toolbar { gap: 8px; padding: 8px 12px; } .toolbar-group + .toolbar-group { padding-left: 8px; } kbd, #undo span, #redo span { display: none; } .export-group { margin-left: 0; } #visual-mode { display: none; } .topbar { padding: 0 16px; } }
 @media (max-width: 650px) { #app { height: auto; min-height: 100dvh; } .workspace { display: flex; flex-direction: column; } .code-pane { height: 340px; } .preview-pane { height: 520px; } .splitter { display: none; } .topbar { gap: 16px; } .local-badge { display: none; } .toolbar-group { flex-wrap: wrap; } .toolbar-group + .toolbar-group { border-left: 0; padding-left: 0; } }
+
+/* Espacio de trabajo y controles de visibilidad. */
+.topbar { height: 46px; gap: 16px; padding-left: 18px; padding-right: 18px; }
+.brand { font-size: 17px; }
+.brand-mark { height: 27px; width: 29px; font-size: 19px; border-radius: 6px; }
+.toolbar-toggle { display: inline-flex; align-items: center; gap: 7px; font-size: 11px; padding: 5px 8px; background: transparent; }
+.collapse-icon { font-size: 13px; }
+.fullscreen-toggle { display: inline-flex; align-items: center; gap: 4px; }
+#app.diagram-focus { position: fixed; inset: 0; z-index: 30; height: 100dvh; min-height: 0; background: #fff; }
+.diagram-focus > .topbar, .diagram-focus > .toolbar, .diagram-focus > .statusbar { display: none; }
+.diagram-focus .workspace { display: block; flex: 1; height: 100%; min-height: 0; }
+.diagram-focus .code-pane, .diagram-focus .splitter, .diagram-focus .visual-note { display: none; }
+.diagram-focus .preview-pane { width: 100%; height: 100%; }
+.diagram-focus #diagram-viewport { min-height: 0; }
+@media (max-width: 650px) {
+  .toolbar-toggle { margin-left: auto; }
+  .toolbar-toggle .control-label { display: none; }
+  .toolbar-toggle .collapse-icon { font-size: 17px; }
+  .fullscreen-toggle { margin-left: auto; }
+}
+
+#drag-preview { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 2; }
+#drag-guide-x { position: absolute; left: 0; top: 0; height: 100%; border-left: 1px dashed #538f79; }
+#drag-guide-y { position: absolute; left: 0; top: 0; width: 100%; border-top: 1px dashed #538f79; }
+#diagram .is-dragging .selection-ring { stroke-dasharray: none; stroke: #237951; stroke-width: 1.5px; }

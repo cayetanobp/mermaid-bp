@@ -5,6 +5,7 @@ import { bracketMatching } from '@codemirror/language';
 import { example, parseFlow, serializeFlow, nextId, removeNode, edgePathMap, type Flow, type Shape, type Direction } from './flow';
 import { layoutCandidates, scoreLayout, type Point } from './layout';
 import { renderDiagram, download, pngBlob, svgDocument, type Rendered } from './render';
+import { setupWorkspaceControls } from './workspace-controls';
 import './style.css';
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -14,8 +15,9 @@ app.innerHTML = `
     <a class="brand" href="./" aria-label="Mermaid BP, inicio"><span class="brand-mark">m<span>↗</span></span><span>mermaid<span class="brand-bp"> / bp</span></span></a>
     <div class="file-state"><span class="status-dot"></span><span id="filename">diagrama.mmd</span><span id="dirty" aria-label="Cambios sin descargar">●</span></div>
     <span class="local-badge">local · sin cuenta</span>
+    <button id="toolbar-toggle" class="toolbar-toggle" aria-controls="file-toolbar" aria-expanded="true" aria-label="Ocultar herramientas"><span class="collapse-icon" aria-hidden="true">▴</span><span class="control-label">Ocultar herramientas</span></button>
   </header>
-  <nav class="toolbar" aria-label="Archivo y edición">
+  <nav id="file-toolbar" class="toolbar" aria-label="Archivo y edición">
     <div class="toolbar-group"><button id="new">Nuevo</button><button id="open">Abrir .mmd</button><input id="file" type="file" accept=".mmd,.mermaid,text/plain" hidden><button id="save" class="primary">Guardar .mmd <kbd>Ctrl S</kbd></button></div>
     <div class="toolbar-group"><button id="undo" title="Deshacer">↶ <span>Deshacer</span></button><button id="redo" title="Rehacer">↷ <span>Rehacer</span></button></div>
     <div class="toolbar-group export-group"><button id="copy">Copiar para BookStack</button><button id="svg">SVG</button><button id="png">PNG</button><a class="button quiet" href="./bookstack.html" target="_blank" rel="noopener">Comprobar BS ↗</a></div>
@@ -29,7 +31,7 @@ app.innerHTML = `
     <div id="splitter" class="splitter" role="separator" tabindex="0" aria-label="Ancho del editor" aria-orientation="vertical" aria-valuemin="20" aria-valuemax="65" aria-valuenow="38"></div>
     <section class="preview-pane" aria-label="Vista previa del diagrama">
       <div class="pane-heading"><h2>Diagrama</h2><span id="render-state" class="render-state">Preparando…</span><div class="zoom-tools"><button id="zoom-out" aria-label="Alejar">−</button><button id="fit">Encajar</button><button id="zoom-in" aria-label="Acercar">+</button></div></div>
-      <div class="visual-toolbar"><button id="add-node">+ Nodo</button><button id="add-edge">+ Conexión</button><label>Dirección <select id="direction" aria-label="Dirección del diagrama"><option value="TD">↓ vertical</option><option value="LR">→ horizontal</option><option value="BT">↑ vertical</option><option value="RL">← horizontal</option></select></label><span id="visual-mode">Edición visual</span></div>
+      <div class="visual-toolbar"><button id="add-node">+ Nodo</button><button id="add-edge">+ Conexión</button><label>Dirección <select id="direction" aria-label="Dirección del diagrama"><option value="TD">↓ vertical</option><option value="LR">→ horizontal</option><option value="BT">↑ vertical</option><option value="RL">← horizontal</option></select></label><span id="visual-mode">Edición visual</span><button id="diagram-fullscreen" class="fullscreen-toggle" aria-label="Pantalla completa" aria-pressed="false"><span aria-hidden="true">⛶</span> <span class="control-label">Pantalla completa</span></button></div>
       <div id="diagram-viewport" class="diagram-viewport" tabindex="0" aria-label="Lienzo. Arrastra el fondo para desplazarte y los nodos para ajustar su distribución."><div id="diagram-stage" class="diagram-stage"><div id="diagram"></div></div><div id="empty" class="empty" hidden>Escribe Mermaid o abre un archivo para empezar.</div><div id="drag-ghost" hidden></div></div>
       <div id="selection" class="selection-panel" hidden></div>
       <div id="error" class="error-panel" role="alert" hidden></div>
@@ -393,5 +395,20 @@ new ResizeObserver(() => {
   if (viewport.clientWidth !== viewportWidth) { viewportWidth = viewport.clientWidth; if (!drag) fit(); }
 }).observe(viewport);
 window.addEventListener('resize', () => { if (!drag) fit(); });
+let beforeDiagramMode: { x: number; y: number; zoom: number } | null = null;
+setupWorkspaceControls({
+  onDiagramModeChange(expanded) {
+    viewport.dispatchEvent(new PointerEvent('pointercancel', { bubbles: true }));
+    if (expanded) beforeDiagramMode = { ...view };
+    const previous = beforeDiagramMode;
+    // Esperar al cambio de tamaño para que la cámara se restaure tras los observadores.
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      if (expanded) fit();
+      else if (previous) { view = previous; transform(); }
+      editor.requestMeasure();
+    }));
+  },
+  onToolbarChange() { editor.requestMeasure(); },
+});
 persist(); if (recovered) message('Se ha recuperado el último borrador de este navegador.');
 void render();

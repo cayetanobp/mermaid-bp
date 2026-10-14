@@ -18,6 +18,8 @@ No abras `index.html` directamente mediante `file://`. La aplicación utiliza m�
 
 ## Uso
 
+- Pulsa "Pantalla completa" en las herramientas del diagrama para ampliar el lienzo. Puedes seguir editando nodos y conexiones, usar la rueda para el zoom y salir con Esc o con el mismo botón. Al volver se restaura el encuadre anterior.
+- Usa "Ocultar herramientas" en la cabecera para plegar la barra de archivos y exportación. El botón permite recuperarla y la preferencia se conserva al volver a abrir la web. Ctrl S sigue disponible con la barra plegada.
 - Edita el código a la izquierda y consulta el diagrama a la derecha. La vista se actualiza tras una pausa de 350 ms.
 - Abre un `.mmd` con el botón o soltándolo en la ventana. El límite de apertura es de 2 MB.
 - Usa los botones de nodos y conexiones, el doble clic en un nodo para editarlo y el panel de selección para eliminar. Los cambios visuales se pueden deshacer.
