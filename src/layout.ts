@@ -25,7 +25,7 @@ export function layoutCandidates(flow: Flow, id: string, target: Point, geometry
   const origin = flow.nodes.findIndex(n => n.id === id);
   if (origin < 0) return [];
   const base = structuredClone(flow);
-  const others = flow.nodes.filter(n => n.id !== id).sort((a, b) => {
+  const others = flow.nodes.filter(n => n.id !== id && (n.group ?? '') === (flow.nodes[origin].group ?? '')).sort((a, b) => {
     const p = geometry.nodes[a.id], q = geometry.nodes[b.id];
     return (p ? Math.hypot(p.x - target.x, p.y - target.y) : Infinity) - (q ? Math.hypot(q.x - target.x, q.y - target.y) : Infinity);
   });

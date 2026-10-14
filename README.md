@@ -36,7 +36,9 @@ El evaluador minimiza la distancia al destino, con penalizaciones por movimiento
 
 Las restricciones añadidas se guardan en un bloque entre `%% mbp-layout:start` y `%% mbp-layout:end`. Esos marcadores son comentarios Mermaid; el contenido utiliza enlaces invisibles estándar. No se necesitan extensiones ni cambios en tu script de BookStack. Cambiar la dirección desde la interfaz elimina esos enlaces auxiliares para empezar una distribución nueva.
 
-La edición visual admite `flowchart` y `graph`, las direcciones habituales, rectángulos, formas redondeadas, terminales, rombos, círculos y conexiones sencillas con etiquetas. Las construcciones avanzadas, los estilos personalizados, los subgráficos y los demás tipos de diagramas quedan en edición por código, conservando el texto. No se intenta una conversión parcial que pueda borrar información. Las ediciones visuales normalizan el formato y conservan el contenido de los comentarios, aunque pueden cambiar su ubicación.
+La edición visual admite `flowchart` y `graph`, las direcciones habituales, rectángulos, formas redondeadas, terminales, rombos, círculos, conexiones encadenadas y etiquetas. Conserva directivas `init` de una línea en JSON, subgráficos identificados, `classDef`, `class` y `style`. Las acciones visuales modifican las declaraciones afectadas y preservan las demás líneas, los comentarios y los saltos de línea del archivo. Una cadena afectada por una edición de conexión se puede expandir localmente. El arrastre solo reordena nodos dentro de su propio subgráfico.
+
+Los demás tipos de diagramas y las construcciones que no se puedan modificar con seguridad, como `linkStyle` por índice, enlaces a subgráficos o frontmatter, siguen disponibles por código. El editor no realiza una conversión parcial que pueda borrar información.
 
 `bookstack.html` reproduce localmente tu transformación de `.language-mermaid` a `.mermaid` y llama a `mermaid.run()`. Permite cargar el último borrador y comparar. La distribución se verifica con la misma versión, pero las fuentes, el tema y el ancho de tu BookStack real pueden producir diferencias. No se promete una posición absoluta ni identidad de píxeles.
 

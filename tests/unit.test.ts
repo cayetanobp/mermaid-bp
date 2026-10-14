@@ -1,6 +1,7 @@
 import { test } from 'node:test';
+import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
-import { parseFlow, serializeFlow, encodeLabel, decodeLabel, example, removeNode, nextId } from '../src/flow.ts';
+import { parseFlow, serializeFlow, encodeLabel, decodeLabel, example, removeNode, nextId, edgePathMap } from '../src/flow.ts';
 import { layoutCandidates, scoreLayout } from '../src/layout.ts';
 function parsed(text: string) { const p = parseFlow(text); assert.ok(p.ok, p.ok ? '' : p.reason); return p.flow; }
 test('el ejemplo conserva nodos, conexiones, formas y etiquetas', () => {
@@ -27,8 +28,8 @@ test('conserva etiquetas de flechas con barras y comillas', () => {
 });
 test('rechaza construcciones avanzadas sin modificar la entrada', () => {
   const inputs = [
-    'sequenceDiagram\nA->>B: hola', 'flowchart TD\nsubgraph grupo\nA\nend',
-    'flowchart TD\nA --> B --> C', 'flowchart TD\nA --> B\nclassDef prueba fill:red',
+    'sequenceDiagram\nA->>B: hola', 'flowchart TD\nsubgraph grupo\nA',
+    'flowchart TD\nA --> B & C', 'flowchart TD\nA --> B\nlinkStyle 0 stroke:red',
     '---\nconfig:\n  theme: dark\n---\nflowchart TD\nA', 'flowchart TD\nA:::clase',
     'flowchart TD\nA[uno]\nA[dos]', 'flowchart TD\nA --> B; B --> C',
   ];
@@ -76,4 +77,15 @@ test('el evaluador ignora traslaciones y prefiere acercar el nodo al destino', (
   const better = { ...before, nodes: { ...before.nodes, A: target } };
   assert.ok(scoreLayout(before, better, 'A', target) < scoreLayout(before, before, 'A', target));
   assert.equal(scoreLayout(before, { ...before, nodes: {} }, 'A', target), Infinity);
+});
+test('editar o eliminar un segmento de una cadena conserva el resto del grafo', () => {
+  const flow = parsed('flowchart TD\nsubgraph G["grupo"]\n  A["a"] --> B["b"] --> C["c"]\nend\nclassDef base fill:#eee;\nclass A,B,C base;\n');
+  flow.edges[1].label = 'revisión';
+  const changed = parsed(serializeFlow(flow));
+  assert.equal(changed.edges[1].label, 'revisión');
+  assert.deepEqual(changed.nodes, flow.nodes);
+  flow.edges.splice(0, 1);
+  const deleted = parsed(serializeFlow(flow));
+  assert.equal(deleted.edges.length, 1); assert.equal(deleted.nodes.length, 3);
+  assert.equal(deleted.nodes.find(n => n.id === 'A')?.group, 'G');
 });

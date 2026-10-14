@@ -5,6 +5,12 @@ async function code(page: Page, text: string) {
   const editor = page.getByRole('textbox', { name: 'Código Mermaid' });
   await editor.click(); await editor.press('ControlOrMeta+a'); await page.keyboard.insertText(text); await ready(page);
 }
+async function finishDrag(page: Page) {
+  if (await page.locator('#drag-preview').count()) {
+    await expect(page.locator('#drag-ghost')).toContainText(/Soltar para aplicar|Sin ajuste mejor/, {timeout:30000});
+  }
+  await page.mouse.up();
+}
 async function text(page: Page) { return page.locator('.cm-content').innerText(); }
 async function downloadText(page: Page) {
   const pending = page.waitForEvent('download'); await page.locator('#save').click();
@@ -56,11 +62,11 @@ test('errores conservan la vista anterior y bloquean cambios visuales', async ({
   await expect(page.locator('#add-node')).toBeDisabled(); await expect(page.locator('#svg')).toBeDisabled();
   await code(page, 'flowchart LR\nA --> B'); await expect(page.locator('#error')).toBeHidden();
 });
-test('otros tipos y estilos avanzados conservan código sin edición visual', async ({ page }) => {
+test('otros tipos y estilos por índice conservan código sin edición visual', async ({ page }) => {
   const diagram = 'sequenceDiagram\n    Alice->>Bob: hola';
   await code(page, diagram); await expect(page.locator('#add-node')).toBeDisabled();
   expect(await downloadText(page)).toBe(diagram);
-  await code(page, 'flowchart TD\nA --> B\nclassDef rojo fill:#fcc\nclass A rojo');
+  await code(page, 'flowchart TD\nA --> B\nlinkStyle 0 stroke:red');
   await expect(page.locator('#add-node')).toBeDisabled();
   await expect(page.locator('#diagram svg')).toBeVisible();
 });
@@ -119,10 +125,10 @@ test('el arrastre ajusta un flujo y mantiene sus conexiones', async ({ page }) =
   const before = await text(page);
   const box = (await page.locator('[data-node-id="C"]').boundingBox())!;
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-  await page.mouse.down(); await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2 + 160, { steps: 12 }); await page.mouse.up();
+  await page.mouse.down(); await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2 + 160, { steps: 12 }); await finishDrag(page);
   await expect(page.locator('#message')).toContainText(/Distribución ajustada|no ha encontrado/, { timeout: 30_000 }); await ready(page);
   const after = await text(page);
-  expect(after).toMatch(/A -+> B/); expect(after).toMatch(/B -+> C/);
+  expect(after).toMatch(/A(?:\["inicio"\])? -+> B/); expect(after).toMatch(/B(?:\["segundo"\])? -+> C/);
   expect(after).not.toBe(before);
   await page.locator('#undo').click(); await ready(page); expect(await text(page)).toBe(before);
 });
@@ -143,3 +149,44 @@ test('las respuestas antiguas no sustituyen código reciente y se ve en pantalla
   await expect(page.locator('#diagram svg')).toBeVisible();
   await page.screenshot({ path: 'test-results/editor-estrecho.png', fullPage: true });
 });
+async function metrics(page: Page, selector: string) {
+  return page.locator(selector).evaluate((root: SVGSVGElement) => {
+    const round = (v: number) => Math.round(v * 1000) / 1000;
+    return {
+      viewBox: root.getAttribute('viewBox'),
+      nodes: [...root.querySelectorAll<SVGGElement>('g.node')].map(n => {
+        const shape = n.querySelector<SVGGraphicsElement>('.label-container, rect, polygon, circle, path')!;
+        const b = shape.getBBox(), matrix = root.getCTM()!.inverse().multiply(n.getCTM()!);
+        const p = new DOMPoint(b.x + b.width/2, b.y + b.height/2).matrixTransform(matrix);
+        return { id: n.id.replace(/-\d+$/, ''), x: round(p.x), y: round(p.y), w: round(b.width), h: round(b.height), text: n.textContent, fill: getComputedStyle(shape).fill, stroke: getComputedStyle(shape).stroke };
+      }).sort((a,b) => a.id.localeCompare(b.id)),
+      edges: [...root.querySelectorAll('.edgePaths path.flowchart-link')].map(e => ({ id: e.id, d: e.getAttribute('d'), stroke: getComputedStyle(e).stroke })).sort((a,b) => a.id.localeCompare(b.id)),
+      groups: [...root.querySelectorAll('g.cluster')].map(g => ({ id: g.id, text: g.querySelector('.cluster-label')?.textContent, transform: g.getAttribute('transform') })).sort((a,b) => a.id.localeCompare(b.id)),
+    };
+  });
+}
+async function sameAsBookStack(page: Page) {
+  const check = await page.context().newPage();
+  try {
+    await check.goto('/bookstack.html');
+    await expect(check.locator('#check-state')).toContainText('Renderizado con');
+    expect(await metrics(check, '#check-output svg')).toEqual(await metrics(page, '#diagram svg'));
+    return check;
+  } catch (error) { await check.close(); throw error; }
+}
+async function centerNode(page: Page, id: string) {
+  const node = page.locator(`[data-node-id="${id}"]`);
+  const b = (await node.boundingBox())!, box = (await page.locator('#diagram-viewport').boundingBox())!;
+  const background = await page.locator('#diagram-viewport').evaluate(el => {
+    const b = el.getBoundingClientRect();
+    for (const dy of [5, b.height-5]) for (const dx of [5, b.width-5]) {
+      const target = document.elementFromPoint(b.x+dx, b.y+dy);
+      if (target && !target.closest('[data-node-id], [data-edge-index]')) return {x:b.x+dx,y:b.y+dy};
+    }
+    throw new Error('No hay un margen libre para desplazar el lienzo.');
+  });
+  await page.mouse.move(background.x, background.y); await page.mouse.down();
+  await page.mouse.move(background.x + box.x+box.width/2-b.x-b.width/2, background.y + box.y+box.height/2-b.y-b.height/2, {steps:12});
+  await page.mouse.up();
+  return node;
+}

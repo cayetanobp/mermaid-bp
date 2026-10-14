@@ -2,7 +2,7 @@ import { EditorState, Transaction } from '@codemirror/state';
 import { EditorView, keymap, lineNumbers, highlightActiveLine, drawSelection } from '@codemirror/view';
 import { history, historyKeymap, defaultKeymap, undo, redo, isolateHistory } from '@codemirror/commands';
 import { bracketMatching } from '@codemirror/language';
-import { example, parseFlow, serializeFlow, nextId, removeNode, type Flow, type Shape, type Direction } from './flow';
+import { example, parseFlow, serializeFlow, nextId, removeNode, edgePathMap, type Flow, type Shape, type Direction } from './flow';
 import { layoutCandidates, scoreLayout, type Point } from './layout';
 import { renderDiagram, download, pngBlob, svgDocument, type Rendered } from './render';
 import './style.css';
@@ -49,6 +49,8 @@ try {
   const candidate = JSON.parse(localStorage.getItem(STORAGE) || 'null');
   if (candidate && typeof candidate.source === 'string' && typeof candidate.name === 'string' && typeof candidate.savedSource === 'string' && typeof candidate.savedName === 'string') recovered = candidate;
 } catch { /* Un borrador corrupto no impide abrir el editor. */ }
+let lineEnding = recovered?.source.includes('\r\n') ? '\r\n' : '\n';
+let keepView = false;
 let filename = recovered?.name ?? 'diagrama.mmd';
 let savedSource = recovered?.savedSource ?? '';
 let savedName = recovered?.savedName ?? filename;
@@ -70,7 +72,7 @@ const editorExtensions = [
     EditorView.updateListener.of(update => { if (update.docChanged) changed(); }),
   ];
 const editor = new EditorView({ state: EditorState.create({ doc: recovered?.source ?? example, extensions: editorExtensions }), parent: $('editor') });
-const source = () => editor.state.doc.toString();
+const source = () => editor.state.doc.toString().replace(/\n/g, lineEnding);
 const dirty = () => source() !== savedSource || filename !== savedName;
 function message(text: string) { $('message').textContent = text; }
 function persist() {
@@ -84,11 +86,13 @@ function persist() {
 }
 function changed() {
   generation++; busy = false; valid = false; selected = {};
+  if (!keepView) lastNodeClick = null;
   updateControls(); persist();
   $('render-state').textContent = 'Actualizando…';
   clearTimeout(renderTimer); renderTimer = setTimeout(render, 350);
 }
 function setSource(text: string) {
+  keepView = true;
   editor.dispatch({ changes: { from: 0, to: editor.state.doc.length, insert: text }, annotations: [Transaction.userEvent.of('input.visual'), isolateHistory.of('full')] });
 }
 function applyFlow(next: Flow) { setSource(serializeFlow(next)); }
@@ -117,7 +121,11 @@ async function render() {
     if (token !== generation) return;
     current = result; renderedSource = text; valid = true;
     $('diagram').innerHTML = result.svg; $('empty').hidden = true; $('error').hidden = true;
-    decorate(); fit(); updateControls(); $('render-state').textContent = 'Actualizado';
+    decorate();
+    sizeDiagram();
+    if (keepView) transform(); else fit();
+    keepView = false;
+    updateControls(); $('render-state').textContent = 'Actualizado';
   } catch (error) {
     if (token !== generation) return;
     valid = false; $('error').hidden = false;
@@ -132,19 +140,25 @@ function decorate() {
     const model = flow.nodes.find(n => node.id.startsWith(`flowchart-${n.id}-`));
     if (model) { node.dataset.nodeId = model.id; node.classList.add('editable-node'); }
   }
-  $('diagram').querySelectorAll<SVGPathElement>('.edgePaths path.flowchart-link').forEach((path, index) => {
-    if (index < flow!.edges.length) { path.dataset.edgeIndex = String(index); }
+  const pathMap = edgePathMap(flow);
+  $('diagram').querySelectorAll<SVGPathElement>('.edgePaths path.flowchart-link').forEach(path => {
+    const index = pathMap.get(path.id);
+    if (index !== undefined) path.dataset.edgeIndex = String(index);
   });
 }
 function transform() { $('diagram-stage').style.transform = `translate(${view.x}px, ${view.y}px) scale(${view.zoom})`; }
+function sizeDiagram() {
+  if (!current) return;
+  const svg = $('diagram').querySelector('svg');
+  if (svg) { svg.style.maxWidth = 'none'; svg.setAttribute('width', String(current.geometry.width)); svg.setAttribute('height', String(current.geometry.height)); }
+}
 function fit() {
   if (!current) return;
   const viewport = $('diagram-viewport');
   view.zoom = Math.min(1.4, Math.max(0.05, Math.min((viewport.clientWidth - 70) / current.geometry.width, (viewport.clientHeight - 70) / current.geometry.height)));
   view.x = (viewport.clientWidth - current.geometry.width * view.zoom) / 2;
   view.y = (viewport.clientHeight - current.geometry.height * view.zoom) / 2;
-  const svg = $('diagram').querySelector('svg');
-  if (svg) { svg.style.maxWidth = 'none'; svg.setAttribute('width', String(current.geometry.width)); svg.setAttribute('height', String(current.geometry.height)); }
+  sizeDiagram();
   transform();
 }
 function zoom(factor: number, x?: number, y?: number) {
@@ -222,7 +236,7 @@ $('node-form').onsubmit = event => {
 $('edge-form').onsubmit = event => {
   event.preventDefault(); if (!flow || !valid || busy) return;
   const next = structuredClone(flow), edge = { from: $<HTMLSelectElement>('edge-from').value, to: $<HTMLSelectElement>('edge-to').value, label: $<HTMLInputElement>('edge-label').value, arrow: $<HTMLSelectElement>('edge-arrow').value };
-  if (editingEdge === null) next.edges.push(edge); else next.edges[editingEdge] = edge;
+  if (editingEdge === null) next.edges.push(edge); else next.edges[editingEdge] = { ...next.edges[editingEdge], ...edge };
   $<HTMLDialogElement>('edge-dialog').close(); applyFlow(next);
 };
 $('node-cancel').onclick = () => $<HTMLDialogElement>('node-dialog').close();
@@ -249,6 +263,8 @@ async function loadFile(file: File) {
   replaceDocument(text); message(`Abierto ${filename}.`);
 }
 function replaceDocument(text: string) {
+  lineEnding = text.includes('\r\n') ? '\r\n' : '\n';
+  keepView = false;
   editor.setState(EditorState.create({ doc: text, extensions: editorExtensions }));
   changed();
 }
@@ -372,6 +388,10 @@ splitter.onpointerdown = event => { splitter.setPointerCapture(event.pointerId);
 splitter.onpointermove = event => { if (splitter.hasPointerCapture(event.pointerId)) { const box = $('workspace').getBoundingClientRect(); resize((event.clientX - box.left) / box.width * 100); } };
 splitter.onpointerup = event => { if (splitter.hasPointerCapture(event.pointerId)) splitter.releasePointerCapture(event.pointerId); fit(); };
 splitter.onkeydown = event => { if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') { event.preventDefault(); resize(Number(splitter.getAttribute('aria-valuenow')) + (event.key === 'ArrowRight' ? 3 : -3)); fit(); } };
-new ResizeObserver(() => { if (!drag) fit(); }).observe(viewport);
+let viewportWidth = viewport.clientWidth;
+new ResizeObserver(() => {
+  if (viewport.clientWidth !== viewportWidth) { viewportWidth = viewport.clientWidth; if (!drag) fit(); }
+}).observe(viewport);
+window.addEventListener('resize', () => { if (!drag) fit(); });
 persist(); if (recovered) message('Se ha recuperado el último borrador de este navegador.');
 void render();
