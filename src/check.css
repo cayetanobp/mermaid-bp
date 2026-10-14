@@ -1,0 +1,7 @@
+body.check-page { background: #f5f4f0; padding: 40px 24px; }
+.check-layout { max-width: 1100px; margin: auto; }
+.check-layout h1 { font-size: 24px; margin: 24px 0 12px; }
+.check-layout > header p, .check-layout > header a, #check-state { font-size: 13px; color: #718171; line-height: 1.7; }
+#check-source { width: 100%; min-height: 220px; border: 1px solid #d4ddcf; border-radius: 8px; padding: 20px; font: 13px/1.7 Consolas, monospace; resize: vertical; background: #fff; color: #344638; }
+.check-actions { display: flex; gap: 10px; margin-top: 12px; }
+#check-output { border: 1px solid #d4ddcf; border-radius: 8px; padding: 32px; background: #fff; min-height: 220px; overflow: auto; }

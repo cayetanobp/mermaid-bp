@@ -1,0 +1,9 @@
+flowchart TD
+    Inicio(["Inicio"])
+    Editar["Editar el diagrama"]
+    Revisar{"¿Está listo?"}
+    Guardar(["Guardar en BookStack"])
+    Inicio --> Editar
+    Editar --> Revisar
+    Revisar -->|"Sí"| Guardar
+    Revisar -->|"Todavía no"| Editar

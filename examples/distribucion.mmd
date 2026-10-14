@@ -1,0 +1,13 @@
+flowchart LR
+    A["Entrada"]
+    B["Revisar"]
+    C["Preparar"]
+    D(["Salida"])
+    A --> B
+    A --> C
+    B --> D
+    C --> D
+
+%% mbp-layout:start
+B ~~~ C
+%% mbp-layout:end
