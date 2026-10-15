@@ -1,6 +1,6 @@
+import {discardLegacyDraft} from './privacy';
 import {sameEdgeLabel} from './edge-label';
 import {mermaidSourceId} from './mermaid-id';
-import {persistDocuments} from './privacy';
 import {assertSourceSafe,readMmdFile} from './source-security';
 import { EditorState, Transaction, Compartment } from '@codemirror/state';
 import { EditorView, keymap, lineNumbers, highlightActiveLine, drawSelection } from '@codemirror/view';
@@ -34,6 +34,7 @@ import {getPreferences} from './preferences';
 import {setupSettings} from './settings';
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
+discardLegacyDraft();
 const app = $('app');
 app.innerHTML = `
   <header class="topbar">
@@ -52,7 +53,7 @@ app.innerHTML = `
       <div class="pane-heading"><div class="pane-tabs" role="tablist" aria-label="Vista del documento"><button id="tab-code" role="tab" aria-selected="true" aria-controls="editor">Código</button><button id="tab-cascade" role="tab" aria-selected="false" aria-controls="cascade" tabindex="-1">Cascada</button></div><span id="line-count">0 líneas</span></div>
       <div id="editor" role="tabpanel" aria-labelledby="tab-code"></div>
       <div id="cascade" role="tabpanel" aria-labelledby="tab-cascade" hidden><div class="cascade-search"><label for="cascade-search">Buscar nodos y subgrupos</label><input id="cascade-search" type="search" placeholder="Buscar por nombre o identificador" autocomplete="off"></div><div id="cascade-list" aria-label="Nodos y subgrupos"></div><div id="cascade-count" class="cascade-count"></div></div>
-      <div class="code-footer"><span>Mermaid 11.17.2</span><span id="draft-status">Borrador local</span></div>
+      <div class="code-footer"><span>Mermaid 11.17.2</span><span id="draft-status">Solo en memoria</span></div>
     </section>
     <div id="splitter" class="splitter" role="separator" tabindex="0" aria-label="Ancho del editor" aria-orientation="vertical" aria-valuemin="20" aria-valuemax="65" aria-valuenow="38"></div>
     <section class="preview-pane" aria-label="Vista previa del diagrama">
@@ -77,19 +78,13 @@ for(const id of ['node-dialog','edge-dialog','groups-dialog'])$('inspector-body'
 document.querySelector('.code-pane')!.insertBefore($('inspector'),document.querySelector('.code-footer'));
 
 let pluginHost:PluginHost|null=null;
-const STORAGE = 'mermaid-bp:draft:v1';
-interface Draft { source: string; name: string; savedSource: string; savedName: string }
-let recovered: Draft | null = null;
-try {
-  const candidate = JSON.parse((persistDocuments?localStorage.getItem(STORAGE):null) || 'null');
-  if (candidate && typeof candidate.source === 'string' && typeof candidate.name === 'string' && typeof candidate.savedSource === 'string' && typeof candidate.savedName === 'string') recovered = candidate;
-} catch { /* Un borrador corrupto no impide abrir el editor. */ }
-let lineEnding = recovered?.source.includes('\r\n') ? '\r\n' : '\n';
+// El documento y su historial viven únicamente durante esta sesión.
+let lineEnding = '\n';
 let keepView = false;
 let savingPositions = false;
-let filename = recovered?.name ?? 'diagrama.mmd';
-let savedSource = recovered?.savedSource ?? '';
-let savedName = recovered?.savedName ?? filename;
+let filename = 'diagrama.mmd';
+let savedSource = '';
+let savedName = filename;
 let generation = 0;
 let renderTimer: ReturnType<typeof setTimeout>;
 let current: Rendered | null = null;
@@ -123,16 +118,13 @@ function editorExtensions(){return [
     EditorView.contentAttributes.of({ 'aria-label': 'Código Mermaid', spellcheck: 'false' }),
     EditorView.updateListener.of(update => { if (update.docChanged) changed(); }),
   ];}
-const editor = new EditorView({ state: EditorState.create({ doc: recovered?.source ?? example, extensions: editorExtensions() }), parent: $('editor') });
+const editor = new EditorView({ state: EditorState.create({ doc: example, extensions: editorExtensions() }), parent: $('editor') });
 const source = () => editor.state.doc.toString().replace(/\n/g, lineEnding);
 const dirty = () => source() !== savedSource || filename !== savedName;
 function message(text: string) { $('message').textContent = text; }
 function persist() {
   pluginHost?.documentChanged();
-  try {
-    if(persistDocuments)localStorage.setItem(STORAGE, JSON.stringify({ source: source(), name: filename, savedSource, savedName } satisfies Draft));
-    $('draft-status').textContent = persistDocuments?'Borrador guardado':'Solo en memoria';
-  } catch { $('draft-status').textContent = 'No se pudo guardar el borrador'; }
+  $('draft-status').textContent = 'Solo en memoria · guarda para conservar';
   $('filename').textContent = filename;
   $('dirty').hidden = !dirty();
   $('line-count').textContent = `${editor.state.doc.lines} líneas`;
@@ -282,8 +274,12 @@ function syncSelected() {
   selected = selectedNodes.size===1 && !selectedEdges.size ? {node:[...selectedNodes][0]} :
     selectedEdges.size===1 && !selectedNodes.size ? {edge:[...selectedEdges][0]} : {};
 }
+let activeLayout:{root:SVGSVGElement;layout:ManualLayout}|null=null;
 function sceneLayout() {
-  return new ManualLayout($('diagram').querySelector('svg')!, flow!, current!.geometry, readConnections(source()), readGroups(source()));
+  const root=$('diagram').querySelector('svg')!;
+  // Los tiradores y la curva comparten la misma referencia durante toda la vida del SVG.
+  if(activeLayout?.root!==root)activeLayout={root,layout:new ManualLayout(root,flow!,current!.geometry,readConnections(source()),readGroups(source()))};
+  return activeLayout.layout;
 }
 let lastInspectorSelection='';
 function hideInspectorForms() {
@@ -959,7 +955,7 @@ setupWorkspaceControls({
 });
 const initialPane=getPreferences().defaultPane;
 try{setPaneMode(initialPane==='remember'?(localStorage.getItem('mermaid-bp:pane-mode')==='cascade'?'cascade':'code'):initialPane);}catch{setPaneMode(initialPane==='cascade'?'cascade':'code');}
-persist(); if (recovered) message('Se ha recuperado el último borrador de este navegador.');
+persist();
 setupInspectorResize(()=>editor.requestMeasure());
 setupSettings(()=>{editor.dispatch({effects:codeAppearance.reconfigure(codeAppearanceExtensions())});editor.requestMeasure();});
 pluginHost=new PluginHost(()=>({source:source(),fileName:filename}),message);

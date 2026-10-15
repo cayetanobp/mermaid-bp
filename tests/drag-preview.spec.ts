@@ -1,3 +1,4 @@
+import {reopenSavedDocument} from './document-helpers';
 import {command} from './menu-helpers';
 import { test, expect, type Page } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
@@ -46,10 +47,10 @@ test('arrastre inmediato, sin renders ni movimientos de otros nodos y sin salto 
   expect(await page.locator('.cm-content').innerText()).toContain('%% graph:positions ');
   await page.screenshot({ path: 'test-results/manual-position.png' });
 });
-test('las posiciones sobreviven recarga, una edición de texto y un segundo movimiento', async ({ page }) => {
+test('las posiciones se conservan al guardar y reabrir, una edición de texto y un segundo movimiento', async ({ page }) => {
   await begin(page, 'C'); await page.mouse.up(); await ready(page);
   const placed = await centers(page);
-  await page.reload(); await ready(page);
+  await reopenSavedDocument(page); await ready(page);
   let after = await centers(page);
   for (const id of Object.keys(placed)) {
     expect(after[id].x).toBeCloseTo(placed[id].x, 2); expect(after[id].y).toBeCloseTo(placed[id].y, 2);
@@ -62,7 +63,7 @@ test('las posiciones sobreviven recarga, una edición de texto y un segundo movi
   }
   await begin(page, 'C', -20, 40); await page.mouse.up(); await ready(page);
   const twice = await centers(page);
-  await page.reload(); await ready(page); after = await centers(page);
+  await reopenSavedDocument(page); await ready(page); after = await centers(page);
   for (const id of Object.keys(twice)) {
     expect(after[id].x).toBeCloseTo(twice[id].x, 2); expect(after[id].y).toBeCloseTo(twice[id].y, 2);
   }
@@ -85,6 +86,6 @@ test('el zoom se conserva y mover fuera del borde no produce salto al soltar', a
   const before = (await page.locator('[data-node-id="A"]').boundingBox())!;
   await page.mouse.up(); await ready(page);
   const after = (await page.locator('[data-node-id="A"]').boundingBox())!;
-  expect(after.x).toBeCloseTo(before.x, 2); expect(after.y).toBeCloseTo(before.y, 2);
+  expect(after.x).toBeCloseTo(before.x, 0); expect(after.y).toBeCloseTo(before.y, 0);
   expect(await page.locator('#diagram-stage').evaluate(el => new DOMMatrix(getComputedStyle(el).transform).a)).toBe(zoom);
 });

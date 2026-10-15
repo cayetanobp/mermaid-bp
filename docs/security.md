@@ -19,7 +19,7 @@ El aislamiento de la web principal requiere un origen dedicado; compartir origen
 
 No se evalúa JavaScript del usuario ni se le entrega acceso a Node.js, shell, rutas del servidor o APIs de selección de directorios. El selector solo entrega el archivo elegido y el arrastre procesa el primer archivo recibido. El guardado y la exportación son descargas expresas del usuario.
 
-El cierre o la recarga pierden los documentos en producción. La aplicación no borra borradores que puedan existir de una instalación anterior del mismo origen, pero no los lee ni los actualiza. Usa el subdominio dedicado recomendado para evitar heredar datos o service workers de otra aplicación.
+El cierre o la recarga pierden los documentos en todos los modos, incluido desarrollo local. Al arrancar, la aplicación elimina el borrador antiguo de versiones anteriores sin leer su contenido. Las preferencias de interfaz y extensiones se conservan. Usa el subdominio dedicado recomendado para evitar heredar datos o service workers de otra aplicación.
 
 Las cabeceras no sustituyen la actualización del navegador, el servidor y las dependencias. Los límites reducen la exposición al consumo de recursos del navegador, sin garantizar un tiempo máximo para cualquier diagrama válido.
 
@@ -38,7 +38,7 @@ El resultado de las pruebas del perfil de producción se registra junto a la ent
 - 40 pruebas unitarias del editor aprobadas.
 - 12 pruebas de la política de entrada aprobadas.
 - 8 pruebas de navegador contra el contenedor endurecido aprobadas.
-- Una prueba de arranque local con conservación del borrador y edición aprobada.
+- Una prueba de arranque local sin persistencia del documento, con historial y edición.
 - TypeScript y compilación de producción aprobados.
 - `npm audit`, cero vulnerabilidades conocidas. Informe en `dependency-audit-2026-10-15.json`.
 - Docker Scout, cero paquetes vulnerables detectados en la imagen final, con 38 paquetes indexados. Informe SARIF en `container-audit-2026-10-15.sarif`.

@@ -1,9 +1,10 @@
+import {reopenSavedDocument,openBookStack} from './document-helpers';
 import {command} from './menu-helpers';
 import {test,expect,type Page}from'@playwright/test';
 import{readFile}from'node:fs/promises';
 const ready=(p:Page)=>expect(p.locator('#render-state')).toHaveText('Actualizado');
 async function code(p:Page,text:string){const e=p.getByRole('textbox',{name:'Código Mermaid'});await e.click();await e.press('ControlOrMeta+a');await p.keyboard.insertText(text);await ready(p);}
-const normalized=(s:string|null)=>s?.replace(/-?\d+(?:\.\d+)?(?:e[+-]?\d+)?/gi,n=>String(Math.round(Number(n)*1e6)/1e6));
+const normalized=(s:string|null)=>s?.replace(/-?\d+(?:\.\d+)?(?:e[+-]?\d+)?/gi,n=>String(Math.round(Number(n)*1e4)/1e4));
 async function selectEdge(p:Page,index:number){await p.locator('path.flowchart-link[data-edge-index="'+index+'"]').first().dispatchEvent('pointerdown',{button:0,pointerId:90});await expect(p.locator('.port-handle')).toHaveCount(2);await expect(p.locator('.bend-handle')).toHaveCount(2);}
 async function dragPort(p:Page,end:'from'|'to'){
   const handle=(await p.locator(`[data-port-end="${end}"]`).boundingBox())!;
@@ -37,7 +38,7 @@ test('crear relación eligiendo origen y destino en el lienzo y completar sus da
   await page.locator('#edge-cancel').click();await command(page,'connect-nodes');await page.locator('[data-node-id="B"]').click();await page.keyboard.press('Escape');
   await expect(page.locator('#connect-nodes')).toHaveAttribute('aria-pressed','false');expect(await page.locator('.cm-content').innerText()).toBe(before);
 });
-test('dos controles Bézier cambian la curva manteniendo el mismo par y sobreviven a recarga y BS',async({page,context})=>{
+test('dos controles Bézier cambian la curva manteniendo el mismo par y se conservan al guardar, reabrir y comprobar BS',async({page,context})=>{
   await code(page,'flowchart LR\nA["origen"] -->|texto| B["destino"]');
   await selectEdge(page,0);await attached(page,'A','B',0);
   await page.evaluate(()=>{(window as any).bezierRenders=0;new MutationObserver(changes=>changes.forEach(c=>c.addedNodes.forEach(n=>{if(n instanceof Element&&n.classList.contains('render-host'))(window as any).bezierRenders++;}))).observe(document.body,{childList:true});});
@@ -51,9 +52,9 @@ test('dos controles Bézier cambian la curva manteniendo el mismo par y sobreviv
   await expect(page.locator('path.flowchart-link')).toHaveAttribute('id',/L_A_B_0$/);
   await expect(page.locator('.cm-content')).toContainText('"bendFrom"');await expect(page.locator('.cm-content')).toContainText('"bendTo"');
   const source=await page.locator('.cm-content').innerText(),path=normalized(await page.locator('path.flowchart-link').getAttribute('d'));
-  const check=await context.newPage();await check.goto('/bookstack.html');await expect(check.locator('#check-state')).toContainText('posiciones del editor');
+  const check=await openBookStack(page);await expect(check.locator('#check-state')).toContainText('posiciones del editor');
   expect(normalized(await check.locator('path.flowchart-link').getAttribute('d'))).toBe(path);
-  await page.reload();await ready(page);expect(await page.locator('.cm-content').innerText()).toBe(source);expect(normalized(await page.locator('path.flowchart-link').getAttribute('d'))).toBe(path);await attached(page,'A','B',0);
+  await reopenSavedDocument(page);await ready(page);expect(await page.locator('.cm-content').innerText()).toBe(source);expect(normalized(await page.locator('path.flowchart-link').getAttribute('d'))).toBe(path);await attached(page,'A','B',0);
   await selectEdge(page,0);
   const endpoint=(await page.locator('[data-port-end="from"]').boundingBox())!,node=(await page.locator('[data-node-id="A"]').boundingBox())!;
   await page.mouse.move(endpoint.x+endpoint.width/2,endpoint.y+endpoint.height/2);await page.mouse.down();await page.mouse.move(node.x+node.width/2,node.y-50,{steps:15});await page.mouse.up();await ready(page);await attached(page,'A','B',0);

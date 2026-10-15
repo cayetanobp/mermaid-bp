@@ -25,7 +25,7 @@ No abras `index.html` directamente mediante `file://`. La aplicación utiliza m�
 - Usa "Conectar nodos" para elegir origen y destino en el lienzo y completar la relación. Escape cancela la elección. Usa los botones de nodos y conexiones, el doble clic en un nodo para editarlo y el panel de selección para eliminar. Los cambios visuales se pueden deshacer.
 - Arrastra el fondo para seleccionar varios elementos. Mayús añade o quita elementos; arrastrar un nodo seleccionado mueve el conjunto. Para desplazar el lienzo, mantén espacio mientras arrastras o usa el botón central. La rueda cambia el zoom alrededor del puntero. El separador admite arrastre y las flechas del teclado.
 - Guarda con "Archivo > Guardar .mmd" o Ctrl S. Guardar descarga una copia; el navegador no sobrescribe automáticamente el archivo original.
-- El último documento se recupera desde el almacenamiento del navegador. El borrador no sustituye a una copia descargada. En navegación privada o si el almacenamiento está lleno puede no conservarse.
+- El documento y su historial solo existen durante la sesión. Recargar o cerrar descarta el trabajo; "Guardar .mmd" descarga la copia que puedes volver a abrir.
 - SVG y PNG exportan el último diagrama válido. El PNG tiene fondo blanco y hasta doble resolución, con límites de 8192 píxeles por lado y 32 millones de píxeles.
 
 ## Distribución de los menús
@@ -58,7 +58,7 @@ El editor utiliza la versión exacta de tu integración y sus valores predetermi
 
 El arrastre fija posiciones libres. El nodo sigue al puntero mediante requestAnimationFrame y solo se actualizan sus conexiones incidentes. No se invoca Mermaid durante el movimiento ni al soltar. Se conserva el zoom; Escape cancela y deshacer/rehacer recuperan la colocación.
 
-Al mover un nodo se añade la etiqueta superior `%% mermaid-bp:manual-layout`. Solo los bloques con esa etiqueta activan la extensión de posiciones; los demás se dibujan en BookStack con Mermaid estándar, sin alterar dimensiones o posiciones. Las coordenadas se guardan en `%% graph:positions` dentro del archivo .mmd. Los agentes deben conservar los identificadores de los nodos y ese comentario. "Recolocar todo" recupera la distribución automática y permite deshacer.
+Al mover un nodo se añade la etiqueta superior `%% mermaid-bp:manual-layout`. Solo los bloques con esa etiqueta activan la extensión de posiciones; los demás quedan intactos para que los dibuje el visor habitual de BookStack. Las coordenadas se guardan en `%% graph:positions` dentro del archivo .mmd. Los agentes deben conservar los identificadores de los nodos y ese comentario. "Recolocar todo" recupera la distribución automática y permite deshacer.
 
 Se conservan las formas y los estilos generados por Mermaid. Las conexiones se redondean, pero no esquivan automáticamente los obstáculos y los nodos pueden solaparse al colocarlos manualmente. Al seleccionar una relación puedes arrastrar los puntos de origen y destino alrededor de sus nodos, girarlos con "Origen ↻" y "Destino ↻" o restaurarlos. Los dos círculos azules son manejadores Bézier independientes. "Restablecer conexión" restaura los anclajes y la curva automática. Los ángulos y los vectores se guardan en `%% graph:connections`, con claves por conexión y número entre conexiones paralelas.
 
@@ -68,7 +68,7 @@ La edición visual admite `flowchart` y `graph`, las direcciones habituales, rec
 
 Los demás tipos de diagramas y las construcciones que no se puedan modificar con seguridad, como `linkStyle` por índice, enlaces a subgráficos o frontmatter, siguen disponibles por código. El editor no realiza una conversión parcial que pueda borrar información.
 
-`bookstack.html` reproduce localmente tu transformación de `.language-mermaid` a `.mermaid` y llama a `mermaid.run()`. Permite cargar el último borrador y comparar. El visor interpreta las posiciones manuales mediante el mismo módulo del editor. El encabezado instalable y los pasos de instalación están en [docs/bookstack.md](docs/bookstack.md). La distribución se verifica con la misma versión, pero las fuentes, el tema y el ancho de tu BookStack real pueden producir diferencias. No se promete una posición absoluta ni identidad de píxeles.
+`bookstack.html` reproduce localmente tu transformación de `.language-mermaid` a `.mermaid` y llama a `mermaid.run()`. Recibe el documento actual mediante un canal temporal al abrirse desde el editor. El visor interpreta las posiciones manuales mediante el mismo módulo del editor. El encabezado instalable y los pasos de instalación están en [docs/bookstack.md](docs/bookstack.md). La distribución se verifica con la misma versión, pero las fuentes, el tema y el ancho de tu BookStack real pueden producir diferencias. No se promete una posición absoluta ni identidad de píxeles.
 
 ## Compilación y pruebas
 
@@ -79,13 +79,13 @@ npm.cmd exec playwright install chromium
 npm.cmd run test:browser
 ```
 
-Las pruebas unitarias usan el ejecutor de Node. Las pruebas de navegador sirven `dist` mediante el servidor de vista previa en el puerto 4177 y comprueban archivos, recuperación, historial, edición, errores, exportaciones, arrastre y equivalencia con la integración de BookStack en tres flujos.
+Las pruebas unitarias usan el ejecutor de Node. Las pruebas de navegador sirven `dist` mediante el servidor de vista previa en el puerto 4177 y comprueban archivos, guardado y reapertura, historial, edición, errores, exportaciones, arrastre y equivalencia con la integración de BookStack en tres flujos.
 
 Si Chromium ya está instalado en otra ruta, puedes indicar el ejecutable con `PLAYWRIGHT_CHROMIUM_EXECUTABLE`. Las capturas se escriben en `test-results` y no se guardan en Git.
 
 ## Servir en casa
 
-La carpeta `dist` contiene la aplicación estática y se puede servir con cualquier servidor HTTP. No hay configuración de base de datos, credenciales ni almacenamiento en el servidor. Si cambias de origen o puerto, el navegador utiliza otro espacio de borradores.
+La carpeta `dist` contiene la aplicación estática y se puede servir con cualquier servidor HTTP. No hay configuración de base de datos, credenciales ni almacenamiento en el servidor. Los documentos no se guardan en el navegador.
 
 ```powershell
 docker build -t mermaid-bp:local .
@@ -152,4 +152,4 @@ La revisión actual supera 40 pruebas unitarias y 59 comprobaciones de navegador
 
 El mismo repositorio sirve para desarrollo local y producción. Consulta [docs/production.md](docs/production.md). En el servidor, clona el repositorio, copia `.env.example` a `.env`, configura el origen de tu web y ejecuta `./deploy.sh`. Para actualizar, ejecuta `git pull --ff-only` y `./deploy.sh`. Las protecciones y comprobaciones del perfil público están en [docs/security.md](docs/security.md).
 
-Producción no persiste documentos y solo sirve archivos estáticos. El modo de desarrollo local conserva los borradores.
+La aplicación no persiste documentos en ningún modo. Tanto desarrollo como producción descartan el trabajo al recargar.

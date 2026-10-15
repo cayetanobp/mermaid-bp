@@ -9,15 +9,18 @@ import { ManualLayout } from './manual-layout';
 import type { Flow } from './flow';
 import type { Geometry } from './layout';
 
-mermaid.initialize({startOnLoad:false,suppressErrorRendering:true,securityLevel:'strict',htmlLabels:false,maxTextSize:200_000,maxEdges:500,
+function initializeRenderer(){
+ mermaid.initialize({startOnLoad:false,suppressErrorRendering:true,securityLevel:'strict',htmlLabels:false,maxTextSize:200_000,maxEdges:500,
  secure:['secure','securityLevel','startOnLoad','maxTextSize','maxEdges','suppressErrorRendering','htmlLabels','themeCSS','fontFamily','altFontFamily','themeVariables','dompurifyConfig']});
-export async function validateMermaid(source:string):Promise<void>{assertSourceSafe(source);await mermaid.parse(prepareSource(source));}
+}
+export async function validateMermaid(source:string):Promise<void>{initializeRenderer();assertSourceSafe(source);await mermaid.parse(prepareSource(source));}
 let counter = 0;
 let chain: Promise<unknown> = Promise.resolve();
 export interface Rendered { svg: string; geometry: Geometry }
 export function renderDiagram(source: string, flow?: Flow): Promise<Rendered> {
   assertSourceSafe(source);
   const task = chain.then(async () => {
+    initializeRenderer();
     await mermaid.parse(prepareSource(source));
     const host = document.createElement('div');
     host.className = 'render-host';
@@ -39,9 +42,9 @@ export function renderDiagram(source: string, flow?: Flow): Promise<Rendered> {
           geometry.nodes[node.id] = { x: center.x, y: center.y };
         }
       }
-      if (flow && hasManualLayout(source)) {
+      if (flow) {
         const manual = new ManualLayout(root, flow, geometry, readConnections(source), readGroups(source));
-        manual.apply(readPositions(source)); manual.bounds();
+        if(hasManualLayout(source)){manual.apply(readPositions(source)); manual.bounds();}
       }
       const bounds=root.viewBox.baseVal;
       if(![bounds.x,bounds.y,bounds.width,bounds.height].every(Number.isFinite)||bounds.width>50_000||bounds.height>50_000||root.querySelectorAll('*').length>20_000)throw Error('El diagrama supera los límites de complejidad o tamaño.');

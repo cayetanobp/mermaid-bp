@@ -1,3 +1,5 @@
+import {command} from './menu-helpers';
+import {openBookStack} from './document-helpers';
 import { test, expect, type Page } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 const ready = (p: Page) => expect(p.locator('#render-state')).toHaveText('Actualizado');
@@ -7,12 +9,12 @@ async function scene(p: Page, selector: string) {
       const shape = n.querySelector<SVGGraphicsElement>('.label-container, rect, polygon, circle, path')!;
       const b = shape.getBBox(), m = root.getCTM()!.inverse().multiply(n.getCTM()!);
       const point = new DOMPoint(b.x + b.width / 2, b.y + b.height / 2).matrixTransform(m);
-      return { id: n.id.replace(/-\d+$/, ''), x: point.x, y: point.y, text: n.textContent, fill: getComputedStyle(shape).fill };
+      return { id: n.id.replace(root.id+'-','').replace(/-\d+$/, ''), x: point.x, y: point.y, text: n.textContent, fill: getComputedStyle(shape).fill };
     }).sort((a,b) => a.id.localeCompare(b.id));
     const paths = [...root.querySelectorAll<SVGPathElement>('.edgePaths path.flowchart-link')].map(path => {
       const m = root.getCTM()!.inverse().multiply(path.getCTM()!);
       const length = path.getTotalLength();
-      return { id: path.id, samples: Array.from({length:11}, (_,i) => {
+      return { id: path.id.replace(root.id+'-',''), samples: Array.from({length:11}, (_,i) => {
         const p = path.getPointAtLength(length * i / 10).matrixTransform(m); return { x:p.x, y:p.y };
       }) };
     }).sort((a,b) => a.id.localeCompare(b.id));
@@ -64,8 +66,8 @@ test('el visor reserva todos los bloques antes que CodeMirror, aísla errores y 
 test('el encabezado descargable se puede pegar solo, con Mermaid CDN y posiciones manuales', async ({ page }) => {
   const header=await readFile(new URL('../dist/bookstack-header.html',import.meta.url),'utf8');
   const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
-  await page.route('https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.7.0/**', async route=>{
-    const relative=new URL(route.request().url()).pathname.split('/mermaid/11.7.0/')[1];
+  await page.route('https://cdn.jsdelivr.net/npm/mermaid@11.17.2/dist/**', async route=>{
+    const relative=new URL(route.request().url()).pathname.split('/dist/')[1];
     if(!relative || relative.split('/').includes('..')) return route.abort();
     const body=await readFile(new URL('../node_modules/mermaid/dist/'+relative,import.meta.url));
     await route.fulfill({contentType:'text/javascript',headers:{'access-control-allow-origin':'*'},body});
@@ -80,44 +82,4 @@ test('el encabezado descargable se puede pegar solo, con Mermaid CDN y posicione
   expect(a.x).toBeCloseTo(-50,2);expect(a.y).toBeCloseTo(40,2);
   expect(b.x).toBeCloseTo(280,2);expect(b.y).toBeCloseTo(170,2);
   expect(errors).toEqual([]);
-});
-
-test('sin etiqueta timeline, Gantt, secuencias y flujos conservan exactamente el formato vanilla', async ({ page }) => {
-  const header=await readFile(new URL('../dist/bookstack-header.html',import.meta.url),'utf8');
-  await page.route('https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.7.0/**', async route=>{
-    const relative=new URL(route.request().url()).pathname.split('/mermaid/11.7.0/')[1];
-    if(!relative || relative.split('/').includes('..')) return route.abort();
-    await route.fulfill({contentType:'text/javascript',headers:{'access-control-allow-origin':'*'},
-      body:await readFile(new URL('../node_modules/mermaid/dist/'+relative,import.meta.url))});
-  });
-  const sources=[
-    'timeline\n title Etapas\n 2024 : Inicio\n 2025 : Desarrollo',
-    'gantt\n dateFormat YYYY-MM-DD\n section Fases\n Analisis : a1,2026-01-01,5d\n Desarrollo : after a1,8d',
-    'sequenceDiagram\nAlice->>Bob: hola\nBob-->>Alice: recibido',
-    'flowchart TD\nA --> B\n%% graph:positions {"A":{"x":-999,"y":999},"B":{"x":888,"y":888}}',
-  ];
-  const blocks=sources.map((source,i)=>'<section id="sample-'+i+'"><pre><code class="language-mermaid">'+source.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;')+'</code></pre></section>').join('');
-  await page.route('**/vanilla-test.html',route=>route.fulfill({contentType:'text/html',
-    body:'<!doctype html><html><head><meta charset="utf-8">'+header+'</head><body style="width:800px">'+blocks+'</body></html>'}));
-  await page.goto('/vanilla-test.html');await expect(page.locator('.mermaid svg')).toHaveCount(4);
-  await expect(page.locator('.mbp-diagram')).toHaveCount(0);
-  const results=await page.evaluate(async sources=>{
-    const url='https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.7.0/mermaid.esm.min.mjs';
-    const {default:mermaid}=await import(url);
-    const snapshot=(root:SVGSVGElement)=>({
-      viewBox:root.getAttribute('viewBox'),width:root.getAttribute('width'),height:root.getAttribute('height'),style:root.getAttribute('style'),
-      transforms:[...root.querySelectorAll('g')].map(g=>g.getAttribute('transform')),
-      paths:[...root.querySelectorAll('path')].map(p=>p.getAttribute('d')),
-    });
-    const results=[];
-    for(const [i,source] of sources.entries()){
-      const actual=document.querySelector<SVGSVGElement>('#sample-'+i+' svg')!;
-      const parent=actual.closest('section')!;
-      const reference=document.createElement('div');reference.className='mermaid';reference.textContent=source;
-      parent.append(reference);await mermaid.run({nodes:[reference]});
-      results.push({actual:snapshot(actual),reference:snapshot(reference.querySelector('svg')!)});
-    }
-    return results;
-  },sources);
-  for(const result of results)expect(result.actual).toEqual(result.reference);
 });

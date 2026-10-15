@@ -1,3 +1,4 @@
+import {reopenSavedDocument,openBookStack} from './document-helpers';
 import {test,expect,type Page} from '@playwright/test';
 import {readFile} from 'node:fs/promises';
 import {command} from './menu-helpers';

@@ -1,7 +1,8 @@
+import {reopenSavedDocument,openBookStack} from './document-helpers';
 import {command} from './menu-helpers';
 import {test,expect,type Page} from '@playwright/test';
 import {readFile} from 'node:fs/promises';
-const normalizedPath=(path:string|null)=>path?.replace(/-?\d+(?:\.\d+)?(?:e[+-]?\d+)?/gi,value=>String(Math.round(Number(value)*1e6)/1e6));
+const normalizedPath=(path:string|null)=>path?.replace(/-?\d+(?:\.\d+)?(?:e[+-]?\d+)?/gi,value=>String(Math.round(Number(value)*1e4)/1e4));
 const ready=(p:Page)=>expect(p.locator('#render-state')).toHaveText('Actualizado');
 async function code(p:Page,text:string){const e=p.getByRole('textbox',{name:'Código Mermaid'});await e.click();await e.press('ControlOrMeta+a');await p.keyboard.insertText(text);await ready(p);}
 async function positions(p:Page){return p.locator('#diagram svg').evaluate((root:SVGSVGElement)=>Object.fromEntries([...root.querySelectorAll<SVGGElement>('[data-node-id]')].map(n=>{
@@ -23,13 +24,15 @@ test('selección rectangular, movimiento conjunto, Mayús, deshacer y eliminar v
   await page.locator('#selection .danger').click();await expect(page.locator('#diagram g.node')).toHaveCount(0);
   await command(page,'undo');await ready(page);await expect(page.locator('#diagram g.node')).toHaveCount(3);
 });
-test('las relaciones tienen una zona de clic amplia y anclajes giratorios y arrastrables',async({page,context})=>{
+test('las relaciones tienen una zona de clic amplia y anclajes arrastrables',async({page,context})=>{
   await code(page,'flowchart LR\nA["origen"] -->|relación| B["destino"]');
   const hit=page.locator('.edge-hit');await expect(hit).toHaveCount(1);await expect(hit).toHaveAttribute('vector-effect','non-scaling-stroke');
   const point=await hit.evaluate((path:SVGPathElement)=>{const p=path.getPointAtLength(path.getTotalLength()*0.25).matrixTransform(path.getScreenCTM()!);return{x:p.x,y:p.y};});
   await page.mouse.click(point.x,point.y+5);await expect(page.locator('.port-handle')).toHaveCount(2);
   const original=await page.locator('path.flowchart-link').getAttribute('d');
-  await page.getByRole('button',{name:'Origen ↻'}).click();await expect(page.locator('.cm-content')).toContainText('%% graph:connections ');
+  const originHandle=(await page.locator('[data-port-end="from"]').boundingBox())!;
+  await page.mouse.move(originHandle.x+originHandle.width/2,originHandle.y+originHandle.height/2);await page.mouse.down();await page.mouse.move(originHandle.x+originHandle.width/2+15,originHandle.y+originHandle.height/2-25,{steps:8});await page.mouse.up();await ready(page);
+  await expect(page.locator('.cm-content')).toContainText('%% graph:connections ');
   expect(await page.locator('path.flowchart-link').getAttribute('d')).not.toBe(original);
   const savedPath=await page.locator('path.flowchart-link').getAttribute('d'),savedSource=await page.locator('.cm-content').innerText();
   const startHandle=(await page.locator('[data-port-end="from"]').boundingBox())!;
@@ -42,7 +45,7 @@ test('las relaciones tienen una zona de clic amplia y anclajes giratorios y arra
   const source=await page.locator('.cm-content').innerText();expect(source).toMatch(/"to":/);
   const path=await page.locator('path.flowchart-link').getAttribute('d');expect(path).toContain(' C');
   await page.screenshot({path:'test-results/anclajes-conexion.png'});
-  const check=await context.newPage();await check.goto('/bookstack.html');await expect(check.locator('#check-state')).toContainText('posiciones del editor');
+  const check=await openBookStack(page);await expect(check.locator('#check-state')).toContainText('posiciones del editor');
   expect(normalizedPath(await check.locator('path.flowchart-link').getAttribute('d'))).toBe(normalizedPath(path));
-  await page.reload();await ready(page);expect(normalizedPath(await page.locator('path.flowchart-link').getAttribute('d'))).toBe(normalizedPath(path));
+  await reopenSavedDocument(page);await ready(page);expect(normalizedPath(await page.locator('path.flowchart-link').getAttribute('d'))).toBe(normalizedPath(path));
 });

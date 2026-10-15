@@ -22,7 +22,7 @@ const code = outputs.flatMap(r => r.output).filter(chunk => chunk.type === 'chun
 if (!code || code.includes('from "mermaid"') || code.includes("from 'mermaid'")) throw new Error('El encabezado no se ha generado correctamente.');
 // Compactar también espacios: Vite los conserva en bibliotecas ES y el campo de BookStack puede truncarse.
 const compact = await transformWithEsbuild(code,'bookstack-header.js',{loader:'js',minify:true,target:'es2022',legalComments:'none'});
-const header = '<!-- Mermaid BP: sustituye el script Mermaid anterior por todo este bloque. -->\n<script type="module">\n' +
+const header = '<!-- Mermaid BP: solo bloques etiquetados; conserva el visor Mermaid habitual. -->\n<script type="module">\n' +
   compact.code.replace(/<\/script/gi, '<\\/script') + '\n</script>\n';
 if(Buffer.byteLength(header)>60_000)throw new Error('El encabezado supera el tamaño previsto para pegarlo en BookStack.');
 await mkdir(out,{recursive:true});

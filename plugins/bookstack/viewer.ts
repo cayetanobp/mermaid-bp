@@ -6,11 +6,13 @@ import { validateMermaid, renderDiagram } from '../../src/render';
 import { hasManualLayout } from '../../src/positions';
 
 /** Reservar todos los bloques antes del primer await evita que CodeMirror los sustituya. */
-export function reserveMermaidBlocks(scope: ParentNode = document): void {
+export function reserveMermaidBlocks(scope: ParentNode = document, onlyManual = false): void {
   const targets = new Map<Element, string>();
   for (const block of scope.querySelectorAll<HTMLElement>('.language-mermaid, pre[data-language="mermaid"]')) {
     const target = block.closest('pre') ?? block;
-    if (target.isConnected) targets.set(target, block.textContent ?? '');
+    const source = block.textContent ?? '';
+    if (onlyManual && (!hasManualLayout(source) || !parseFlow(source).ok)) continue;
+    if (target.isConnected) targets.set(target, source);
   }
   for (const [target, source] of targets) {
     const pending = document.createElement('div');
@@ -21,16 +23,23 @@ export function reserveMermaidBlocks(scope: ParentNode = document): void {
   }
 }
 const processing = new WeakSet<Element>();
+// La configuración de Mermaid contiene funciones que structuredClone no admite.
+function copyConfig<T>(value:T):T {
+  if(Array.isArray(value))return value.map(copyConfig) as T;
+  if(value&&typeof value==='object')return Object.fromEntries(Object.entries(value).map(([key,item])=>[key,copyConfig(item)])) as T;
+  return value;
+}
 export interface BlockResult { rendered: number; failed: number }
-export async function renderMermaidBlocks(scope: ParentNode = document): Promise<BlockResult> {
-  reserveMermaidBlocks(scope);
+export async function renderMermaidBlocks(scope: ParentNode = document, onlyManual = false): Promise<BlockResult> {
+  reserveMermaidBlocks(scope, onlyManual);
   const result = { rendered: 0, failed: 0 };
   for (const block of scope.querySelectorAll<HTMLElement>('.mbp-pending')) {
-    if (processing.has(block)) continue;
+    if (processing.has(block) || (onlyManual && !hasManualLayout(block.textContent ?? ''))) continue;
     processing.add(block);
     const source = block.textContent ?? '';
     const target = block;
     let container: HTMLDivElement | null = null;
+    const previousConfig=onlyManual?copyConfig(mermaid.mermaidAPI.getSiteConfig()):null;
     try {
       await validateMermaid(source);
       const parsed = hasManualLayout(source) ? parseFlow(source) : null;
@@ -65,12 +74,15 @@ export async function renderMermaidBlocks(scope: ParentNode = document): Promise
         error.textContent = 'No se ha podido dibujar este Mermaid. Revisa su código.';
         target.after(error);
       }
-    } finally { processing.delete(block); }
+    } finally {
+      if(previousConfig)mermaid.initialize(previousConfig);
+      processing.delete(block);
+    }
   }
   return result;
 }
 export function installBookStackViewer(): void {
-  const run = () => { void renderMermaidBlocks(); };
+  const run = () => { void renderMermaidBlocks(document, true); };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run, { once: true });
   else run();
 }

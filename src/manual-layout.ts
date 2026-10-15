@@ -17,7 +17,7 @@ function localDelta(inverse: DOMMatrix, delta: Point): Point {
   return { x: inverse.a * delta.x + inverse.c * delta.y, y: inverse.b * delta.x + inverse.d * delta.y };
 }
 function parentInverse(root: SVGSVGElement, element: SVGElement): DOMMatrix {
-  return root.getCTM()!.inverse().multiply((element.parentElement as unknown as SVGGraphicsElement).getCTM()!).inverse();
+  return root.getScreenCTM()!.inverse().multiply((element.parentElement as unknown as SVGGraphicsElement).getScreenCTM()!).inverse();
 }
 /** Conserva los SVG y estilos de Mermaid. Durante el arrastre solo cambia el nodo y sus aristas incidentes. */
 export class ManualLayout {
@@ -36,10 +36,26 @@ export class ManualLayout {
       };
       element.dataset.layoutBase = JSON.stringify(baseline);
       const shape = element.querySelector<SVGGraphicsElement>('.label-container, rect, polygon, circle, path') ?? element;
-      const box = shape.getBBox(), transform = root.getCTM()!.inverse().multiply(element.getCTM()!);
+      const box = shape.getBBox(), transform = root.getScreenCTM()!.inverse().multiply(element.getScreenCTM()!);
       this.nodes.set(node.id, { shapeElement:shape, element, center: baseline.center, matrix: new DOMMatrix(baseline.matrix), inverse: parentInverse(root, element),
         width: Math.abs(transform.a)*box.width+Math.abs(transform.c)*box.height, height: Math.abs(transform.b)*box.width+Math.abs(transform.d)*box.height, shape: node.shape });
       this.deltas.set(node.id, cleanDelta(geometry.nodes[node.id].x - baseline.center.x, geometry.nodes[node.id].y - baseline.center.y));
+    }
+    // Medir los márgenes originales antes de aplicar coordenadas guardadas o redimensionar.
+    for(const group of root.querySelectorAll<SVGGElement>('g.cluster')) {
+      const rect=group.querySelector<SVGRectElement>(':scope > rect');if(!rect||rect.dataset.layoutGroupMetrics)continue;
+      const box=rect.getBBox(),content=this.groupContent(group),label=group.querySelector<SVGGElement>(':scope > .cluster-label');
+      let titleOffset=8;
+      if(label){
+        const b=label.getBBox(),m=group.getScreenCTM()!.inverse().multiply(label.getScreenCTM()!);
+        label.dataset.layoutGroupTitle ??= JSON.stringify(values(label.transform.baseVal.consolidate()?.matrix ?? new DOMMatrix()));
+        label.dataset.layoutGroupTitleBox ??= JSON.stringify({x:b.x,y:b.y,width:b.width,height:b.height});
+        titleOffset=new DOMPoint(b.x,b.y).matrixTransform(m).y-box.y;
+      }
+      rect.dataset.layoutGroupMetrics=JSON.stringify({
+        padding:content?[content.x-box.x,content.y-box.y,box.x+box.width-content.x-content.width,box.y+box.height-content.y-content.height]:[20,40,20,20],
+        minWidth:Math.min(box.width,(label?.getBBox().width??0)+32),titleOffset
+      });
     }
     const pathMap = edgePathMap(flow);
     const labels = [...root.querySelectorAll<SVGGElement>('.edgeLabels > g.edgeLabel')];
@@ -64,15 +80,15 @@ export class ManualLayout {
       }
       let labelCenter: Point | undefined; let labelSize: Point | undefined;
       if (label) {
-        label.dataset.layoutCenter ??= JSON.stringify(new DOMPoint(0,0).matrixTransform(root.getCTM()!.inverse().multiply(label.getCTM()!)));
+        label.dataset.layoutCenter ??= JSON.stringify(new DOMPoint(0,0).matrixTransform(root.getScreenCTM()!.inverse().multiply(label.getScreenCTM()!)));
         const center = JSON.parse(label.dataset.layoutCenter); labelCenter = { x:center.x, y:center.y };
-        const box=label.getBBox(),matrix=root.getCTM()!.inverse().multiply(label.getCTM()!);
+        const box=label.getBBox(),matrix=root.getScreenCTM()!.inverse().multiply(label.getScreenCTM()!);
         labelSize={x:Math.abs(matrix.a)*box.width+Math.abs(matrix.c)*box.height,y:Math.abs(matrix.b)*box.width+Math.abs(matrix.d)*box.height};
       }
       const hit = [...root.querySelectorAll<SVGPathElement>('.edge-hit')].find(p => p.dataset.hitFor === element.id);
       element.dataset.layoutMarkers ??= JSON.stringify([element.getAttribute('marker-start'),element.getAttribute('marker-end')]);
       const markers=JSON.parse(element.dataset.layoutMarkers);
-      const state: EdgeState = { markerStart:markers[0],markerEnd:markers[1],index, key: connectionKey(flow.edges, index), hit, labelCenter, labelSize, element, from: edge.from, to: edge.to, points, original: element.dataset.layoutPath!, inverse: root.getCTM()!.inverse().multiply(element.getCTM()!).inverse(), label,
+      const state: EdgeState = { markerStart:markers[0],markerEnd:markers[1],index, key: connectionKey(flow.edges, index), hit, labelCenter, labelSize, element, from: edge.from, to: edge.to, points, original: element.dataset.layoutPath!, inverse: root.getScreenCTM()!.inverse().multiply(element.getScreenCTM()!).inverse(), label,
         labelMatrix: label ? new DOMMatrix(JSON.parse(label.dataset.layoutMatrix!)) : undefined, labelInverse: label ? parentInverse(root, label) : undefined };
       this.edges.add(state);
       if(!this.edgesByIndex.has(index)) this.edgesByIndex.set(index,[]);
@@ -142,7 +158,7 @@ export class ManualLayout {
     const model=this.flow.edges[index]; if(!model) return null;
     const node=this.nodes.get(model[end]); if(!node) return null;
     const shapeBox=node.shapeElement.getBBox();
-    const shapeMatrix=this.root.getCTM()!.inverse().multiply(node.shapeElement.getCTM()!);
+    const shapeMatrix=this.root.getScreenCTM()!.inverse().multiply(node.shapeElement.getScreenCTM()!);
     const actual=new DOMPoint(shapeBox.x+shapeBox.width/2,shapeBox.y+shapeBox.height/2).matrixTransform(shapeMatrix);
     const center={x:actual.x,y:actual.y};
     const width=Math.abs(shapeMatrix.a)*shapeBox.width+Math.abs(shapeMatrix.c)*shapeBox.height;
@@ -219,18 +235,38 @@ export class ManualLayout {
     delete this.groups[id];this.resizeGroups();
     const box=this.groupBox(id);if(box)this.groups[id]=box;
   }
+  private groupContent(group:SVGGElement):GroupBox|null {
+    const id=mermaidSourceId(group),inverse=group.getScreenCTM()!.inverse();
+    const shapes:SVGGraphicsElement[]=[];
+    for(const node of this.flow.nodes) {
+      if(node.group?.split('/').at(-1)!==id)continue;
+      const state=this.nodes.get(node.id);if(state)shapes.push(state.shapeElement);
+    }
+    for(const child of this.flow.groups??[]) {
+      if(child.parent!==id)continue;
+      const element=[...this.root.querySelectorAll<SVGGElement>('g.cluster')].find(g=>mermaidSourceId(g)===child.id);
+      const rect=element?.querySelector<SVGRectElement>(':scope > rect');if(rect)shapes.push(rect);
+    }
+    const points=shapes.flatMap(shape=>{const b=shape.getBBox(),m=inverse.multiply(shape.getScreenCTM()!);return [[b.x,b.y],[b.x+b.width,b.y],[b.x,b.y+b.height],[b.x+b.width,b.y+b.height]].map(([x,y])=>new DOMPoint(x,y).matrixTransform(m));});
+    if(!points.length)return null;
+    const x=Math.min(...points.map(p=>p.x)),y=Math.min(...points.map(p=>p.y));
+    return {x,y,width:Math.max(...points.map(p=>p.x))-x,height:Math.max(...points.map(p=>p.y))-y};
+  }
   resizeGroups(only?:string) {
-    const rootInverse=this.root.getCTM()!.inverse();
-    for(const group of this.root.querySelectorAll<SVGGElement>('g.cluster')) {
+    const rootInverse=this.root.getScreenCTM()!.inverse();
+    const depth=(id:string):number=>{const parent=this.flow.groups?.find(g=>g.id===id)?.parent;return parent?1+depth(parent):0;};
+    const clusters=[...this.root.querySelectorAll<SVGGElement>('g.cluster')].sort((a,b)=>depth(mermaidSourceId(b))-depth(mermaidSourceId(a)));
+    for(const group of clusters) {
       if(only&&mermaidSourceId(group)!==only)continue;
       const rect=group.querySelector<SVGRectElement>(':scope > rect');if(!rect)continue;
-      const inverse=rootInverse.multiply(group.getCTM()!).inverse();
+      const metrics=JSON.parse(rect.dataset.layoutGroupMetrics!);
+      const inverse=rootInverse.multiply(group.getScreenCTM()!).inverse();
       const label=group.querySelector<SVGGElement>(':scope > .cluster-label');
       let labelBox:DOMRect|undefined;
       if(label) {
         label.dataset.layoutGroupTitle ??= JSON.stringify(values(label.transform.baseVal.consolidate()?.matrix ?? new DOMMatrix()));
         label.setAttribute('transform',new DOMMatrix(JSON.parse(label.dataset.layoutGroupTitle)).toString());
-        labelBox=label.getBBox();
+        labelBox=JSON.parse(label.dataset.layoutGroupTitleBox!);
       }
       let left=Infinity,top=Infinity,right=-Infinity,bottom=-Infinity;
       const fixed=this.groups[mermaidSourceId(group)];
@@ -238,26 +274,22 @@ export class ManualLayout {
         const a=new DOMPoint(fixed.x,fixed.y).matrixTransform(inverse),b=new DOMPoint(fixed.x+fixed.width,fixed.y+fixed.height).matrixTransform(inverse);
         left=a.x;top=a.y;right=b.x;bottom=b.y;
       } else {
-        for(const node of this.flow.nodes) {
-          if(!node.group?.split('/').includes(mermaidSourceId(group)))continue;
-          const state=this.nodes.get(node.id);if(!state)continue;
-          const box=state.shapeElement.getBBox(),matrix=inverse.multiply(rootInverse.multiply(state.shapeElement.getCTM()!));
-          const a=new DOMPoint(box.x,box.y).matrixTransform(matrix),b=new DOMPoint(box.x+box.width,box.y+box.height).matrixTransform(matrix);
-          left=Math.min(left,a.x-20);top=Math.min(top,a.y-(labelBox?.height ?? 15)-24);
-          right=Math.max(right,b.x+20);bottom=Math.max(bottom,b.y+20);
-        }
+        const content=this.groupContent(group);
+        if(content){const [l,t,r,b]=metrics.padding;left=content.x-l;top=content.y-t;right=content.x+content.width+r;bottom=content.y+content.height+b;}
         if(!Number.isFinite(left)) {
           left=rect.x.baseVal.value;top=rect.y.baseVal.value;right=left+rect.width.baseVal.value;bottom=top+rect.height.baseVal.value;
         }
-        const width=Math.max(40,(labelBox?.width ?? 0)+32,right-left),center=(left+right)/2;
+        const width=Math.max(40,metrics.minWidth,right-left),center=(left+right)/2;
         left=center-width/2;right=center+width/2;bottom=Math.max(bottom,top+40);
       }
       rect.setAttribute('x',String(left));rect.setAttribute('y',String(top));
       rect.setAttribute('width',String(right-left));rect.setAttribute('height',String(bottom-top));
+      // Mermaid puede expresar estas dimensiones en CSS; los atributos por sí solos no las sustituyen.
+      for(const [key,value]of Object.entries({x:left,y:top,width:right-left,height:bottom-top}))rect.style.setProperty(key,value+'px','important');
       if(label&&labelBox) {
         const m=label.transform.baseVal.consolidate()?.matrix ?? new DOMMatrix();
         const current=new DOMPoint(labelBox.x+labelBox.width/2,labelBox.y).matrixTransform(m);
-        label.setAttribute('transform',`matrix(${m.a} ${m.b} ${m.c} ${m.d} ${m.e+(left+right)/2-current.x} ${m.f+top+8-current.y})`);
+        label.setAttribute('transform',`matrix(${m.a} ${m.b} ${m.c} ${m.d} ${m.e+(left+right)/2-current.x} ${m.f+top+metrics.titleOffset-current.y})`);
       }
     }
   }

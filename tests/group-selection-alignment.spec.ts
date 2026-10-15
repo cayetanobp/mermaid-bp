@@ -1,3 +1,4 @@
+import {reopenSavedDocument} from './document-helpers';
 import {command} from './menu-helpers';
 import {test,expect,type Page,type Locator} from '@playwright/test';
 const ready=(page:Page)=>expect(page.locator('#render-state')).toHaveText('Actualizado');
@@ -32,14 +33,14 @@ test('el primer clic alinea las esquinas con la geometría visible sin ajustar n
   await expect(page.locator('#dirty')).toBeHidden();
   await page.screenshot({path:'test-results/subgrupo-alineado-primer-clic.png'});
 });
-test('mantiene la alineación al cambiar el zoom y tras recargar',async({page})=>{
+test('mantiene la alineación al cambiar el zoom y al reabrir el archivo',async({page})=>{
   await open(page,source);await select(page);await aligned(page);
   const box=(await page.locator('#diagram-viewport').boundingBox())!;
   const beforeZoom=await page.locator('#diagram-stage').getAttribute('style');
   await page.mouse.move(box.x+box.width/2,box.y+box.height/2);await page.mouse.wheel(0,-120);
   await expect(page.locator('#diagram-stage')).not.toHaveAttribute('style',beforeZoom!);
   await aligned(page);
-  await page.reload();await ready(page);await select(page);await aligned(page);
+  await reopenSavedDocument(page);await ready(page);await select(page);await aligned(page);
 });
 test('alinea un subgrupo anidado desde la primera selección',async({page})=>{
   await open(page,'flowchart TD\nsubgraph OUT[Exterior]\nsubgraph G[Interior]\nA[Uno] --> B[Dos]\nend\nC[Tres]\nend\nD[Fuera]\nstyle G x:-25px,y:30px,width:240px');

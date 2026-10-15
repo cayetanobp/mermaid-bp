@@ -1,3 +1,4 @@
+import {documentText} from './document-helpers';
 import {command} from './menu-helpers';
 import {test,expect,type Page} from '@playwright/test';
 const ready=(p:Page)=>expect(p.locator('#render-state')).toHaveText('Actualizado');
@@ -7,7 +8,7 @@ async function open(p:Page,text=source,name='cascada.mmd'){
  await p.locator('#file').setInputFiles({name,mimeType:'text/plain',buffer:Buffer.from(text)});
  await expect(p.locator('#filename')).toHaveText(name);await ready(p);
 }
-const draft=(p:Page)=>p.evaluate(()=>JSON.parse(localStorage.getItem('mermaid-bp:draft:v1')!).source as string);
+const draft=documentText;
 test('cascada y diagrama comparten ficha, grupos y miembros; solo la cascada muestra relaciones navegables',async({page})=>{
  await open(page);await page.getByRole('tab',{name:'Cascada',exact:true}).click();
  await expect(page.locator('#editor')).toBeHidden();await expect(page.locator('[data-cascade-node]')).toHaveCount(4);

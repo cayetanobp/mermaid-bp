@@ -1,3 +1,4 @@
+import {openBookStack} from './document-helpers';
 import {command} from './menu-helpers';
 import { test, expect, type Page } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
@@ -66,14 +67,15 @@ test('otros tipos y estilos por índice conservan código sin edición visual', 
   await expect(page.locator('#add-node')).toBeDisabled();
   await expect(page.locator('#diagram svg')).toBeVisible();
 });
-test('abrir, descargar, recuperar borrador y cancelar sustitución', async ({ page }) => {
+test('abrir, descargar, descartar al recargar y cancelar sustitución', async ({ page }) => {
   await command(page,'save');
   const original = 'flowchart LR\n    A["áéíóú ñ"] --> B["final"]\n';
   await page.locator('#file').setInputFiles({ name: 'prueba.mmd', mimeType: 'text/plain', buffer: Buffer.from(original) }); await ready(page);
   await expect(page.locator('#filename')).toHaveText('prueba.mmd');
   expect(await downloadText(page)).toBe(original);
   await code(page, 'flowchart TD\nA["borrador"]');
-  await page.reload(); await ready(page); expect(await text(page)).toContain('borrador');
+  await page.reload(); await ready(page); expect(await text(page)).not.toContain('borrador');
+  await code(page, 'flowchart TD\nA["borrador"]');
   await command(page,'new'); await expect(page.locator('#confirm-dialog')).toBeVisible();
   await page.locator('#confirm-dialog button[value=cancel]').click(); expect(await text(page)).toContain('borrador');
   await command(page,'new'); await page.locator('#confirm-dialog button[value=replace]').click(); await ready(page);
@@ -108,11 +110,11 @@ test('la distribución coincide con la integración de BookStack en tres flujos'
   for (const sample of samples) {
     await code(page, sample);
     const first = await page.locator('#diagram svg').evaluate(svg => svg.getAttribute('viewBox'));
-    const coordinates = await page.locator('#diagram g.node').evaluateAll(nodes => nodes.map(n => ({ id: n.id.replace(/-\d+$/, ''), transform: n.getAttribute('transform'), text: n.textContent })).sort((a, b) => a.id.localeCompare(b.id)));
-    const check = await context.newPage(); await check.goto('/bookstack.html');
+    const coordinates = await page.locator('#diagram g.node').evaluateAll(nodes => nodes.map(n => ({ id: n.id.replace(n.closest('svg')!.id+'-','').replace(/-\d+$/, ''), transform: n.getAttribute('transform'), text: n.textContent })).sort((a, b) => a.id.localeCompare(b.id)));
+    const check = await openBookStack(page);
     await expect(check.locator('#check-state')).toContainText('Renderizado con');
     expect(await check.locator('#check-output svg').getAttribute('viewBox')).toBe(first);
-    const compared = await check.locator('#check-output g.node').evaluateAll(nodes => nodes.map(n => ({ id: n.id.replace(/-\d+$/, ''), transform: n.getAttribute('transform'), text: n.textContent })).sort((a, b) => a.id.localeCompare(b.id)));
+    const compared = await check.locator('#check-output g.node').evaluateAll(nodes => nodes.map(n => ({ id: n.id.replace(n.closest('svg')!.id+'-','').replace(/-\d+$/, ''), transform: n.getAttribute('transform'), text: n.textContent })).sort((a, b) => a.id.localeCompare(b.id)));
     expect(compared).toEqual(coordinates); await check.close();
   }
 });
@@ -154,22 +156,21 @@ async function metrics(page: Page, selector: string) {
         const shape = n.querySelector<SVGGraphicsElement>('.label-container, rect, polygon, circle, path')!;
         const b = shape.getBBox(), matrix = root.getCTM()!.inverse().multiply(n.getCTM()!);
         const p = new DOMPoint(b.x + b.width/2, b.y + b.height/2).matrixTransform(matrix);
-        return { id: n.id.replace(/-\d+$/, ''), x: round(p.x), y: round(p.y), w: round(b.width), h: round(b.height), text: n.textContent, fill: getComputedStyle(shape).fill, stroke: getComputedStyle(shape).stroke };
+        return { id: n.id.replace(n.closest('svg')!.id+'-','').replace(/-\d+$/, ''), x: round(p.x), y: round(p.y), w: round(b.width), h: round(b.height), text: n.textContent, fill: getComputedStyle(shape).fill, stroke: getComputedStyle(shape).stroke };
       }).sort((a,b) => a.id.localeCompare(b.id)),
       edges: [...root.querySelectorAll('.edgePaths path.flowchart-link')].map(e => {
         // La selección es una ayuda del editor y no forma parte del diagrama publicado.
         const selected=e.classList.contains('selected-edge');if(selected)e.classList.remove('selected-edge');
-        const result={id:e.id,d:e.getAttribute('d'),stroke:getComputedStyle(e).stroke};
+        const result={id:e.id.replace(root.id+'-',''),d:e.getAttribute('d'),stroke:getComputedStyle(e).stroke};
         if(selected)e.classList.add('selected-edge');return result;
       }).sort((a,b) => a.id.localeCompare(b.id)),
-      groups: [...root.querySelectorAll('g.cluster')].map(g => ({ id: g.id, text: g.querySelector('.cluster-label')?.textContent, transform: g.getAttribute('transform') })).sort((a,b) => a.id.localeCompare(b.id)),
+      groups: [...root.querySelectorAll('g.cluster')].map(g => ({ id: g.id.replace(g.closest('svg')!.id+'-',''), text: g.querySelector('.cluster-label')?.textContent, transform: g.getAttribute('transform') })).sort((a,b) => a.id.localeCompare(b.id)),
     };
   });
 }
 async function sameAsBookStack(page: Page) {
-  const check = await page.context().newPage();
+  const check = await openBookStack(page);
   try {
-    await check.goto('/bookstack.html');
     await expect(check.locator('#check-state')).toContainText('Renderizado con');
     expect(await metrics(check, '#check-output svg')).toEqual(await metrics(page, '#diagram svg'));
     return check;
