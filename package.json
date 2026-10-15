@@ -7,11 +7,12 @@
     "dev": "vite --host 127.0.0.1",
     "build": "tsc --noEmit && vite build && node --experimental-strip-types scripts/build-plugins.ts",
     "preview": "vite preview --host 127.0.0.1",
-    "test": "node --experimental-strip-types --test tests/unit.test.ts tests/drag-plan.test.ts tests/exact-preview.test.ts tests/positions.test.ts tests/connections.test.ts",
+    "test": "node --experimental-strip-types --test tests/unit.test.ts tests/drag-plan.test.ts tests/exact-preview.test.ts tests/positions.test.ts tests/connections.test.ts tests/package-web.test.mjs",
     "test:browser": "playwright test",
     "test:security": "node --experimental-strip-types --test tests/security.test.ts",
     "test:public": "playwright test --config playwright.security.config.ts",
-    "test:local": "playwright test --config playwright.local.config.ts"
+    "test:local": "playwright test --config playwright.local.config.ts",
+    "package:web": "npm run build && node scripts/package-web.mjs"
   },
   "dependencies": {
     "@codemirror/commands": "6.8.1",
@@ -21,12 +22,13 @@
     "@fontsource/ibm-plex-mono": "^5.3.0",
     "@fontsource/ibm-plex-sans": "^5.3.0",
     "@fontsource/source-serif-4": "^5.3.1",
-    "mermaid": "11.17.2",
-    "dompurify": "3.4.17"
+    "dompurify": "3.4.17",
+    "mermaid": "11.17.2"
   },
   "devDependencies": {
     "@playwright/test": "^1.56.0",
     "@types/node": "^22.0.0",
+    "fflate": "0.8.3",
     "typescript": "~5.8.3",
     "vite": "^6.3.0"
   },

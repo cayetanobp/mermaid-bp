@@ -1,6 +1,6 @@
 # Desplegar este repositorio
 
-El mismo repositorio contiene el editor local y su despliegue público. No hay que mantener una copia de producción ni generar un ZIP.
+El mismo repositorio contiene el editor local y su despliegue público. Para un servidor con Nginx sin Docker ni npm, utiliza el [paquete web estático](nginx.md). Esta guía conserva la alternativa con Docker y actualización desde Git.
 
 ## Primera instalación
 

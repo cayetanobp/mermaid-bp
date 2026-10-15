@@ -2,6 +2,10 @@
 
 Editor web local de archivos `.mmd`, con Mermaid **11.17.2**, vista previa y edición visual de flujos básicos. No requiere cuentas ni servicios externos durante el uso.
 
+## Desplegar con Nginx sin npm ni Docker
+
+Para un servidor con Nginx, usa el paquete web compilado. Solo hay que subir los archivos estáticos e instalar el snippet del sitio, incluido el descubrimiento de plugins. Consulta [la guía de Nginx](docs/nginx.md). El paquete se genera con `npm run package:web` en el equipo de desarrollo o con el flujo manual "Paquete web para Nginx" en GitHub Actions; el servidor no compila nada.
+
 ## Arranque local
 
 Requiere Node.js 22.18 o posterior. Las dependencias ya están instaladas en esta copia.
@@ -102,7 +106,7 @@ El perfil público utiliza Mermaid 11.17.2, DOMPurify 3.4.17 y KaTeX 0.18.2 por 
 
 La instalación no incluye KaTeX como hoja de estilos global para fórmulas; el objetivo de compatibilidad es el script de BookStack facilitado, que tampoco la añade. Los diagramas especialmente grandes o una sintaxis patológica pueden bloquear temporalmente el hilo del navegador. No se incluye aislamiento en un proceso separado.
 
-El historial Git es exclusivamente local; no hay remoto configurado. El servidor Docker se entrega preparado, pero su arranque requiere Docker instalado.
+El repositorio está publicado en GitHub. Docker es una alternativa de despliegue; el paquete estático para Nginx no lo necesita.
 
 ## Verificación de esta entrega
 

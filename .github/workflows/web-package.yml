@@ -1,0 +1,23 @@
+name: Paquete web para Nginx
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run test:security
+      - run: npm run package:web
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mermaid-bp-web
+          path: artifacts/releases/*
+          if-no-files-found: error
