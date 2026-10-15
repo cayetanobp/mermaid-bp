@@ -1,3 +1,6 @@
+import {mermaidSourceId} from './mermaid-id';
+import {persistDocuments} from './privacy';
+import {assertSourceSafe,readMmdFile} from './source-security';
 import { EditorState, Transaction } from '@codemirror/state';
 import { EditorView, keymap, lineNumbers, highlightActiveLine, drawSelection } from '@codemirror/view';
 import { history, historyKeymap, defaultKeymap, undo, redo, isolateHistory } from '@codemirror/commands';
@@ -9,7 +12,7 @@ import {readGroups,writeGroups,type GroupBox} from './groups';
 import { writePositions,hasManualLayout } from './positions';
 import {assignGroup,saveGroup,deleteGroup,groupPath} from './subgroups';
 import { readConnections, writeConnections, type Connections } from './connections';
-import { renderDiagram, download, pngBlob, svgDocument, type Rendered } from './render';
+import { renderDiagram, download, pngBlob, svgDocument, type Rendered, validateMermaid } from './render';
 import { setupWorkspaceControls } from './workspace-controls';
 import {resetLayout} from './reset-layout';
 import './style.css';
@@ -34,7 +37,7 @@ app.innerHTML = `
     <button id="tour-button">Guía de uso</button><button id="plugins-button">Extensiones</button><button id="toolbar-toggle" class="toolbar-toggle" aria-controls="file-toolbar" aria-expanded="true" aria-label="Ocultar herramientas"><span class="collapse-icon" aria-hidden="true">▴</span><span class="control-label">Ocultar herramientas</span></button>
   </header>
   <nav id="file-toolbar" class="toolbar" aria-label="Archivo y edición">
-    <div class="toolbar-group"><button id="new">Nuevo</button><button id="open">Abrir .mmd</button><input id="file" type="file" accept=".mmd,.mermaid,text/plain" hidden><button id="save" class="primary">Guardar .mmd <kbd>Ctrl S</kbd></button></div>
+    <div class="toolbar-group"><button id="new">Nuevo</button><button id="open">Abrir .mmd</button><input id="file" type="file" accept=".mmd" hidden><button id="save" class="primary">Guardar .mmd <kbd>Ctrl S</kbd></button></div>
     <div class="toolbar-group"><button id="undo" title="Deshacer">↶ <span>Deshacer</span></button><button id="redo" title="Rehacer">↷ <span>Rehacer</span></button></div>
     <div class="toolbar-group export-group"><button id="copy">Copiar Mermaid</button><button id="svg">SVG</button><button id="png">PNG</button><span id="plugin-actions"></span></div>
   </nav>
@@ -43,7 +46,7 @@ app.innerHTML = `
       <div class="pane-heading"><div class="pane-tabs" role="tablist" aria-label="Vista del documento"><button id="tab-code" role="tab" aria-selected="true" aria-controls="editor">Código</button><button id="tab-cascade" role="tab" aria-selected="false" aria-controls="cascade" tabindex="-1">Cascada</button></div><span id="line-count">0 líneas</span></div>
       <div id="editor" role="tabpanel" aria-labelledby="tab-code"></div>
       <div id="cascade" role="tabpanel" aria-labelledby="tab-cascade" hidden><div class="cascade-search"><label for="cascade-search">Buscar nodos y subgrupos</label><input id="cascade-search" type="search" placeholder="Buscar por nombre o identificador" autocomplete="off"></div><div id="cascade-list" aria-label="Nodos y subgrupos"></div><div id="cascade-count" class="cascade-count"></div></div>
-      <div class="code-footer"><span>Mermaid 11.7.0</span><span id="draft-status">Borrador local</span></div>
+      <div class="code-footer"><span>Mermaid 11.17.2</span><span id="draft-status">Borrador local</span></div>
     </section>
     <div id="splitter" class="splitter" role="separator" tabindex="0" aria-label="Ancho del editor" aria-orientation="vertical" aria-valuemin="20" aria-valuemax="65" aria-valuenow="38"></div>
     <section class="preview-pane" aria-label="Vista previa del diagrama">
@@ -69,7 +72,7 @@ const STORAGE = 'mermaid-bp:draft:v1';
 interface Draft { source: string; name: string; savedSource: string; savedName: string }
 let recovered: Draft | null = null;
 try {
-  const candidate = JSON.parse(localStorage.getItem(STORAGE) || 'null');
+  const candidate = JSON.parse((persistDocuments?localStorage.getItem(STORAGE):null) || 'null');
   if (candidate && typeof candidate.source === 'string' && typeof candidate.name === 'string' && typeof candidate.savedSource === 'string' && typeof candidate.savedName === 'string') recovered = candidate;
 } catch { /* Un borrador corrupto no impide abrir el editor. */ }
 let lineEnding = recovered?.source.includes('\r\n') ? '\r\n' : '\n';
@@ -113,8 +116,8 @@ function message(text: string) { $('message').textContent = text; }
 function persist() {
   pluginHost?.documentChanged();
   try {
-    localStorage.setItem(STORAGE, JSON.stringify({ source: source(), name: filename, savedSource, savedName } satisfies Draft));
-    $('draft-status').textContent = 'Borrador guardado';
+    if(persistDocuments)localStorage.setItem(STORAGE, JSON.stringify({ source: source(), name: filename, savedSource, savedName } satisfies Draft));
+    $('draft-status').textContent = persistDocuments?'Borrador guardado':'Solo en memoria';
   } catch { $('draft-status').textContent = 'No se pudo guardar el borrador'; }
   $('filename').textContent = filename;
   $('dirty').hidden = !dirty();
@@ -168,6 +171,7 @@ function updateControls() {
 }
 async function render() {
   const token = generation, text = source();
+  try{assertSourceSafe(text);}catch(error){valid=false;flow=null;$('error').hidden=false;$('error').textContent=(error as Error).message;$('render-state').textContent='No se puede renderizar';updateControls();return;}
   const previousBox=$('diagram').querySelector('svg')?.viewBox.baseVal;
   const previousOrigin=previousBox?{x:previousBox.x,y:previousBox.y}:null;
   const preserveCamera=keepView&&hasManualLayout(text);
@@ -216,13 +220,13 @@ async function render() {
 function decorate(model: Flow | null = flow) {
   if (!model) return;
   for (const node of $('diagram').querySelectorAll<SVGGElement>('g.node')) {
-    const nodeModel = model.nodes.find(n => node.id.startsWith(`flowchart-${n.id}-`));
+    const nodeModel = model.nodes.find(n => mermaidSourceId(node).startsWith(`flowchart-${n.id}-`));
     if (nodeModel) { node.dataset.nodeId = nodeModel.id; node.classList.add('editable-node'); }
   }
   const pathMap = edgePathMap(model);
   const usedLabels=new Set<SVGGElement>();
   $('diagram').querySelectorAll<SVGPathElement>('.edgePaths path.flowchart-link').forEach(path => {
-    const index = pathMap.get(path.id);
+    const index = pathMap.get(mermaidSourceId(path));
     if (index !== undefined) {
       path.dataset.edgeIndex = String(index);
       const hit=path.cloneNode(false) as SVGPathElement;
@@ -437,7 +441,7 @@ function showSelection() {
   if(selectedGroup) {
     $('inspector-title').textContent='Subgrupo';
     const id=selectedGroup,label=document.createElement('span');
-    const group=[...$('diagram').querySelectorAll('g.cluster')].find(g=>g.id===id);
+    const group=[...$('diagram').querySelectorAll('g.cluster')].find(g=>mermaidSourceId(g)===id);
     label.textContent='Fondo · '+(group?.querySelector('.cluster-label')?.textContent ?? id);
     panel.append(label);
     const fit=document.createElement('button');fit.textContent='Ajustar al contenido';
@@ -663,9 +667,8 @@ async function mayReplace(): Promise<boolean> {
   return result === 'replace';
 }
 async function loadFile(file: File) {
-  if (file.size > 2_000_000) { message('El archivo supera el límite de 2 MB.'); return; }
-  let text: string;
-  try { text = await file.text(); } catch { message('No se pudo leer el archivo.'); return; }
+  let text:string;
+  try{text=await readMmdFile(file);await validateMermaid(text);}catch(error){message((error as Error).message);return;}
   if (!(await mayReplace())) return;
   filename = file.name.replace(/\.(?:mmd|mermaid)$/i, '') + '.mmd'; savedSource = text; savedName = filename;
   replaceDocument(text); message(`Abierto ${filename}.`);
@@ -817,7 +820,8 @@ viewport.onpointerdown=event=>{
   if(!pan)selectionOrigin='diagram';
   if(connectionPick&&!pan){pickPressed=node?.dataset.nodeId??null;viewport.focus();event.preventDefault();return;}
   const resizeHandle=target.closest<SVGElement>('[data-group-resize]');
-  const group=resizeHandle?selectedGroup:target.closest('g.cluster')?.id;
+  const cluster=target.closest('g.cluster');
+  const group=resizeHandle?selectedGroup:cluster?mermaidSourceId(cluster):undefined;
   let mode:Drag['mode']=pan?'pan':port?'port':bend?'bend':node&&flow&&valid?'nodes':group&&flow&&valid?(resizeHandle?'group-resize':'group'):'marquee';
   const id=node?.dataset.nodeId;
   const additive=event.shiftKey||event.ctrlKey||event.metaKey;

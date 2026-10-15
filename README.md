@@ -1,6 +1,6 @@
 # Mermaid BP
 
-Editor web local de archivos `.mmd`, con Mermaid **11.7.0**, vista previa y edición visual de flujos básicos. No requiere cuentas ni servicios externos durante el uso.
+Editor web local de archivos `.mmd`, con Mermaid **11.17.2**, vista previa y edición visual de flujos básicos. No requiere cuentas ni servicios externos durante el uso.
 
 ## Arranque local
 
@@ -74,7 +74,7 @@ Abre `http://localhost:8080`. Para Kubernetes, la imagen escucha en el puerto 80
 
 Se elige una aplicación estática con TypeScript, Vite y CodeMirror por su sencillez operativa. Se descartan un backend con base de datos y una aplicación de escritorio porque no aportan valor al uso individual previsto.
 
-Mermaid permanece fijado en 11.7.0 por compatibilidad con BookStack. `npm audit` sigue señalando vulnerabilidades conocidas de esa versión y de su dependencia KaTeX; no se puede obtener una auditoría limpia manteniendo esa versión exacta. Se ha actualizado `lodash-es` mediante una resolución explícita y se utiliza el nivel de seguridad predeterminado de Mermaid. Usa documentos de confianza y evita publicar esta instancia como servicio para terceros. Para eliminar los avisos restantes habrá que actualizar y verificar Mermaid tanto aquí como en BookStack.
+El perfil público utiliza Mermaid 11.17.2, DOMPurify 3.4.17 y KaTeX 0.18.2 por seguridad. Las diferencias respecto al renderizado anterior y las comprobaciones se describen en [docs/security.md](docs/security.md).
 
 La instalación no incluye KaTeX como hoja de estilos global para fórmulas; el objetivo de compatibilidad es el script de BookStack facilitado, que tampoco la añade. Los diagramas especialmente grandes o una sintaxis patológica pueden bloquear temporalmente el hilo del navegador. No se incluye aislamiento en un proceso separado.
 
@@ -122,3 +122,10 @@ La dirección visual está en [style.md](style.md). Las siguientes mejoras se ma
 ## Verificación actual de cascada y extensiones
 
 La revisión actual supera 40 pruebas unitarias y 59 comprobaciones de navegador entre la distribución normal y la compilación sin extensiones. El detalle, los escenarios y el alcance están en [docs/verification-2026-10-15.md](docs/verification-2026-10-15.md).
+
+
+## Despliegue desde Git
+
+El mismo repositorio sirve para desarrollo local y producción. Consulta [docs/production.md](docs/production.md). En el servidor, clona el repositorio, copia `.env.example` a `.env`, configura el origen de tu web y ejecuta `./deploy.sh`. Para actualizar, ejecuta `git pull --ff-only` y `./deploy.sh`. Las protecciones y comprobaciones del perfil público están en [docs/security.md](docs/security.md).
+
+Producción no persiste documentos y solo sirve archivos estáticos. El modo de desarrollo local conserva los borradores.

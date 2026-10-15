@@ -1,567 +1,2177 @@
 <!-- Mermaid BP: sustituye el script Mermaid anterior por todo este bloque. -->
 <script type="module">
-var R = Object.defineProperty;
-var H = (c, t, e) => t in c ? R(c, t, { enumerable: !0, configurable: !0, writable: !0, value: e }) : c[t] = e;
-var k = (c, t, e) => H(c, typeof t != "symbol" ? t + "" : t, e);
-import I from "https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.7.0/mermaid.esm.min.mjs";
-const K = /^[A-Za-z_][A-Za-z0-9_]*/, Q = "%% mbp-layout:start", U = "%% mbp-layout:end", X = [["((", "))", "circle"], ["([", "])", "stadium"], ["[", "]", "rect"], ["(", ")", "round"], ["{", "}", "diamond"]], Y = (c) => ({ direction: c.direction, nodes: c.nodes, edges: c.edges, comments: c.comments, constraints: c.constraints, groups: c.groups ?? [] });
-function q(c) {
-  return c.replace(/<br\s*\/?\s*>/gi, `
-`).replace(/#quot;/g, '"').replace(/#(\d+);/g, (t, e) => String.fromCodePoint(Number(e)));
-}
-function tt(c) {
-  const t = c.match(K);
-  if (!t || ["end", "subgraph"].includes(t[0])) throw new Error("Identificador no admitido en edición visual.");
-  const e = t[0];
-  let n = c.slice(e.length).trimStart();
-  for (const [o, a, i] of X) {
-    if (!n.startsWith(o)) continue;
-    n = n.slice(o.length);
-    let s;
-    if (n.startsWith('"')) {
-      const r = n.indexOf('"', 1);
-      if (r < 0 || !n.slice(r + 1).startsWith(a)) throw new Error("Etiqueta no admitida.");
-      s = n.slice(1, r), n = n.slice(r + 1 + a.length);
-    } else {
-      const r = n.indexOf(a);
-      if (r < 0) throw new Error("Forma incompleta.");
-      if (s = n.slice(0, r), /[\[\]{}()";<>]/.test(s)) throw new Error("Forma o etiqueta avanzada.");
-      n = n.slice(r + a.length);
-    }
-    if (/[`]/.test(s) || /<(?!br\s*\/?\s*>)/i.test(s) || /#(?!quot;)[a-z]+;/i.test(s)) throw new Error("Formato avanzado en la etiqueta.");
-    return { node: { id: e, label: q(s), shape: i }, length: c.length - n.length, explicit: !0 };
+var Oo = Object.defineProperty;
+var vo = (o, e, n) => e in o ? Oo(o, e, { enumerable: !0, configurable: !0, writable: !0, value: n }) : o[e] = n;
+var Ot = (o, e, n) => vo(o, typeof e != "symbol" ? e + "" : e, n);
+import Bt from "https://cdn.jsdelivr.net/npm/mermaid@11.17.2/dist/mermaid.esm.min.mjs";
+const Do = 2e5, Lo = /^(?:flowchart|graph|sequenceDiagram|classDiagram(?:-v2)?|stateDiagram(?:-v2)?|erDiagram|gantt|pie|journey|gitGraph|mindmap|timeline|quadrantChart|requirementDiagram|sankey-beta|xychart-beta|kanban|architecture-beta|block-beta|packet-beta|radar-beta|treemap-beta)\b/, No = /* @__PURE__ */ new Set(["secure", "securityLevel", "startOnLoad", "maxTextSize", "maxEdges", "themeCSS", "fontFamily", "altFontFamily", "themeVariables", "dompurifyConfig"]);
+function Un(o, e = 0) {
+  if (typeof o == "number" && (!Number.isFinite(o) || Math.abs(o) > 1e4)) throw Error("La configuración numérica supera los límites permitidos.");
+  if (e > 12) throw Error("La configuración supera la profundidad permitida.");
+  if (o && typeof o == "object") for (const [n, i] of Object.entries(o)) {
+    if (["__proto__", "prototype", "constructor"].includes(n) || No.has(n)) throw Error("El archivo intenta modificar opciones reservadas de seguridad o estilos globales.");
+    Un(i, e + 1);
   }
-  return { node: { id: e, label: e, shape: "rect" }, length: e.length, explicit: !1 };
 }
-function et(c) {
-  try {
-    const t = c.split(/\r?\n/), e = { direction: "TD", nodes: [], edges: [], comments: [], constraints: [], groups: [] }, n = [], o = /* @__PURE__ */ new Map(), a = /* @__PURE__ */ new Set(), i = /* @__PURE__ */ new Set(), s = [];
-    let r = !1, u = !1;
-    const y = (l) => {
-      const d = o.get(l.node.id), f = s.join("/");
-      if (l.explicit && a.has(l.node.id) && d && (d.label !== l.node.label || d.shape !== l.node.shape || (d.group ?? "") !== f))
-        throw new Error("Hay declaraciones distintas para el mismo nodo.");
-      (!d || l.explicit) && o.set(l.node.id, f ? { ...l.node, group: f } : l.node), l.explicit && a.add(l.node.id);
-    };
-    for (const [l, d] of t.entries()) {
-      const f = d.replace(/^\uFEFF/, "").trim(), p = { raw: d, kind: "raw", scope: s.join("/") };
-      if (f === Q) {
-        if (u || s.length) throw new Error("Bloque de distribución fuera de lugar.");
-        u = !0, p.kind = "layout", n.push(p);
-        continue;
+function ze(o) {
+  var n, i;
+  if (new TextEncoder().encode(o).byteLength > Do) throw Error("El Mermaid supera el límite de 200 kB.");
+  if (/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(o)) throw Error("El archivo contiene datos binarios o caracteres de control.");
+  if (o.split(`
+`).length > 4e3) throw Error("El Mermaid supera el límite de 4000 líneas.");
+  if (/^\s*---/.test(o)) throw Error("No se admite configuración YAML en archivos públicos.");
+  if (/<\s*\/?\s*(?:script|iframe|object|embed|form|input|link|meta|base|style|svg|math|image|img|a)\b/i.test(o) || /\bon[a-z]+\s*=/i.test(o)) throw Error("El Mermaid contiene HTML activo o manejadores de eventos no permitidos.");
+  if (/(?:javascript|vbscript|file)\s*:/i.test(o) || /(?:url\s*\(|@import|expression\s*\()/i.test(o) || /(?:^|[\n;])\s*click\b/i.test(o)) throw Error("No se permiten scripts, acciones de clic ni recursos externos en los diagramas.");
+  if (/\b(?:img|image)\s*:/i.test(o)) throw Error("No se permiten imágenes externas en los diagramas.");
+  let e = o.replace(/^\uFEFF/, "");
+  if (e = e.replace(/%%\{\s*(?:init|initialize)\s*:\s*([\s\S]*?)\}%%/g, (s, c) => {
+    let a;
+    try {
+      a = JSON.parse(c);
+    } catch {
+      throw Error("La directiva de configuración debe usar JSON válido.");
+    }
+    return Un(a), "";
+  }), /%%\{/.test(e)) throw Error("Directiva Mermaid no admitida.");
+  if (e = e.split(`
+`).filter((s) => !/^\s*%%/.test(s)).join(`
+`).trimStart(), !Lo.test(e)) throw Error("El contenido no empieza por un tipo de diagrama Mermaid admitido.");
+  for (const s of o.split(`
+`)) {
+    const c = (n = s.match(/(?:^|;)\s*(?:style|classDef)\s+\S+\s+(.+)$/)) == null ? void 0 : n[1];
+    if (c && (/[{}<>\\@]/.test(c) || /\b(?:font-size|stroke-width)\s*:\s*\d{4,}/i.test(c))) throw Error("El diagrama contiene una declaración de estilo no permitida.");
+    const a = (i = s.match(/^\s*%% graph:(?:positions|groups|connections)\s+(.+)$/)) == null ? void 0 : i[1];
+    if (a)
+      try {
+        JSON.parse(a, (m, f) => {
+          if (["__proto__", "prototype", "constructor"].includes(m) || typeof f == "number" && (!Number.isFinite(f) || Math.abs(f) > 1e6)) throw Error();
+          return f;
+        });
+      } catch {
+        throw Error("Los datos de posición del diagrama no son válidos.");
       }
-      if (f === U) {
-        if (!u) throw new Error("Bloque de distribución incompleto.");
-        u = !1;
-        continue;
-      }
-      if (u) {
-        const x = f.match(/^([A-Za-z_][\w]*)\s*~~~\s*([A-Za-z_][\w]*)$/);
-        if (!x) throw new Error("Restricción de distribución desconocida.");
-        e.constraints.push({ from: x[1], to: x[2] });
-        continue;
-      }
-      if (n.push(p), !f) continue;
-      if (f.startsWith("%%")) {
-        if (f.startsWith("%%{")) {
-          const x = f.match(/^%%\{\s*(?:init|initialize)\s*:\s*(\{.*\})\s*\}%%$/);
-          if (!x || !JSON.parse(x[1]) || r) throw new Error("Directiva avanzada no admitida visualmente.");
-        } else e.comments.push(d);
-        continue;
-      }
-      if (!r) {
-        const x = f.match(/^(?:flowchart|graph)\s+(TD|TB|BT|LR|RL)\s*;?$/);
-        if (!x) throw new Error("La edición visual admite diagramas flowchart y graph.");
-        e.direction = x[1], r = !0, p.kind = "header";
-        continue;
-      }
-      if (f.startsWith("subgraph ")) {
-        const x = f.match(/^subgraph\s+([A-Za-z_][\w]*)(?:\s*\[\s*(?:"[^"\r\n]*"|[^\[\]"\r\n]+)\s*\])?\s*$/);
-        if (!x || i.has(x[1])) throw new Error("Subgráfico avanzado o identificador duplicado.");
-        const b = f.slice(f.indexOf(x[1]) + x[1].length).trim();
-        e.groups.push({ id: x[1], label: q(b.startsWith("[") ? b.slice(1, -1).trim().replace(/^"|"$/g, "") : x[1]), ...s.length ? { parent: s.at(-1) } : {} }), i.add(x[1]), s.push(x[1]);
-        continue;
-      }
-      if (f === "end" || f === "end;") {
-        if (!s.length) throw new Error("Cierre de subgráfico sin apertura.");
-        s.pop();
-        continue;
-      }
-      if (/^direction\s+(TD|TB|BT|LR|RL)\s*;?$/.test(f) && s.length || /^classDef\s+[A-Za-z_][\w]*(?:,[A-Za-z_][\w]*)*\s+[^\r\n]+$/.test(f)) continue;
-      const g = f.match(/^class\s+([A-Za-z_][\w]*(?:\s*,\s*[A-Za-z_][\w]*)*)\s+([A-Za-z_][\w]*(?:,[A-Za-z_][\w]*)*)\s*;?$/);
-      if (g) {
-        p.kind = "class", p.classIds = g[1].split(/\s*,\s*/);
-        continue;
-      }
-      const m = f.match(/^style\s+([A-Za-z_][\w]*)\s+[^\r\n]+$/);
-      if (m) {
-        p.kind = "style", p.classIds = [m[1]];
-        continue;
-      }
-      p.kind = "content", p.refs = [], p.edges = [];
-      let h = d.search(/\S/);
-      const w = () => {
-        const x = tt(d.slice(h));
-        return y(x), p.refs.push({ id: x.node.id, start: h, end: h + x.length, explicit: x.explicit }), h += x.length, x;
-      };
-      let $ = w();
-      const S = () => {
-        for (; /\s/.test(d[h] ?? "") && h < d.length; ) h++;
-      };
-      for (S(); h < d.length && d.slice(h).trim() !== ";"; ) {
-        const x = d.slice(h).match(/^(--+>|---+|-\.->)\s*/);
-        if (!x) throw new Error("Esta construcción necesita edición por código.");
-        h += x[0].length;
-        let b = "";
-        if (d[h] === "|") {
-          const T = d.indexOf("|", h + 1);
-          if (T < 0) throw new Error("Etiqueta de conexión incompleta.");
-          if (b = d.slice(h + 1, T), b.startsWith('"') && b.endsWith('"') && (b = b.slice(1, -1)), /[<>`"\r\n]/.test(b) || /#(?!quot;)[a-z]+;/i.test(b)) throw new Error("Etiqueta de conexión avanzada.");
-          b = q(b), h = T + 1, S();
-        }
-        const M = w(), v = `e${l}_${p.edges.length}`;
-        e.edges.push({ from: $.node.id, to: M.node.id, arrow: x[1], label: b, key: v }), p.edges.push(v), $ = M, S();
+  }
+}
+function Qt(o) {
+  return ze(o), o.replace(/%%\{\s*(?:init|initialize)\s*:\s*([\s\S]*?)\}%%/g, (e, n) => {
+    const i = JSON.parse(n, (s, c) => s === "htmlLabels" ? !1 : c);
+    return "%%{init: " + JSON.stringify(i) + "}%%";
+  });
+}
+/*! @license DOMPurify 3.4.17 | (c) Cure53 and other contributors | Released under the Apache license 2.0 and Mozilla Public License 2.0 | github.com/cure53/DOMPurify/blob/3.4.17/LICENSE */
+function gn(o, e) {
+  (e == null || e > o.length) && (e = o.length);
+  for (var n = 0, i = Array(e); n < e; n++) i[n] = o[n];
+  return i;
+}
+function Ro(o) {
+  if (Array.isArray(o)) return o;
+}
+function Io(o, e) {
+  var n = o == null ? null : typeof Symbol < "u" && o[Symbol.iterator] || o["@@iterator"];
+  if (n != null) {
+    var i, s, c, a, m = [], f = !0, g = !1;
+    try {
+      if (c = (n = n.call(o)).next, e !== 0) for (; !(f = (i = c.call(n)).done) && (m.push(i.value), m.length !== e); f = !0) ;
+    } catch (b) {
+      g = !0, s = b;
+    } finally {
+      try {
+        if (!f && n.return != null && (a = n.return(), Object(a) !== a)) return;
+      } finally {
+        if (g) throw s;
       }
     }
-    if (!r || u || s.length) throw new Error("Diagrama incompleto.");
-    if (e.nodes = [...o.values()], e.nodes.some((l) => i.has(l.id))) throw new Error("Las conexiones a subgráficos requieren edición por código.");
-    if (e.constraints.some((l) => !o.has(l.from) || !o.has(l.to))) throw new Error("Restricción con nodos inexistentes.");
-    return e.source = { text: c, newline: c.includes(`\r
+    return m;
+  }
+}
+function Co() {
+  throw new TypeError(`Invalid attempt to destructure non-iterable instance.
+In order to be iterable, non-array objects must have a [Symbol.iterator]() method.`);
+}
+/*! regenerator-runtime -- Copyright (c) 2014-present, Facebook, Inc. -- license (MIT): https://github.com/babel/babel/blob/main/packages/babel-helpers/LICENSE */
+function Po(o, e) {
+  return Ro(o) || Io(o, e) || ko(o, e) || Co();
+}
+function ko(o, e) {
+  if (o) {
+    if (typeof o == "string") return gn(o, e);
+    var n = {}.toString.call(o).slice(8, -1);
+    return n === "Object" && o.constructor && (n = o.constructor.name), n === "Map" || n === "Set" ? Array.from(o) : n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n) ? gn(o, e) : void 0;
+  }
+}
+const Bn = Object.entries, yn = Object.setPrototypeOf, zo = Object.isFrozen, $n = Object.getPrototypeOf, Hn = Object.getOwnPropertyDescriptor;
+let W = Object.freeze, j = Object.seal, vt = Object.create, Wn = typeof Reflect < "u" && Reflect, Ce = Wn.apply, Pe = Wn.construct;
+W || (W = function(e) {
+  return e;
+});
+j || (j = function(e) {
+  return e;
+});
+Ce || (Ce = function(e, n) {
+  for (var i = arguments.length, s = new Array(i > 2 ? i - 2 : 0), c = 2; c < i; c++) s[c - 2] = arguments[c];
+  return e.apply(n, s);
+});
+Pe || (Pe = function(e) {
+  for (var n = arguments.length, i = new Array(n > 1 ? n - 1 : 0), s = 1; s < n; s++) i[s - 1] = arguments[s];
+  return new e(...i);
+});
+const at = k(Array.prototype.forEach), Fo = k(Array.prototype.lastIndexOf), bn = k(Array.prototype.pop), Pt = k(Array.prototype.push), Uo = k(Array.prototype.slice), Bo = k(Array.prototype.splice), Dt = Array.isArray, Ae = Gn(Set), Se = k(Set.prototype.add), kt = k(Set.prototype.has), yt = k(String.prototype.toLowerCase), we = k(String.prototype.toString), Tn = k(String.prototype.match), zt = k(String.prototype.replace), _n = k(String.prototype.indexOf), $o = k(String.prototype.trim), Ho = k(Number.prototype.toString), Wo = k(Boolean.prototype.toString), xn = typeof BigInt > "u" ? null : k(BigInt.prototype.toString), En = typeof Symbol > "u" ? null : k(Symbol.prototype.toString), X = k(Object.prototype.hasOwnProperty), Ft = k(Object.prototype.toString), G = k(RegExp.prototype.test), ct = Gn(TypeError);
+function k(o) {
+  return function(e) {
+    e instanceof RegExp && (e.lastIndex = 0);
+    for (var n = arguments.length, i = new Array(n > 1 ? n - 1 : 0), s = 1; s < n; s++) i[s - 1] = arguments[s];
+    return Ce(o, e, i);
+  };
+}
+function Gn(o) {
+  return function() {
+    for (var e = arguments.length, n = new Array(e), i = 0; i < e; i++) n[i] = arguments[i];
+    return Pe(o, n);
+  };
+}
+function L(o, e) {
+  let n = arguments.length > 2 && arguments[2] !== void 0 ? arguments[2] : yt;
+  if (yn && yn(o, null), !Dt(e)) return o;
+  let i = e.length;
+  for (; i--; ) {
+    let s = e[i];
+    if (typeof s == "string") {
+      const c = n(s);
+      c !== s && (zo(e) || (e[i] = c), s = c);
+    }
+    o[s] = !0;
+  }
+  return o;
+}
+function Go(o) {
+  for (let e = 0; e < o.length; e++) X(o, e) || (o[e] = null);
+  return o;
+}
+function Z(o) {
+  const e = vt(null);
+  for (const i of Bn(o)) {
+    var n = Po(i, 2);
+    const s = n[0], c = n[1];
+    X(o, s) && (Dt(c) ? e[s] = Go(c) : c && typeof c == "object" && c.constructor === Object ? e[s] = Z(c) : e[s] = c);
+  }
+  return e;
+}
+function jo(o) {
+  switch (typeof o) {
+    case "string":
+      return o;
+    case "number":
+      return Ho(o);
+    case "boolean":
+      return Wo(o);
+    case "bigint":
+      return xn ? xn(o) : "0";
+    case "symbol":
+      return En ? En(o) : "Symbol()";
+    case "undefined":
+      return Ft(o);
+    case "function":
+    case "object": {
+      if (o === null) return Ft(o);
+      const e = o, n = K(e, "toString");
+      if (typeof n == "function") {
+        const i = n(e);
+        return typeof i == "string" ? i : Ft(i);
+      }
+      return Ft(o);
+    }
+    default:
+      return Ft(o);
+  }
+}
+function K(o, e) {
+  for (; o !== null; ) {
+    const i = Hn(o, e);
+    if (i) {
+      if (i.get) return k(i.get);
+      if (typeof i.value == "function") return k(i.value);
+    }
+    o = $n(o);
+  }
+  function n() {
+    return null;
+  }
+  return n;
+}
+function qo(o, e) {
+  for (; o !== null; ) {
+    const n = Hn(o, e);
+    if (n) return n.get ? k(n.get) : null;
+    o = $n(o);
+  }
+  return null;
+}
+function Vo(o) {
+  try {
+    return G(o, ""), !0;
+  } catch {
+    return !1;
+  }
+}
+const An = W([
+  "a",
+  "abbr",
+  "acronym",
+  "address",
+  "area",
+  "article",
+  "aside",
+  "audio",
+  "b",
+  "bdi",
+  "bdo",
+  "big",
+  "blink",
+  "blockquote",
+  "body",
+  "br",
+  "button",
+  "canvas",
+  "caption",
+  "center",
+  "cite",
+  "code",
+  "col",
+  "colgroup",
+  "content",
+  "data",
+  "datalist",
+  "dd",
+  "decorator",
+  "del",
+  "details",
+  "dfn",
+  "dialog",
+  "dir",
+  "div",
+  "dl",
+  "dt",
+  "element",
+  "em",
+  "fieldset",
+  "figcaption",
+  "figure",
+  "font",
+  "footer",
+  "form",
+  "h1",
+  "h2",
+  "h3",
+  "h4",
+  "h5",
+  "h6",
+  "head",
+  "header",
+  "hgroup",
+  "hr",
+  "html",
+  "i",
+  "img",
+  "input",
+  "ins",
+  "kbd",
+  "label",
+  "legend",
+  "li",
+  "main",
+  "map",
+  "mark",
+  "marquee",
+  "menu",
+  "menuitem",
+  "meter",
+  "nav",
+  "nobr",
+  "ol",
+  "optgroup",
+  "option",
+  "output",
+  "p",
+  "picture",
+  "pre",
+  "progress",
+  "q",
+  "rp",
+  "rt",
+  "ruby",
+  "s",
+  "samp",
+  "search",
+  "section",
+  "select",
+  "shadow",
+  "slot",
+  "small",
+  "source",
+  "spacer",
+  "span",
+  "strike",
+  "strong",
+  "style",
+  "sub",
+  "summary",
+  "sup",
+  "table",
+  "tbody",
+  "td",
+  "template",
+  "textarea",
+  "tfoot",
+  "th",
+  "thead",
+  "time",
+  "tr",
+  "track",
+  "tt",
+  "u",
+  "ul",
+  "var",
+  "video",
+  "wbr"
+]), Me = W([
+  "svg",
+  "a",
+  "altglyph",
+  "altglyphdef",
+  "altglyphitem",
+  "animatecolor",
+  "animatemotion",
+  "animatetransform",
+  "circle",
+  "clippath",
+  "defs",
+  "desc",
+  "ellipse",
+  "enterkeyhint",
+  "exportparts",
+  "filter",
+  "font",
+  "g",
+  "glyph",
+  "glyphref",
+  "hkern",
+  "image",
+  "inputmode",
+  "line",
+  "lineargradient",
+  "marker",
+  "mask",
+  "metadata",
+  "mpath",
+  "part",
+  "path",
+  "pattern",
+  "polygon",
+  "polyline",
+  "radialgradient",
+  "rect",
+  "stop",
+  "style",
+  "switch",
+  "symbol",
+  "text",
+  "textpath",
+  "title",
+  "tref",
+  "tspan",
+  "view",
+  "vkern"
+]), Oe = W([
+  "feBlend",
+  "feColorMatrix",
+  "feComponentTransfer",
+  "feComposite",
+  "feConvolveMatrix",
+  "feDiffuseLighting",
+  "feDisplacementMap",
+  "feDistantLight",
+  "feDropShadow",
+  "feFlood",
+  "feFuncA",
+  "feFuncB",
+  "feFuncG",
+  "feFuncR",
+  "feGaussianBlur",
+  "feImage",
+  "feMerge",
+  "feMergeNode",
+  "feMorphology",
+  "feOffset",
+  "fePointLight",
+  "feSpecularLighting",
+  "feSpotLight",
+  "feTile",
+  "feTurbulence"
+]), Yo = W([
+  "animate",
+  "color-profile",
+  "cursor",
+  "discard",
+  "font-face",
+  "font-face-format",
+  "font-face-name",
+  "font-face-src",
+  "font-face-uri",
+  "foreignobject",
+  "hatch",
+  "hatchpath",
+  "mesh",
+  "meshgradient",
+  "meshpatch",
+  "meshrow",
+  "missing-glyph",
+  "script",
+  "set",
+  "solidcolor",
+  "unknown",
+  "use"
+]), ve = W([
+  "math",
+  "menclose",
+  "merror",
+  "mfenced",
+  "mfrac",
+  "mglyph",
+  "mi",
+  "mlabeledtr",
+  "mmultiscripts",
+  "mn",
+  "mo",
+  "mover",
+  "mpadded",
+  "mphantom",
+  "mroot",
+  "mrow",
+  "ms",
+  "mspace",
+  "msqrt",
+  "mstyle",
+  "msub",
+  "msup",
+  "msubsup",
+  "mtable",
+  "mtd",
+  "mtext",
+  "mtr",
+  "munder",
+  "munderover",
+  "mprescripts"
+]), Jo = W([
+  "maction",
+  "maligngroup",
+  "malignmark",
+  "mlongdiv",
+  "mscarries",
+  "mscarry",
+  "msgroup",
+  "mstack",
+  "msline",
+  "msrow",
+  "semantics",
+  "annotation",
+  "annotation-xml",
+  "mprescripts",
+  "none"
+]), Sn = W(["#text"]), wn = W([
+  "accept",
+  "action",
+  "align",
+  "alt",
+  "autocapitalize",
+  "autocomplete",
+  "autopictureinpicture",
+  "autoplay",
+  "background",
+  "bgcolor",
+  "border",
+  "capture",
+  "cellpadding",
+  "cellspacing",
+  "checked",
+  "cite",
+  "class",
+  "clear",
+  "color",
+  "cols",
+  "colspan",
+  "command",
+  "commandfor",
+  "controls",
+  "controlslist",
+  "coords",
+  "crossorigin",
+  "datetime",
+  "decoding",
+  "default",
+  "dir",
+  "disabled",
+  "disablepictureinpicture",
+  "disableremoteplayback",
+  "download",
+  "draggable",
+  "enctype",
+  "enterkeyhint",
+  "exportparts",
+  "face",
+  "for",
+  "headers",
+  "height",
+  "hidden",
+  "high",
+  "href",
+  "hreflang",
+  "id",
+  "inert",
+  "inputmode",
+  "integrity",
+  "ismap",
+  "kind",
+  "label",
+  "lang",
+  "list",
+  "loading",
+  "loop",
+  "low",
+  "max",
+  "maxlength",
+  "media",
+  "method",
+  "min",
+  "minlength",
+  "multiple",
+  "muted",
+  "name",
+  "nonce",
+  "noshade",
+  "novalidate",
+  "nowrap",
+  "open",
+  "optimum",
+  "part",
+  "pattern",
+  "placeholder",
+  "playsinline",
+  "popover",
+  "popovertarget",
+  "popovertargetaction",
+  "poster",
+  "preload",
+  "pubdate",
+  "radiogroup",
+  "readonly",
+  "rel",
+  "required",
+  "rev",
+  "reversed",
+  "role",
+  "rows",
+  "rowspan",
+  "spellcheck",
+  "scope",
+  "selected",
+  "shape",
+  "size",
+  "sizes",
+  "slot",
+  "span",
+  "srclang",
+  "start",
+  "src",
+  "srcset",
+  "step",
+  "style",
+  "summary",
+  "tabindex",
+  "title",
+  "translate",
+  "type",
+  "usemap",
+  "valign",
+  "value",
+  "width",
+  "wrap",
+  "xmlns"
+]), De = W([
+  "accent-height",
+  "accumulate",
+  "additive",
+  "alignment-baseline",
+  "amplitude",
+  "ascent",
+  "attributename",
+  "attributetype",
+  "azimuth",
+  "basefrequency",
+  "baseline-shift",
+  "begin",
+  "bias",
+  "by",
+  "class",
+  "clip",
+  "clippathunits",
+  "clip-path",
+  "clip-rule",
+  "color",
+  "color-interpolation",
+  "color-interpolation-filters",
+  "color-profile",
+  "color-rendering",
+  "cx",
+  "cy",
+  "d",
+  "dx",
+  "dy",
+  "diffuseconstant",
+  "direction",
+  "display",
+  "divisor",
+  "dominant-baseline",
+  "dur",
+  "edgemode",
+  "elevation",
+  "end",
+  "exponent",
+  "fill",
+  "fill-opacity",
+  "fill-rule",
+  "filter",
+  "filterunits",
+  "flood-color",
+  "flood-opacity",
+  "font-family",
+  "font-size",
+  "font-size-adjust",
+  "font-stretch",
+  "font-style",
+  "font-variant",
+  "font-weight",
+  "fx",
+  "fy",
+  "g1",
+  "g2",
+  "glyph-name",
+  "glyphref",
+  "gradientunits",
+  "gradienttransform",
+  "height",
+  "href",
+  "id",
+  "image-rendering",
+  "in",
+  "in2",
+  "intercept",
+  "k",
+  "k1",
+  "k2",
+  "k3",
+  "k4",
+  "kerning",
+  "keypoints",
+  "keysplines",
+  "keytimes",
+  "lang",
+  "lengthadjust",
+  "letter-spacing",
+  "kernelmatrix",
+  "kernelunitlength",
+  "lighting-color",
+  "local",
+  "marker-end",
+  "marker-mid",
+  "marker-start",
+  "markerheight",
+  "markerunits",
+  "markerwidth",
+  "maskcontentunits",
+  "maskunits",
+  "max",
+  "mask",
+  "mask-type",
+  "media",
+  "method",
+  "mode",
+  "min",
+  "name",
+  "numoctaves",
+  "offset",
+  "operator",
+  "opacity",
+  "order",
+  "orient",
+  "orientation",
+  "origin",
+  "overflow",
+  "paint-order",
+  "path",
+  "pathlength",
+  "patterncontentunits",
+  "patterntransform",
+  "patternunits",
+  "pointer-events",
+  "points",
+  "preservealpha",
+  "preserveaspectratio",
+  "primitiveunits",
+  "r",
+  "rx",
+  "ry",
+  "radius",
+  "refx",
+  "refy",
+  "repeatcount",
+  "repeatdur",
+  "restart",
+  "result",
+  "rotate",
+  "scale",
+  "seed",
+  "shape-rendering",
+  "slope",
+  "specularconstant",
+  "specularexponent",
+  "spreadmethod",
+  "startoffset",
+  "stddeviation",
+  "stitchtiles",
+  "stop-color",
+  "stop-opacity",
+  "stroke-dasharray",
+  "stroke-dashoffset",
+  "stroke-linecap",
+  "stroke-linejoin",
+  "stroke-miterlimit",
+  "stroke-opacity",
+  "stroke",
+  "stroke-width",
+  "style",
+  "surfacescale",
+  "systemlanguage",
+  "tabindex",
+  "tablevalues",
+  "targetx",
+  "targety",
+  "transform",
+  "transform-origin",
+  "text-anchor",
+  "text-decoration",
+  "text-orientation",
+  "text-rendering",
+  "textlength",
+  "type",
+  "u1",
+  "u2",
+  "unicode",
+  "values",
+  "vector-effect",
+  "viewbox",
+  "visibility",
+  "version",
+  "vert-adv-y",
+  "vert-origin-x",
+  "vert-origin-y",
+  "width",
+  "word-spacing",
+  "wrap",
+  "writing-mode",
+  "xchannelselector",
+  "ychannelselector",
+  "x",
+  "x1",
+  "x2",
+  "xmlns",
+  "y",
+  "y1",
+  "y2",
+  "z",
+  "zoomandpan"
+]), Mn = W([
+  "accent",
+  "accentunder",
+  "align",
+  "bevelled",
+  "close",
+  "columnalign",
+  "columnlines",
+  "columnspacing",
+  "columnspan",
+  "denomalign",
+  "depth",
+  "dir",
+  "display",
+  "displaystyle",
+  "encoding",
+  "fence",
+  "frame",
+  "height",
+  "href",
+  "id",
+  "largeop",
+  "length",
+  "linethickness",
+  "lquote",
+  "lspace",
+  "mathbackground",
+  "mathcolor",
+  "mathsize",
+  "mathvariant",
+  "maxsize",
+  "minsize",
+  "movablelimits",
+  "notation",
+  "numalign",
+  "open",
+  "rowalign",
+  "rowlines",
+  "rowspacing",
+  "rowspan",
+  "rspace",
+  "rquote",
+  "scriptlevel",
+  "scriptminsize",
+  "scriptsizemultiplier",
+  "selection",
+  "separator",
+  "separators",
+  "stretchy",
+  "subscriptshift",
+  "supscriptshift",
+  "symmetric",
+  "voffset",
+  "width",
+  "xmlns"
+]), Zt = W([
+  "xlink:href",
+  "xml:id",
+  "xlink:title",
+  "xml:space",
+  "xmlns:xlink"
+]), Xo = j(/{{[\w\W]*|^[\w\W]*}}/g), Zo = j(/<%[\w\W]*|^[\w\W]*%>/g), Ko = j(/\${[\w\W]*/g), Qo = j(/^data-[\-\w.\u00B7-\uFFFF]+$/), ti = j(/^aria-[\-\w]+$/), On = j(/^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp|matrix):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i), ei = j(/^(?:\w+script|data):/i), ni = j(/[\u0000-\u0020\u00A0\u1680\u180E\u2000-\u2029\u205F\u3000]/g), oi = j(/^html$/i), ii = j(/^[a-z][.\w]*(-[.\w]+)+$/i), Le = j(/<[/\w!]/g), vn = j(/<[/\w]/g), ri = j(/<\/no(script|embed|frames)/i), Dn = j(/\/>/i), $ = {
+  element: 1,
+  attribute: 2,
+  text: 3,
+  cdataSection: 4,
+  entityReference: 5,
+  entityNode: 6,
+  processingInstruction: 7,
+  comment: 8,
+  document: 9,
+  documentType: 10,
+  documentFragment: 11,
+  notation: 12
+}, si = W(L({}, [
+  "style",
+  "script",
+  "xmp",
+  "iframe",
+  "noembed",
+  "noframes",
+  "plaintext",
+  "noscript"
+])), ai = function() {
+  return typeof window > "u" ? null : window;
+}, ci = function(e, n) {
+  if (typeof e != "object" || typeof e.createPolicy != "function") return null;
+  let i = null;
+  const s = "data-tt-policy-suffix";
+  n && n.hasAttribute(s) && (i = n.getAttribute(s));
+  const c = "dompurify" + (i ? "#" + i : "");
+  try {
+    return e.createPolicy(c, {
+      createHTML(a) {
+        return a;
+      },
+      createScriptURL(a) {
+        return a;
+      }
+    });
+  } catch {
+    return console.warn("TrustedTypes policy " + c + " could not be created."), null;
+  }
+}, Ln = function() {
+  return {
+    afterSanitizeAttributes: [],
+    afterSanitizeElements: [],
+    afterSanitizeShadowDOM: [],
+    beforeSanitizeAttributes: [],
+    beforeSanitizeElements: [],
+    beforeSanitizeShadowDOM: [],
+    uponSanitizeAttribute: [],
+    uponSanitizeElement: [],
+    uponSanitizeShadowNode: []
+  };
+}, mt = function(e, n, i, s) {
+  return X(e, n) && Dt(e[n]) ? L(s.base ? Z(s.base) : {}, e[n], s.transform) : i;
+}, Ne = function(e, n, i) {
+  const s = X(e, n) ? e[n] : void 0;
+  return s && typeof s == "object" ? Z(s) : i();
+};
+function jn() {
+  let o = arguments.length > 0 && arguments[0] !== void 0 ? arguments[0] : ai();
+  const e = (d) => jn(d);
+  if (e.version = "3.4.17", e.removed = [], !o || !o.document || o.document.nodeType !== $.document || !o.Element)
+    return e.isSupported = !1, e;
+  let n = o.document;
+  const i = n, s = i.currentScript;
+  o.DocumentFragment;
+  const c = o.HTMLTemplateElement, a = o.Node, m = o.Element, f = o.NodeFilter;
+  o.NamedNodeMap === void 0 && (o.NamedNodeMap || o.MozNamedAttrMap), o.HTMLFormElement;
+  const g = o.DOMParser, b = o.trustedTypes, h = m.prototype, T = K(h, "cloneNode"), x = K(h, "remove"), A = K(h, "removeAttributeNode"), w = K(h, "nextSibling"), y = K(h, "childNodes"), p = K(h, "parentNode"), D = K(h, "shadowRoot"), B = K(h, "attributes"), R = a && a.prototype ? K(a.prototype, "nodeType") : null, E = a && a.prototype ? K(a.prototype, "nodeName") : null, M = a && a.prototype ? K(a.prototype, "ownerDocument") : null, O = function(t) {
+    return R ? R(t) : t.nodeType;
+  }, N = function(t) {
+    return E ? E(t) : t.nodeName;
+  }, Q = qo(h, "namespaceURI"), rt = function(t) {
+    return Q ? Q(t) : t.namespaceURI;
+  };
+  if (typeof c == "function") {
+    const d = n.createElement("template");
+    d.content && d.content.ownerDocument && (n = d.content.ownerDocument);
+  }
+  let F, z = "", q, et = !1, Lt = 0;
+  const Fe = function() {
+    if (Lt > 0) throw ct('A configured TRUSTED_TYPES_POLICY callback (createHTML or createScriptURL) must not call DOMPurify.sanitize, as that causes infinite recursion. Do not pass a policy whose callbacks wrap DOMPurify as TRUSTED_TYPES_POLICY; see the "DOMPurify and Trusted Types" section of the README.');
+  }, Tt = function(t) {
+    Fe(), Lt++;
+    try {
+      return F.createHTML(t);
+    } finally {
+      Lt--;
+    }
+  }, Yn = function(t) {
+    Fe(), Lt++;
+    try {
+      return F.createScriptURL(t);
+    } finally {
+      Lt--;
+    }
+  }, Jn = function() {
+    return et || (q = ci(b, s), et = !0), q;
+  }, $t = n, te = $t.implementation, Ue = $t.createNodeIterator, Xn = $t.createDocumentFragment, Zn = $t.getElementsByTagName, Kn = i.importNode;
+  let I = Ln();
+  e.isSupported = typeof Bn == "function" && typeof p == "function" && te && te.createHTMLDocument !== void 0;
+  const Qn = Xo, to = Zo, eo = Ko, no = Qo, oo = ti, io = ei, Be = ni, ro = ii;
+  let $e = On, C = null;
+  const ee = L({}, [
+    ...An,
+    ...Me,
+    ...Oe,
+    ...ve,
+    ...Sn
+  ]);
+  let P = null;
+  const ne = L({}, [
+    ...wn,
+    ...De,
+    ...Mn,
+    ...Zt
+  ]);
+  let nt = Object.seal(vt(null, {
+    tagNameCheck: {
+      writable: !0,
+      configurable: !1,
+      enumerable: !0,
+      value: null
+    },
+    attributeNameCheck: {
+      writable: !0,
+      configurable: !1,
+      enumerable: !0,
+      value: null
+    },
+    allowCustomizedBuiltInElements: {
+      writable: !0,
+      configurable: !1,
+      enumerable: !0,
+      value: !1
+    }
+  })), Nt = null, He = null;
+  const lt = Object.seal(vt(null, {
+    tagCheck: {
+      writable: !0,
+      configurable: !1,
+      enumerable: !0,
+      value: null
+    },
+    attributeCheck: {
+      writable: !0,
+      configurable: !1,
+      enumerable: !0,
+      value: null
+    }
+  }));
+  let We = !0, oe = !0, Ge = !1, ie = !0, st = !1, dt = !0, ht = !1, re = !1, Ht = null, Wt = null, se = !1, _t = !1, Gt = !1, jt = !1, je = !0, qe = !1;
+  const Ve = "user-content-";
+  let ae = !0, ce = !1, pt = null, xt = {}, gt = null;
+  const Ye = L({}, [
+    "annotation-xml",
+    "audio",
+    "colgroup",
+    "desc",
+    "foreignobject",
+    "head",
+    "iframe",
+    "math",
+    "mi",
+    "mn",
+    "mo",
+    "ms",
+    "mtext",
+    "noembed",
+    "noframes",
+    "noscript",
+    "plaintext",
+    "script",
+    "selectedcontent",
+    "style",
+    "svg",
+    "template",
+    "thead",
+    "title",
+    "video",
+    "xmp"
+  ]);
+  let Je = null;
+  const Xe = L({}, [
+    "audio",
+    "video",
+    "img",
+    "source",
+    "image",
+    "track"
+  ]);
+  let Ze = null;
+  const Ke = L({}, [
+    "alt",
+    "class",
+    "for",
+    "id",
+    "label",
+    "name",
+    "pattern",
+    "placeholder",
+    "role",
+    "summary",
+    "title",
+    "value",
+    "style",
+    "xmlns"
+  ]), qt = "http://www.w3.org/1998/Math/MathML", Vt = "http://www.w3.org/2000/svg", ot = "http://www.w3.org/1999/xhtml";
+  let Et = ot, le = !1, ue = null;
+  const so = L({}, [
+    qt,
+    Vt,
+    ot
+  ], we), Qe = W([
+    "mi",
+    "mo",
+    "mn",
+    "ms",
+    "mtext"
+  ]);
+  let fe = L({}, Qe);
+  const tn = W(["annotation-xml"]);
+  let me = L({}, tn);
+  const ao = L({}, [
+    "title",
+    "style",
+    "font",
+    "a",
+    "script"
+  ]);
+  let Rt = null;
+  const co = ["application/xhtml+xml", "text/html"], lo = "text/html";
+  let U = null, At = null;
+  const uo = n.createElement("form"), en = function(t) {
+    return t instanceof RegExp || t instanceof Function;
+  }, de = function() {
+    let t = arguments.length > 0 && arguments[0] !== void 0 ? arguments[0] : {};
+    if (At && At === t) return;
+    (!t || typeof t != "object") && (t = {}), t = Z(t), Rt = co.indexOf(t.PARSER_MEDIA_TYPE) === -1 ? lo : t.PARSER_MEDIA_TYPE, U = Rt === "application/xhtml+xml" ? we : yt, C = mt(t, "ALLOWED_TAGS", ee, { transform: U }), P = mt(t, "ALLOWED_ATTR", ne, { transform: U }), ue = mt(t, "ALLOWED_NAMESPACES", so, { transform: we }), Ze = mt(t, "ADD_URI_SAFE_ATTR", Ke, {
+      transform: U,
+      base: Ke
+    }), Je = mt(t, "ADD_DATA_URI_TAGS", Xe, {
+      transform: U,
+      base: Xe
+    }), gt = mt(t, "FORBID_CONTENTS", Ye, { transform: U }), Nt = mt(t, "FORBID_TAGS", Z({}), { transform: U }), He = mt(t, "FORBID_ATTR", Z({}), { transform: U }), xt = X(t, "USE_PROFILES") ? t.USE_PROFILES && typeof t.USE_PROFILES == "object" ? Z(t.USE_PROFILES) : t.USE_PROFILES : !1, We = t.ALLOW_ARIA_ATTR !== !1, oe = t.ALLOW_DATA_ATTR !== !1, Ge = t.ALLOW_UNKNOWN_PROTOCOLS || !1, ie = t.ALLOW_SELF_CLOSE_IN_ATTR !== !1, st = t.SAFE_FOR_TEMPLATES || !1, dt = t.SAFE_FOR_XML !== !1, ht = t.WHOLE_DOCUMENT || !1, _t = t.RETURN_DOM || !1, Gt = t.RETURN_DOM_FRAGMENT || !1, jt = t.RETURN_TRUSTED_TYPE || !1, se = t.FORCE_BODY || !1, je = t.SANITIZE_DOM !== !1, qe = t.SANITIZE_NAMED_PROPS || !1, ae = t.KEEP_CONTENT !== !1, ce = t.IN_PLACE || !1, $e = Vo(t.ALLOWED_URI_REGEXP) ? t.ALLOWED_URI_REGEXP : On, Et = typeof t.NAMESPACE == "string" ? t.NAMESPACE : ot, fe = Ne(t, "MATHML_TEXT_INTEGRATION_POINTS", () => L({}, Qe)), me = Ne(t, "HTML_INTEGRATION_POINTS", () => L({}, tn));
+    const r = Ne(t, "CUSTOM_ELEMENT_HANDLING", () => vt(null));
+    if (nt = vt(null), X(r, "tagNameCheck") && en(r.tagNameCheck) && (nt.tagNameCheck = r.tagNameCheck), X(r, "attributeNameCheck") && en(r.attributeNameCheck) && (nt.attributeNameCheck = r.attributeNameCheck), X(r, "allowCustomizedBuiltInElements") && typeof r.allowCustomizedBuiltInElements == "boolean" && (nt.allowCustomizedBuiltInElements = r.allowCustomizedBuiltInElements), j(nt), st && (oe = !1), Gt && (_t = !0), xt && (C = L({}, Sn), P = vt(null), xt.html === !0 && (L(C, An), L(P, wn)), xt.svg === !0 && (L(C, Me), L(P, De), L(P, Zt)), xt.svgFilters === !0 && (L(C, Oe), L(P, De), L(P, Zt)), xt.mathMl === !0 && (L(C, ve), L(P, Mn), L(P, Zt))), lt.tagCheck = null, lt.attributeCheck = null, X(t, "ADD_TAGS") && (typeof t.ADD_TAGS == "function" ? lt.tagCheck = t.ADD_TAGS : Dt(t.ADD_TAGS) && (C === ee && (C = Z(C)), L(C, t.ADD_TAGS, U))), X(t, "ADD_ATTR") && (typeof t.ADD_ATTR == "function" ? lt.attributeCheck = t.ADD_ATTR : Dt(t.ADD_ATTR) && (P === ne && (P = Z(P)), L(P, t.ADD_ATTR, U))), X(t, "ADD_FORBID_CONTENTS") && Dt(t.ADD_FORBID_CONTENTS) && (gt === Ye && (gt = Z(gt)), L(gt, t.ADD_FORBID_CONTENTS, U)), ae && (C["#text"] = !0), ht && L(C, [
+      "html",
+      "head",
+      "body"
+    ]), C.table && (L(C, ["tbody"]), delete Nt.tbody), t.TRUSTED_TYPES_POLICY) {
+      if (typeof t.TRUSTED_TYPES_POLICY.createHTML != "function") throw ct('TRUSTED_TYPES_POLICY configuration option must provide a "createHTML" hook.');
+      if (typeof t.TRUSTED_TYPES_POLICY.createScriptURL != "function") throw ct('TRUSTED_TYPES_POLICY configuration option must provide a "createScriptURL" hook.');
+      const l = F;
+      F = t.TRUSTED_TYPES_POLICY;
+      try {
+        z = Tt("");
+      } catch (u) {
+        throw F = l, u;
+      }
+    } else t.TRUSTED_TYPES_POLICY === null ? (F = void 0, z = "") : (F === void 0 && (F = Jn()), F && typeof z == "string" && (z = Tt("")));
+    W && W(t), At = t;
+  }, nn = L({}, [
+    ...Me,
+    ...Oe,
+    ...Yo
+  ]), on = L({}, [...ve, ...Jo]), fo = function(t, r, l) {
+    return r.namespaceURI === ot ? t === "svg" : r.namespaceURI === qt ? t === "svg" && (l === "annotation-xml" || fe[l]) : !!nn[t];
+  }, mo = function(t, r, l) {
+    return r.namespaceURI === ot ? t === "math" : r.namespaceURI === Vt ? t === "math" && me[l] : !!on[t];
+  }, ho = function(t, r, l) {
+    return r.namespaceURI === Vt && !me[l] || r.namespaceURI === qt && !fe[l] ? !1 : !on[t] && (ao[t] || !nn[t]);
+  }, po = function(t) {
+    const r = rt(t), l = yt(N(t)), u = p(t);
+    let _, S;
+    return u && O(u) === $.element ? (_ = { namespaceURI: rt(u) }, S = yt(N(u))) : (_ = { namespaceURI: Et }, S = "template"), ue[r] ? r === Vt ? fo(l, _, S) : r === qt ? mo(l, _, S) : r === ot ? ho(l, _, S) : !!(Rt === "application/xhtml+xml" && ue[r]) : !1;
+  }, ut = function(t) {
+    Pt(e.removed, { element: t });
+    try {
+      p(t).removeChild(t);
+    } catch {
+      if (x(t), !p(t)) throw ct("a node selected for removal could not be detached from its tree and cannot be safely returned; refusing to sanitize in place");
+    }
+  }, rn = function(t, r, l) {
+    try {
+      A(t, r);
+    } catch {
+      try {
+        t.removeAttribute(l);
+      } catch {
+      }
+    }
+  }, he = function(t) {
+    ge(t);
+    const r = y(t);
+    r && at(Uo(r), (u) => {
+      try {
+        x(u);
+      } catch {
+      }
+    });
+    const l = O(t) === $.element ? B(t) : null;
+    if (l) for (let u = l.length - 1; u >= 0; --u) {
+      const _ = l[u], S = _ && _.name;
+      typeof S == "string" && rn(t, _, S);
+    }
+  }, St = function(t, r, l) {
+    if (!l) try {
+      l = r.getAttributeNode(t);
+    } catch {
+      l = null;
+    }
+    Pt(e.removed, {
+      attribute: l || null,
+      from: r
+    });
+    try {
+      l ? A(r, l) : r.removeAttribute(t);
+    } catch {
+      try {
+        r.removeAttribute(t);
+      } catch {
+      }
+    }
+    if (t === "is")
+      if (_t || Gt) try {
+        ut(r);
+      } catch {
+      }
+      else try {
+        r.setAttribute(t, "");
+      } catch {
+      }
+  }, sn = function(t) {
+    const r = B(t);
+    if (r)
+      for (let l = r.length - 1; l >= 0; --l) {
+        const u = r[l], _ = u && u.name;
+        typeof _ != "string" || P[U(_)] || rn(t, u, _);
+      }
+  }, pe = function(t, r) {
+    let l = arguments.length > 2 && arguments[2] !== void 0 ? arguments[2] : !1;
+    const u = [t];
+    for (; u.length > 0; ) {
+      const _ = u.pop();
+      if (r(_) === !1) continue;
+      if (l && O(_) === $.element) {
+        const v = D(_);
+        ft(v) && u.push(v);
+      }
+      const S = y(_);
+      if (S) for (let v = S.length - 1; v >= 0; --v) u.push(S[v]);
+    }
+  }, ge = function(t) {
+    pe(t, (r) => {
+      O(r) === $.element && sn(r);
+    });
+  }, ye = function(t) {
+    const r = [];
+    return pe(t, (l) => {
+      r.push(l);
+    }, !0), r;
+  }, go = function(t, r) {
+    const l = Ae();
+    at(ye(t), (u) => {
+      O(u) === $.element && Se(l, u);
+    }), at(r, (u) => {
+      O(u) === $.element && !kt(l, u) && sn(u);
+    });
+  }, an = function(t, r) {
+    let l = !1;
+    return at(e.removed, (u) => {
+      u.element && (l = l || u.element === t, ge(u.element));
+    }), go(t, r), l;
+  }, yo = 8, bo = function(t, r) {
+    const l = pt;
+    let u = null;
+    const _ = () => (u || (u = Ae(), at(r, (S) => {
+      Se(u, S);
+    })), u);
+    for (let S = 0; ; S++) {
+      const v = ye(t), H = [t];
+      let it = !1;
+      if (at(v, (V) => {
+        O(V) === $.documentFragment ? Pt(H, V) : !it && !kt(l, V) && (it = kt(_(), V));
+      }), !it) return;
+      if (S >= yo) throw ct("the tree kept changing during in-place sanitization; refusing to return it");
+      at(H, (V, Y) => {
+        To(V, Y > 0, t, _());
+      });
+    }
+  }, To = function(t, r, l, u) {
+    const _ = be(t);
+    let S;
+    for (; S = _.nextNode(); )
+      !kt(u, S) || kt(pt, S) || (r && tt(I.uponSanitizeShadowNode, S, null), _e(S, l), xe(S, l), ft(S.content) && Ct(S.content));
+  }, _o = function(t) {
+    pt && Se(pt, t);
+  }, cn = function(t, r) {
+    return dt ? t === "patchsrc" ? !0 : t === "for" && r !== "label" && r !== "output" : !1;
+  }, xo = function(t) {
+    dt && pe(t, (r) => {
+      const l = O(r);
+      if (l === $.processingInstruction || l === $.comment && G(vn, r.data)) {
+        try {
+          x(r);
+        } catch {
+        }
+        return !1;
+      }
+      if (l === $.element) {
+        const u = r, _ = U(N(r));
+        try {
+          u.hasAttribute && u.hasAttribute("patchsrc") && u.removeAttribute("patchsrc"), u.hasAttribute && u.hasAttribute("for") && cn("for", _) && u.removeAttribute("for");
+        } catch {
+        }
+      }
+      return !0;
+    });
+  }, ln = function(t) {
+    let r = null, l = null;
+    if (se) t = "<remove></remove>" + t;
+    else {
+      const S = Tn(t, /^[\r\n\t ]+/);
+      l = S && S[0];
+    }
+    Rt === "application/xhtml+xml" && Et === ot && (t = '<html xmlns="http://www.w3.org/1999/xhtml"><head></head><body>' + t + "</body></html>");
+    const u = F ? Tt(t) : t;
+    if (Et === ot) try {
+      r = new g().parseFromString(u, Rt);
+    } catch {
+    }
+    if (!r || !r.documentElement) {
+      r = te.createDocument(Et, "template", null);
+      try {
+        r.documentElement.innerHTML = le ? z : u;
+      } catch {
+      }
+    }
+    const _ = r.body || r.documentElement;
+    return t && l && _.insertBefore(n.createTextNode(l), _.childNodes[0] || null), Et === ot ? Zn.call(r, ht ? "html" : "body")[0] : ht ? r.documentElement : _;
+  }, be = function(t) {
+    const r = M ? M(t) : t.ownerDocument;
+    return Ue.call(r || t, t, f.SHOW_ELEMENT | f.SHOW_COMMENT | f.SHOW_TEXT | f.SHOW_PROCESSING_INSTRUCTION | f.SHOW_CDATA_SECTION, null);
+  }, Yt = function(t) {
+    return t = zt(t, Qn, " "), t = zt(t, to, " "), t = zt(t, eo, " "), t;
+  }, Te = function(t) {
+    var r;
+    un(t);
+    const l = (r = t.querySelectorAll) === null || r === void 0 ? void 0 : r.call(t, "template");
+    l && at(l, (u) => {
+      ft(u.content) && Te(u.content);
+    });
+  }, un = function(t) {
+    t.normalize();
+    const r = M ? M(t) : t.ownerDocument, l = Ue.call(r || t, t, f.SHOW_TEXT | f.SHOW_COMMENT | f.SHOW_CDATA_SECTION | f.SHOW_PROCESSING_INSTRUCTION, null);
+    let u = l.nextNode();
+    for (; u; )
+      u.data = Yt(u.data), u = l.nextNode();
+  }, Jt = function(t) {
+    const r = E ? E(t) : null;
+    return typeof r != "string" || U(r) !== "form" ? !1 : typeof t.nodeName != "string" || typeof t.textContent != "string" || typeof t.removeChild != "function" || t.attributes !== B(t) || typeof t.removeAttribute != "function" || typeof t.removeAttributeNode != "function" || typeof t.getAttributeNode != "function" || typeof t.setAttribute != "function" || typeof t.namespaceURI != "string" || typeof t.insertBefore != "function" || typeof t.hasChildNodes != "function" || t.nodeType !== R(t) || t.childNodes !== y(t);
+  }, ft = function(t) {
+    if (!R || typeof t != "object" || t === null) return !1;
+    try {
+      return R(t) === $.documentFragment;
+    } catch {
+      return !1;
+    }
+  }, It = function(t) {
+    if (!R || typeof t != "object" || t === null) return !1;
+    try {
+      return typeof R(t) == "number";
+    } catch {
+      return !1;
+    }
+  };
+  function tt(d, t, r) {
+    d.length !== 0 && at(d, (l) => {
+      l.call(e, t, r, At);
+    });
+  }
+  const Eo = function(t, r) {
+    return !!(dt && t.hasChildNodes() && !It(t.firstElementChild) && G(Le, t.textContent) && G(Le, t.innerHTML) || dt && si[r] && O(t) === $.element && rt(t) === ot && (It(t.firstElementChild) || typeof t.textContent == "string" && G(Le, t.textContent)) || t.nodeType === $.processingInstruction || dt && t.nodeType === $.comment && G(vn, t.data));
+  }, Xt = function(t, r) {
+    if (t instanceof RegExp) return G(t, r);
+    if (t instanceof Function) {
+      for (var l = arguments.length, u = new Array(l > 2 ? l - 2 : 0), _ = 2; _ < l; _++) u[_ - 2] = arguments[_];
+      return !!t(r, ...u);
+    }
+    return !1;
+  }, Ao = function(t, r, l) {
+    if (!Nt[r] && dn(r) && Xt(nt.tagNameCheck, r)) return !1;
+    if (ae && !gt[r] && !gt[yt(r)]) {
+      const u = p(t), _ = y(t);
+      if (_ && u) {
+        const S = _.length;
+        for (let v = S - 1; v >= 0; --v) {
+          const H = t === l ? T(_[v], !0) : _[v];
+          u.insertBefore(H, w(t));
+        }
+      }
+    }
+    return ut(t), !0;
+  }, fn = function(t, r, l, u) {
+    return t.length === 0 ? r : r === l || r === u ? Z(r) : r;
+  }, wt = function(t, r) {
+    return t === r || p(t) !== null ? !1 : (ce && ge(t), !0);
+  }, _e = function(t, r) {
+    if (_o(t), tt(I.beforeSanitizeElements, t, null), wt(t, r)) return !0;
+    if (Jt(t))
+      return ut(t), !0;
+    const l = U(N(t));
+    if (C = fn(I.uponSanitizeElement, C, ee, Ht), tt(I.uponSanitizeElement, t, {
+      tagName: l,
+      allowedTags: C
+    }), wt(t, r)) return !0;
+    if (Eo(t, l))
+      return ut(t), !0;
+    if (Nt[l] || !(lt.tagCheck instanceof Function && lt.tagCheck(l)) && !C[l]) {
+      const u = Ao(t, l, r);
+      return u === !1 && (tt(I.afterSanitizeElements, t, null), wt(t, r)) ? !0 : u;
+    }
+    if (O(t) === $.element && !po(t) || (l === "noscript" || l === "noembed" || l === "noframes") && G(ri, t.innerHTML))
+      return ut(t), !0;
+    if (st && t.nodeType === $.text) {
+      const u = Yt(t.textContent);
+      t.textContent !== u && (Pt(e.removed, { element: t.cloneNode() }), t.textContent = u);
+    }
+    return tt(I.afterSanitizeElements, t, null), wt(t, r);
+  }, mn = function(t, r, l) {
+    if (He[r] || cn(r, t) || je && (r === "id" || r === "name") && (l in n || l in uo)) return !1;
+    const u = P[r] || lt.attributeCheck instanceof Function && lt.attributeCheck(r, t);
+    return oe && G(no, r) || We && G(oo, r) ? !0 : u ? Ze[r] || G($e, zt(l, Be, "")) || (r === "src" || r === "xlink:href" || r === "href") && t !== "script" && _n(l, "data:") === 0 && Je[t] || Ge && !G(io, zt(l, Be, "")) ? !0 : !l : dn(t) && Xt(nt.tagNameCheck, t) && Xt(nt.attributeNameCheck, r, t) || r === "is" && nt.allowCustomizedBuiltInElements && Xt(nt.tagNameCheck, l);
+  }, So = L({}, [
+    "annotation-xml",
+    "color-profile",
+    "font-face",
+    "font-face-format",
+    "font-face-name",
+    "font-face-src",
+    "font-face-uri",
+    "missing-glyph"
+  ]), dn = function(t) {
+    return !So[yt(t)] && G(ro, t);
+  }, wo = function(t, r, l, u) {
+    if (F && typeof b == "object" && typeof b.getAttributeType == "function" && !l) switch (b.getAttributeType(t, r)) {
+      case "TrustedHTML":
+        return Tt(u);
+      case "TrustedScriptURL":
+        return Yn(u);
+    }
+    return u;
+  }, Mo = function(t, r, l, u) {
+    try {
+      return l ? t.setAttributeNS(l, r, u) : t.setAttribute(r, u), Jt(t) ? (ut(t), !1) : !0;
+    } catch {
+      return St(r, t), !1;
+    }
+  }, hn = function(t, r) {
+    return dt && G(/((--!?|])>)|<\/(style|script|title|xmp|textarea|noscript|iframe|noembed|noframes)/i, r) ? !0 : yt(t) === "attributename" && Tn(r, "href") !== null;
+  }, xe = function(t, r) {
+    if (tt(I.beforeSanitizeAttributes, t, null), wt(t, r)) return;
+    const l = t.attributes;
+    if (!l || Jt(t)) return;
+    P = fn(I.uponSanitizeAttribute, P, ne, Wt);
+    const u = {
+      attrName: "",
+      attrValue: "",
+      keepAttr: !0,
+      allowedAttributes: P,
+      forceKeepAttr: void 0
+    };
+    let _ = l.length;
+    const S = U(t.nodeName);
+    for (; _--; ) {
+      const v = l[_], H = v.name, it = v.namespaceURI, V = v.value, Y = U(H), Mt = V;
+      let J = H === "value" ? Mt : $o(Mt), pn = !1;
+      if (u.attrName = Y, u.attrValue = J, u.keepAttr = !0, u.forceKeepAttr = void 0, tt(I.uponSanitizeAttribute, t, u), J = u.attrValue, qe && (Y === "id" || Y === "name") && _n(J, Ve) !== 0 && (St(H, t, v), J = Ve + J, pn = !0), hn(H, J)) {
+        St(H, t, v);
+        continue;
+      }
+      if (!u.forceKeepAttr) {
+        if (!u.keepAttr) {
+          St(H, t, v);
+          continue;
+        }
+        if (!ie && G(Dn, J)) {
+          St(H, t, v);
+          continue;
+        }
+        if (st && (J = Yt(J)), !mn(S, Y, J)) {
+          St(H, t, v);
+          continue;
+        }
+        J = wo(S, Y, it, J), J !== Mt && Mo(t, H, it, J) && pn && bn(e.removed);
+      }
+    }
+    tt(I.afterSanitizeAttributes, t, null), wt(t, r);
+  }, Ct = function(t) {
+    let r = null;
+    const l = be(t);
+    for (tt(I.beforeSanitizeShadowDOM, t, null); r = l.nextNode(); )
+      if (tt(I.uponSanitizeShadowNode, r, null), _e(r, t), xe(r, t), ft(r.content) && Ct(r.content), O(r) === $.element) {
+        const u = D(r);
+        ft(u) && (Ee(u), Ct(u));
+      }
+    st && un(t), tt(I.afterSanitizeShadowDOM, t, null);
+  }, Ee = function(t) {
+    const r = [{
+      node: t,
+      shadow: null
+    }];
+    for (; r.length > 0; ) {
+      const l = r.pop();
+      if (l.shadow) {
+        Ct(l.shadow);
+        continue;
+      }
+      const u = l.node, _ = O(u) === $.element, S = y(u);
+      if (S) for (let v = S.length - 1; v >= 0; --v) r.push({
+        node: S[v],
+        shadow: null
+      });
+      if (_) {
+        const v = E ? E(u) : null;
+        if (typeof v == "string" && U(v) === "template") {
+          const H = u.content;
+          ft(H) && r.push({
+            node: H,
+            shadow: null
+          });
+        }
+      }
+      if (_) {
+        const v = D(u);
+        ft(v) && r.push({
+          node: null,
+          shadow: v
+        }, {
+          node: v,
+          shadow: null
+        });
+      }
+    }
+  };
+  return e.sanitize = function(d) {
+    let t = arguments.length > 1 && arguments[1] !== void 0 ? arguments[1] : {}, r = null, l = null, u = null, _ = null;
+    if (le = !d, le && (d = "<!-->"), typeof d != "string" && !It(d) && (d = jo(d), typeof d != "string"))
+      throw ct("dirty is not a string, aborting");
+    if (!e.isSupported) return d;
+    re ? (C = Ht, P = Wt) : de(t), (I.uponSanitizeElement.length > 0 || I.uponSanitizeAttribute.length > 0) && (C = Z(C)), I.uponSanitizeAttribute.length > 0 && (P = Z(P)), e.removed = [];
+    const S = ce && typeof d != "string" && It(d);
+    let v = [];
+    const H = pt;
+    if (S) {
+      xo(d);
+      const Y = N(d);
+      if (typeof Y == "string") {
+        const Mt = U(Y);
+        if (!C[Mt] || Nt[Mt])
+          throw he(d), ct("root node is forbidden and cannot be sanitized in-place");
+      }
+      if (Jt(d))
+        throw he(d), ct("root node is clobbered and cannot be sanitized in-place");
+      v = ye(d), pt = Ae();
+    } else if (It(d))
+      r = ln("<!---->"), l = r.ownerDocument.importNode(d, !0), l.nodeType === $.element && l.nodeName === "BODY" || l.nodeName === "HTML" ? r = l : r.appendChild(l), Ee(r);
+    else {
+      if (!_t && !st && !ht && d.indexOf("<") === -1) return F && jt ? Tt(d) : d;
+      if (r = ln(d), !r) return _t ? null : jt ? z : "";
+    }
+    r && se && ut(r.firstChild);
+    const it = S ? d : r;
+    try {
+      S && Ee(d);
+      const Y = be(it);
+      for (; u = Y.nextNode(); )
+        _e(u, it), xe(u, it), ft(u.content) && Ct(u.content);
+      S && bo(d, v);
+    } catch (Y) {
+      throw S && (he(d), an(d, v)), Y;
+    } finally {
+      pt = H;
+    }
+    if (S) {
+      if (an(d, v)) throw ct("a node selected for removal could not be safely returned; refusing to sanitize in place");
+      return st && Te(d), d;
+    }
+    if (_t) {
+      if (st && Te(r), Gt)
+        for (_ = Xn.call(r.ownerDocument); r.firstChild; ) _.appendChild(r.firstChild);
+      else _ = r;
+      return (P.shadowroot || P.shadowrootmode) && (_ = Kn.call(i, _, !0)), _;
+    }
+    let V = ht ? r.outerHTML : r.innerHTML;
+    return ht && C["!doctype"] && r.ownerDocument && r.ownerDocument.doctype && r.ownerDocument.doctype.name && G(oi, r.ownerDocument.doctype.name) && (V = "<!DOCTYPE " + r.ownerDocument.doctype.name + `>
+` + V), st && (V = Yt(V)), F && jt ? Tt(V) : V;
+  }, e.setConfig = function() {
+    let d = arguments.length > 0 && arguments[0] !== void 0 ? arguments[0] : {};
+    de(d), re = !0, Ht = C, Wt = P;
+  }, e.clearConfig = function() {
+    At = null, re = !1, Ht = null, Wt = null, F = q, z = "";
+  }, e.isValidAttribute = function(d, t, r) {
+    At || de({});
+    const l = U(d), u = U(t);
+    return typeof r == "string" && (hn(t, r) || !ie && G(Dn, r)) ? !1 : mn(l, u, r);
+  }, e.addHook = function(d, t) {
+    typeof t == "function" && X(I, d) && Pt(I[d], t);
+  }, e.removeHook = function(d, t) {
+    if (X(I, d)) {
+      if (t !== void 0) {
+        const r = Fo(I[d], t);
+        return r === -1 ? void 0 : Bo(I[d], r, 1)[0];
+      }
+      return bn(I[d]);
+    }
+  }, e.removeHooks = function(d) {
+    X(I, d) && (I[d] = []);
+  }, e.removeAllHooks = function() {
+    I = Ln();
+  }, e;
+}
+var li = jn();
+function qn(o) {
+  const e = li.sanitize(o, { USE_PROFILES: { svg: !0, svgFilters: !0, html: !0 }, FORBID_TAGS: ["script", "iframe", "object", "embed", "form", "input", "button", "a", "image", "img", "video", "audio", "link", "meta", "base", "animate", "set", "foreignObject"], FORBID_ATTR: ["href", "xlink:href", "src", "srcset", "formaction", "action", "target"], ALLOW_DATA_ATTR: !1, ADD_TAGS: ["style"] }), n = new DOMParser().parseFromString(e, "image/svg+xml");
+  if (n.querySelector("parsererror") || n.documentElement.localName !== "svg") throw Error("El renderizador no ha generado un SVG válido.");
+  for (const i of n.querySelectorAll("*")) {
+    for (const c of [...i.attributes]) /^on/i.test(c.name) && i.removeAttribute(c.name);
+    const s = i.getAttribute("style");
+    s && /(?:@import|expression\s*\(|url\s*\(\s*(?!["']?#))/i.test(s) && i.removeAttribute("style");
+  }
+  for (const i of n.querySelectorAll("style"))
+    /(?:@import|expression\s*\(|url\s*\(\s*(?!["']?#))/i.test(i.textContent ?? "") && i.remove();
+  return n.documentElement.outerHTML;
+}
+const ui = /^[A-Za-z_][A-Za-z0-9_]*/, fi = "%% mbp-layout:start", mi = "%% mbp-layout:end", di = [["((", "))", "circle"], ["([", "])", "stadium"], ["[", "]", "rect"], ["(", ")", "round"], ["{", "}", "diamond"]], hi = (o) => ({ direction: o.direction, nodes: o.nodes, edges: o.edges, comments: o.comments, constraints: o.constraints, groups: o.groups ?? [] });
+function ke(o) {
+  return o.replace(/<br\s*\/?\s*>/gi, `
+`).replace(/#quot;/g, '"').replace(/#(\d+);/g, (e, n) => String.fromCodePoint(Number(n)));
+}
+function pi(o) {
+  const e = o.match(ui);
+  if (!e || ["end", "subgraph"].includes(e[0])) throw new Error("Identificador no admitido en edición visual.");
+  const n = e[0];
+  let i = o.slice(n.length).trimStart();
+  for (const [s, c, a] of di) {
+    if (!i.startsWith(s)) continue;
+    i = i.slice(s.length);
+    let m;
+    if (i.startsWith('"')) {
+      const f = i.indexOf('"', 1);
+      if (f < 0 || !i.slice(f + 1).startsWith(c)) throw new Error("Etiqueta no admitida.");
+      m = i.slice(1, f), i = i.slice(f + 1 + c.length);
+    } else {
+      const f = i.indexOf(c);
+      if (f < 0) throw new Error("Forma incompleta.");
+      if (m = i.slice(0, f), /[\[\]{}()";<>]/.test(m)) throw new Error("Forma o etiqueta avanzada.");
+      i = i.slice(f + c.length);
+    }
+    if (/[`]/.test(m) || /<(?!br\s*\/?\s*>)/i.test(m) || /#(?!quot;)[a-z]+;/i.test(m)) throw new Error("Formato avanzado en la etiqueta.");
+    return { node: { id: n, label: ke(m), shape: a }, length: o.length - i.length, explicit: !0 };
+  }
+  return { node: { id: n, label: n, shape: "rect" }, length: n.length, explicit: !1 };
+}
+function gi(o) {
+  try {
+    const e = o.split(/\r?\n/), n = { direction: "TD", nodes: [], edges: [], comments: [], constraints: [], groups: [] }, i = [], s = /* @__PURE__ */ new Map(), c = /* @__PURE__ */ new Set(), a = /* @__PURE__ */ new Set(), m = [];
+    let f = !1, g = !1;
+    const b = (h) => {
+      const T = s.get(h.node.id), x = m.join("/");
+      if (h.explicit && c.has(h.node.id) && T && (T.label !== h.node.label || T.shape !== h.node.shape || (T.group ?? "") !== x))
+        throw new Error("Hay declaraciones distintas para el mismo nodo.");
+      (!T || h.explicit) && s.set(h.node.id, x ? { ...h.node, group: x } : h.node), h.explicit && c.add(h.node.id);
+    };
+    for (const [h, T] of e.entries()) {
+      const x = T.replace(/^\uFEFF/, "").trim(), A = { raw: T, kind: "raw", scope: m.join("/") };
+      if (x === fi) {
+        if (g || m.length) throw new Error("Bloque de distribución fuera de lugar.");
+        g = !0, A.kind = "layout", i.push(A);
+        continue;
+      }
+      if (x === mi) {
+        if (!g) throw new Error("Bloque de distribución incompleto.");
+        g = !1;
+        continue;
+      }
+      if (g) {
+        const E = x.match(/^([A-Za-z_][\w]*)\s*~~~\s*([A-Za-z_][\w]*)$/);
+        if (!E) throw new Error("Restricción de distribución desconocida.");
+        n.constraints.push({ from: E[1], to: E[2] });
+        continue;
+      }
+      if (i.push(A), !x) continue;
+      if (x.startsWith("%%")) {
+        if (x.startsWith("%%{")) {
+          const E = x.match(/^%%\{\s*(?:init|initialize)\s*:\s*(\{.*\})\s*\}%%$/);
+          if (!E || !JSON.parse(E[1]) || f) throw new Error("Directiva avanzada no admitida visualmente.");
+        } else n.comments.push(T);
+        continue;
+      }
+      if (!f) {
+        const E = x.match(/^(?:flowchart|graph)\s+(TD|TB|BT|LR|RL)\s*;?$/);
+        if (!E) throw new Error("La edición visual admite diagramas flowchart y graph.");
+        n.direction = E[1], f = !0, A.kind = "header";
+        continue;
+      }
+      if (x.startsWith("subgraph ")) {
+        const E = x.match(/^subgraph\s+([A-Za-z_][\w]*)(?:\s*\[\s*(?:"[^"\r\n]*"|[^\[\]"\r\n]+)\s*\])?\s*$/);
+        if (!E || a.has(E[1])) throw new Error("Subgráfico avanzado o identificador duplicado.");
+        const M = x.slice(x.indexOf(E[1]) + E[1].length).trim();
+        n.groups.push({ id: E[1], label: ke(M.startsWith("[") ? M.slice(1, -1).trim().replace(/^"|"$/g, "") : E[1]), ...m.length ? { parent: m.at(-1) } : {} }), a.add(E[1]), m.push(E[1]);
+        continue;
+      }
+      if (x === "end" || x === "end;") {
+        if (!m.length) throw new Error("Cierre de subgráfico sin apertura.");
+        m.pop();
+        continue;
+      }
+      if (/^direction\s+(TD|TB|BT|LR|RL)\s*;?$/.test(x) && m.length || /^classDef\s+[A-Za-z_][\w]*(?:,[A-Za-z_][\w]*)*\s+[^\r\n]+$/.test(x)) continue;
+      const w = x.match(/^class\s+([A-Za-z_][\w]*(?:\s*,\s*[A-Za-z_][\w]*)*)\s+([A-Za-z_][\w]*(?:,[A-Za-z_][\w]*)*)\s*;?$/);
+      if (w) {
+        A.kind = "class", A.classIds = w[1].split(/\s*,\s*/);
+        continue;
+      }
+      const y = x.match(/^style\s+([A-Za-z_][\w]*)\s+[^\r\n]+$/);
+      if (y) {
+        A.kind = "style", A.classIds = [y[1]];
+        continue;
+      }
+      A.kind = "content", A.refs = [], A.edges = [];
+      let p = T.search(/\S/);
+      const D = () => {
+        const E = pi(T.slice(p));
+        return b(E), A.refs.push({ id: E.node.id, start: p, end: p + E.length, explicit: E.explicit }), p += E.length, E;
+      };
+      let B = D();
+      const R = () => {
+        for (; /\s/.test(T[p] ?? "") && p < T.length; ) p++;
+      };
+      for (R(); p < T.length && T.slice(p).trim() !== ";"; ) {
+        const E = T.slice(p).match(/^(--+>|---+|-\.->)\s*/);
+        if (!E) throw new Error("Esta construcción necesita edición por código.");
+        p += E[0].length;
+        let M = "";
+        if (T[p] === "|") {
+          const Q = T.indexOf("|", p + 1);
+          if (Q < 0) throw new Error("Etiqueta de conexión incompleta.");
+          if (M = T.slice(p + 1, Q), M.startsWith('"') && M.endsWith('"') && (M = M.slice(1, -1)), /[<>`"\r\n]/.test(M) || /#(?!quot;)[a-z]+;/i.test(M)) throw new Error("Etiqueta de conexión avanzada.");
+          M = ke(M), p = Q + 1, R();
+        }
+        const O = D(), N = `e${h}_${A.edges.length}`;
+        n.edges.push({ from: B.node.id, to: O.node.id, arrow: E[1], label: M, key: N }), A.edges.push(N), B = O, R();
+      }
+    }
+    if (!f || g || m.length) throw new Error("Diagrama incompleto.");
+    if (n.nodes = [...s.values()], n.nodes.some((h) => a.has(h.id))) throw new Error("Las conexiones a subgráficos requieren edición por código.");
+    if (n.constraints.some((h) => !s.has(h.from) || !s.has(h.to))) throw new Error("Restricción con nodos inexistentes.");
+    return n.source = { text: o, newline: o.includes(`\r
 `) ? `\r
 ` : `
-`, lines: n, original: structuredClone(Y(e)) }, { ok: !0, flow: e };
-  } catch (t) {
-    return { ok: !1, reason: t instanceof Error ? t.message : "Sintaxis avanzada." };
+`, lines: i, original: structuredClone(hi(n)) }, { ok: !0, flow: n };
+  } catch (e) {
+    return { ok: !1, reason: e instanceof Error ? e.message : "Sintaxis avanzada." };
   }
 }
-function nt(c) {
-  const t = /* @__PURE__ */ new Map(), e = /* @__PURE__ */ new Map(), n = /* @__PURE__ */ new Set(), o = (a, i) => {
-    t.has(a) ? n.add(a) : t.set(a, i);
+function yi(o) {
+  const e = /* @__PURE__ */ new Map(), n = /* @__PURE__ */ new Map(), i = /* @__PURE__ */ new Set(), s = (c, a) => {
+    e.has(c) ? i.add(c) : e.set(c, a);
   };
-  c.edges.forEach((a, i) => {
-    if (a.from === a.to)
-      for (const s of ["1", "mid", "2"]) o(`${a.from}-cyclic-special-${s}`, i);
+  o.edges.forEach((c, a) => {
+    if (c.from === c.to)
+      for (const m of ["1", "mid", "2"]) s(`${c.from}-cyclic-special-${m}`, a);
     else {
-      const s = `${a.from}_${a.to}`, r = e.get(s) ?? 0;
-      o(`L_${s}_${r === 0 ? 0 : r + 1}`, i), e.set(s, r + 1);
+      const m = `${c.from}_${c.to}`, f = n.get(m) ?? 0;
+      s(`L_${m}_${f === 0 ? 0 : f + 1}`, a), n.set(m, f + 1);
     }
   });
-  for (const a of n) t.delete(a);
-  return t;
+  for (const c of i) e.delete(c);
+  return e;
 }
-const it = "%% mermaid-bp:manual-layout";
-function G(c) {
-  var t;
-  return ((t = c.replace(/^\uFEFF/, "").split(/\r?\n/).find((e) => e.trim())) == null ? void 0 : t.trim()) === it;
+function bt(o) {
+  var n;
+  const e = (((n = o.closest("svg")) == null ? void 0 : n.id) ?? "") + "-";
+  return o.id.startsWith(e) ? o.id.slice(e.length) : o.id;
 }
-const L = "%% graph:positions ";
-function st(c) {
-  const t = /* @__PURE__ */ Object.create(null);
-  for (const e of c.split(/\r?\n/))
-    if (e.trimStart().startsWith(L))
+const bi = "%% mermaid-bp:manual-layout";
+function Vn(o) {
+  var e;
+  return ((e = o.replace(/^\uFEFF/, "").split(/\r?\n/).find((n) => n.trim())) == null ? void 0 : e.trim()) === bi;
+}
+const Nn = "%% graph:positions ";
+function Ti(o) {
+  const e = /* @__PURE__ */ Object.create(null);
+  for (const n of o.split(/\r?\n/))
+    if (n.trimStart().startsWith(Nn))
       try {
-        const n = JSON.parse(e.trimStart().slice(L.length));
-        if (!n || typeof n != "object" || Array.isArray(n)) continue;
-        for (const [o, a] of Object.entries(n)) {
-          const i = a;
-          i && Number.isFinite(i.x) && Number.isFinite(i.y) && Math.abs(i.x) < 1e7 && Math.abs(i.y) < 1e7 && (t[o] = { x: i.x, y: i.y });
+        const i = JSON.parse(n.trimStart().slice(Nn.length));
+        if (!i || typeof i != "object" || Array.isArray(i)) continue;
+        for (const [s, c] of Object.entries(i)) {
+          const a = c;
+          a && Number.isFinite(a.x) && Number.isFinite(a.y) && Math.abs(a.x) < 1e7 && Math.abs(a.y) < 1e7 && (e[s] = { x: a.x, y: a.y });
         }
       } catch {
       }
-  return t;
+  return e;
 }
-const j = "%% graph:groups ";
-function ot(c) {
-  const t = /* @__PURE__ */ Object.create(null);
-  for (const e of c.split(/\r?\n/))
-    if (e.trimStart().startsWith(j))
+const Rn = "%% graph:groups ";
+function _i(o) {
+  const e = /* @__PURE__ */ Object.create(null);
+  for (const n of o.split(/\r?\n/))
+    if (n.trimStart().startsWith(Rn))
       try {
-        const n = JSON.parse(e.trimStart().slice(j.length));
-        if (!n || typeof n != "object" || Array.isArray(n)) continue;
-        for (const [o, a] of Object.entries(n)) {
-          const i = a;
-          i && [i.x, i.y, i.width, i.height].every((s) => Number.isFinite(s) && Math.abs(s) < 1e7) && i.width >= 40 && i.height >= 40 && (t[o] = { x: i.x, y: i.y, width: i.width, height: i.height });
+        const i = JSON.parse(n.trimStart().slice(Rn.length));
+        if (!i || typeof i != "object" || Array.isArray(i)) continue;
+        for (const [s, c] of Object.entries(i)) {
+          const a = c;
+          a && [a.x, a.y, a.width, a.height].every((m) => Number.isFinite(m) && Math.abs(m) < 1e7) && a.width >= 40 && a.height >= 40 && (e[s] = { x: a.x, y: a.y, width: a.width, height: a.height });
         }
       } catch {
       }
-  return t;
+  return e;
 }
-const F = "%% graph:connections ";
-function rt(c) {
-  const t = /* @__PURE__ */ Object.create(null);
-  for (const e of c.split(/\r?\n/))
-    if (e.trimStart().startsWith(F))
+const In = "%% graph:connections ";
+function xi(o) {
+  const e = /* @__PURE__ */ Object.create(null);
+  for (const n of o.split(/\r?\n/))
+    if (n.trimStart().startsWith(In))
       try {
-        const n = JSON.parse(e.trimStart().slice(F.length));
-        if (!n || typeof n != "object" || Array.isArray(n)) continue;
-        for (const [o, a] of Object.entries(n)) {
-          if (!a || typeof a != "object") continue;
-          const i = {};
-          for (const s of ["from", "to"]) {
-            const r = a[s];
-            typeof r == "number" && Number.isFinite(r) && (i[s] = (r % 360 + 360) % 360);
+        const i = JSON.parse(n.trimStart().slice(In.length));
+        if (!i || typeof i != "object" || Array.isArray(i)) continue;
+        for (const [s, c] of Object.entries(i)) {
+          if (!c || typeof c != "object") continue;
+          const a = {};
+          for (const m of ["from", "to"]) {
+            const f = c[m];
+            typeof f == "number" && Number.isFinite(f) && (a[m] = (f % 360 + 360) % 360);
           }
-          for (const s of ["bendFrom", "bendTo"]) {
-            const r = a[s];
-            r && Number.isFinite(r.x) && Number.isFinite(r.y) && Math.abs(r.x) < 1e7 && Math.abs(r.y) < 1e7 && (i[s] = { x: r.x, y: r.y });
+          for (const m of ["bendFrom", "bendTo"]) {
+            const f = c[m];
+            f && Number.isFinite(f.x) && Number.isFinite(f.y) && Math.abs(f.x) < 1e7 && Math.abs(f.y) < 1e7 && (a[m] = { x: f.x, y: f.y });
           }
-          Object.keys(i).length && (t[o] = i);
+          Object.keys(a).length && (e[s] = a);
         }
       } catch {
       }
-  return t;
+  return e;
 }
-function P(c, t) {
-  const e = c[t], n = c.slice(0, t).filter((o) => o.from === e.from && o.to === e.to).length;
-  return e.from + ">" + e.to + "#" + n;
+function Ut(o, e) {
+  const n = o[e], i = o.slice(0, e).filter((s) => s.from === n.from && s.to === n.to).length;
+  return n.from + ">" + n.to + "#" + i;
 }
-const W = (c, t) => Math.hypot(t.x - c.x, t.y - c.y);
-function at(c, t = 18) {
-  if (!c.length) return "";
-  let e = `M${c[0].x},${c[0].y}`;
-  for (let o = 1; o < c.length - 1; o++) {
-    const a = c[o - 1], i = c[o], s = c[o + 1], r = W(a, i), u = W(i, s), y = Math.min(t, r / 2, u / 2);
-    if (y < 0.01) {
-      e += ` L${i.x},${i.y}`;
+const Cn = (o, e) => Math.hypot(e.x - o.x, e.y - o.y);
+function Ei(o, e = 18) {
+  if (!o.length) return "";
+  let n = `M${o[0].x},${o[0].y}`;
+  for (let s = 1; s < o.length - 1; s++) {
+    const c = o[s - 1], a = o[s], m = o[s + 1], f = Cn(c, a), g = Cn(a, m), b = Math.min(e, f / 2, g / 2);
+    if (b < 0.01) {
+      n += ` L${a.x},${a.y}`;
       continue;
     }
-    const l = { x: i.x + (a.x - i.x) * y / r, y: i.y + (a.y - i.y) * y / r }, d = { x: i.x + (s.x - i.x) * y / u, y: i.y + (s.y - i.y) * y / u };
-    e += ` L${l.x},${l.y} Q${i.x},${i.y} ${d.x},${d.y}`;
+    const h = { x: a.x + (c.x - a.x) * b / f, y: a.y + (c.y - a.y) * b / f }, T = { x: a.x + (m.x - a.x) * b / g, y: a.y + (m.y - a.y) * b / g };
+    n += ` L${h.x},${h.y} Q${a.x},${a.y} ${T.x},${T.y}`;
   }
-  const n = c.at(-1);
-  return e + ` L${n.x},${n.y}`;
+  const i = o.at(-1);
+  return n + ` L${i.x},${i.y}`;
 }
-function ct(c, t, e, n, o) {
-  const a = o * Math.PI / 180, i = Math.cos(a), s = Math.sin(a), r = Math.max(1, t / 2), u = Math.max(1, e / 2);
-  let y = 1 / Math.max(Math.abs(i) / r, Math.abs(s) / u);
-  if (n === "stadium" || n === "round") {
-    const l = n === "stadium" ? Math.min(r, u) : Math.min(5, r, u), d = i * y, f = s * y;
-    if (Math.abs(d) > r - l && Math.abs(f) > u - l) {
-      const p = Math.sign(i) * (r - l), g = Math.sign(s) * (u - l), m = i * p + s * g;
-      y = m + Math.sqrt(Math.max(0, m * m - p * p - g * g + l * l));
+function Ai(o, e, n, i, s) {
+  const c = s * Math.PI / 180, a = Math.cos(c), m = Math.sin(c), f = Math.max(1, e / 2), g = Math.max(1, n / 2);
+  let b = 1 / Math.max(Math.abs(a) / f, Math.abs(m) / g);
+  if (i === "stadium" || i === "round") {
+    const h = i === "stadium" ? Math.min(f, g) : Math.min(5, f, g), T = a * b, x = m * b;
+    if (Math.abs(T) > f - h && Math.abs(x) > g - h) {
+      const A = Math.sign(a) * (f - h), w = Math.sign(m) * (g - h), y = a * A + m * w;
+      b = y + Math.sqrt(Math.max(0, y * y - A * A - w * w + h * h));
     }
   }
-  return n === "circle" ? y = 1 / Math.sqrt(i * i / (r * r) + s * s / (u * u)) : n === "diamond" && (y = 1 / (Math.abs(i) / r + Math.abs(s) / u)), { x: c.x + i * y, y: c.y + s * y };
+  return i === "circle" ? b = 1 / Math.sqrt(a * a / (f * f) + m * m / (g * g)) : i === "diamond" && (b = 1 / (Math.abs(a) / f + Math.abs(m) / g)), { x: o.x + a * b, y: o.y + m * b };
 }
-const _ = { x: 0, y: 0 }, J = (c, t) => ({ x: Math.abs(c) < 1e-3 ? 0 : c, y: Math.abs(t) < 1e-3 ? 0 : t }), N = (c) => [c.a, c.b, c.c, c.d, c.e, c.f];
-function D(c, t) {
-  return { x: c.a * t.x + c.c * t.y, y: c.b * t.x + c.d * t.y };
+const Pn = { x: 0, y: 0 }, kn = (o, e) => ({ x: Math.abs(o) < 1e-3 ? 0 : o, y: Math.abs(e) < 1e-3 ? 0 : e }), Re = (o) => [o.a, o.b, o.c, o.d, o.e, o.f];
+function Kt(o, e) {
+  return { x: o.a * e.x + o.c * e.y, y: o.b * e.x + o.d * e.y };
 }
-function V(c, t) {
-  return c.getCTM().inverse().multiply(t.parentElement.getCTM()).inverse();
+function zn(o, e) {
+  return o.getCTM().inverse().multiply(e.parentElement.getCTM()).inverse();
 }
-class lt {
-  constructor(t, e, n, o = {}, a = {}) {
-    k(this, "nodes", /* @__PURE__ */ new Map());
-    k(this, "edges", /* @__PURE__ */ new Set());
-    k(this, "edgesByIndex", /* @__PURE__ */ new Map());
-    k(this, "adjacent", /* @__PURE__ */ new Map());
-    k(this, "deltas", /* @__PURE__ */ new Map());
-    var u, y, l, d, f, p, g;
-    this.root = t, this.flow = e, this.geometry = n, this.connections = o, this.groups = a, (u = t.dataset).layoutBox ?? (u.layoutBox = JSON.stringify([t.viewBox.baseVal.x, t.viewBox.baseVal.y, t.viewBox.baseVal.width, t.viewBox.baseVal.height]));
-    for (const m of t.querySelectorAll("g.node")) {
-      const h = e.nodes.find((b) => m.id.startsWith(`flowchart-${b.id}-`));
-      if (!h || !n.nodes[h.id]) continue;
-      const w = m.dataset.layoutBase ? JSON.parse(m.dataset.layoutBase) : {
-        center: { ...n.nodes[h.id] },
-        matrix: N(((y = m.transform.baseVal.consolidate()) == null ? void 0 : y.matrix) ?? new DOMMatrix())
+class Si {
+  constructor(e, n, i, s = {}, c = {}) {
+    Ot(this, "nodes", /* @__PURE__ */ new Map());
+    Ot(this, "edges", /* @__PURE__ */ new Set());
+    Ot(this, "edgesByIndex", /* @__PURE__ */ new Map());
+    Ot(this, "adjacent", /* @__PURE__ */ new Map());
+    Ot(this, "deltas", /* @__PURE__ */ new Map());
+    var g, b, h, T, x, A, w;
+    this.root = e, this.flow = n, this.geometry = i, this.connections = s, this.groups = c, (g = e.dataset).layoutBox ?? (g.layoutBox = JSON.stringify([e.viewBox.baseVal.x, e.viewBox.baseVal.y, e.viewBox.baseVal.width, e.viewBox.baseVal.height]));
+    for (const y of e.querySelectorAll("g.node")) {
+      const p = n.nodes.find((M) => bt(y).startsWith(`flowchart-${M.id}-`));
+      if (!p || !i.nodes[p.id]) continue;
+      const D = y.dataset.layoutBase ? JSON.parse(y.dataset.layoutBase) : {
+        center: { ...i.nodes[p.id] },
+        matrix: Re(((b = y.transform.baseVal.consolidate()) == null ? void 0 : b.matrix) ?? new DOMMatrix())
       };
-      m.dataset.layoutBase = JSON.stringify(w);
-      const $ = m.querySelector(".label-container, rect, polygon, circle, path") ?? m, S = $.getBBox(), x = t.getCTM().inverse().multiply(m.getCTM());
-      this.nodes.set(h.id, {
-        shapeElement: $,
-        element: m,
-        center: w.center,
-        matrix: new DOMMatrix(w.matrix),
-        inverse: V(t, m),
-        width: Math.abs(x.a) * S.width + Math.abs(x.c) * S.height,
-        height: Math.abs(x.b) * S.width + Math.abs(x.d) * S.height,
-        shape: h.shape
-      }), this.deltas.set(h.id, J(n.nodes[h.id].x - w.center.x, n.nodes[h.id].y - w.center.y));
+      y.dataset.layoutBase = JSON.stringify(D);
+      const B = y.querySelector(".label-container, rect, polygon, circle, path") ?? y, R = B.getBBox(), E = e.getCTM().inverse().multiply(y.getCTM());
+      this.nodes.set(p.id, {
+        shapeElement: B,
+        element: y,
+        center: D.center,
+        matrix: new DOMMatrix(D.matrix),
+        inverse: zn(e, y),
+        width: Math.abs(E.a) * R.width + Math.abs(E.c) * R.height,
+        height: Math.abs(E.b) * R.width + Math.abs(E.d) * R.height,
+        shape: p.shape
+      }), this.deltas.set(p.id, kn(i.nodes[p.id].x - D.center.x, i.nodes[p.id].y - D.center.y));
     }
-    const i = nt(e), s = [...t.querySelectorAll(".edgeLabels > g.edgeLabel")], r = /* @__PURE__ */ new Set();
-    for (const m of t.querySelectorAll(".edgePaths path.flowchart-link")) {
-      const h = i.get(m.id);
-      if (h === void 0) continue;
-      const w = e.edges[h], $ = m.getTotalLength(), S = Math.max(2, Math.min(64, Math.ceil($ / 12))), x = m.dataset.layoutPoints ? JSON.parse(m.dataset.layoutPoints) : Array.from({ length: S + 1 }, (O, A) => {
-        const B = m.getPointAtLength($ * A / S);
-        return { x: B.x, y: B.y };
+    const a = yi(n), m = [...e.querySelectorAll(".edgeLabels > g.edgeLabel")], f = /* @__PURE__ */ new Set();
+    for (const y of e.querySelectorAll(".edgePaths path.flowchart-link")) {
+      const p = a.get(bt(y));
+      if (p === void 0) continue;
+      const D = n.edges[p], B = y.getTotalLength(), R = Math.max(2, Math.min(64, Math.ceil(B / 12))), E = y.dataset.layoutPoints ? JSON.parse(y.dataset.layoutPoints) : Array.from({ length: R + 1 }, (z, q) => {
+        const et = y.getPointAtLength(B * q / R);
+        return { x: et.x, y: et.y };
       });
-      m.dataset.layoutPoints = JSON.stringify(x), (l = m.dataset).layoutPath ?? (l.layoutPath = m.getAttribute("d") ?? "");
-      const b = s.find((O) => {
-        var A;
-        return ((A = O.querySelector("[data-id]")) == null ? void 0 : A.getAttribute("data-id")) === m.id;
-      }) ?? (w.label ? s.find((O) => {
-        var A;
-        return !r.has(O) && ((A = O.textContent) == null ? void 0 : A.trim()) === w.label.trim();
+      y.dataset.layoutPoints = JSON.stringify(E), (h = y.dataset).layoutPath ?? (h.layoutPath = y.getAttribute("d") ?? "");
+      const M = m.find((z) => {
+        var q;
+        return ((q = z.querySelector("[data-id]")) == null ? void 0 : q.getAttribute("data-id")) === y.id;
+      }) ?? (D.label ? m.find((z) => {
+        var q;
+        return !f.has(z) && ((q = z.textContent) == null ? void 0 : q.trim()) === D.label.trim();
       }) : void 0);
-      b && (r.add(b), (f = b.dataset).layoutMatrix ?? (f.layoutMatrix = JSON.stringify(N(((d = b.transform.baseVal.consolidate()) == null ? void 0 : d.matrix) ?? new DOMMatrix()))));
-      let M, v;
-      if (b) {
-        (p = b.dataset).layoutCenter ?? (p.layoutCenter = JSON.stringify(new DOMPoint(0, 0).matrixTransform(t.getCTM().inverse().multiply(b.getCTM()))));
-        const O = JSON.parse(b.dataset.layoutCenter);
-        M = { x: O.x, y: O.y };
-        const A = b.getBBox(), B = t.getCTM().inverse().multiply(b.getCTM());
-        v = { x: Math.abs(B.a) * A.width + Math.abs(B.c) * A.height, y: Math.abs(B.b) * A.width + Math.abs(B.d) * A.height };
+      M && (f.add(M), (x = M.dataset).layoutMatrix ?? (x.layoutMatrix = JSON.stringify(Re(((T = M.transform.baseVal.consolidate()) == null ? void 0 : T.matrix) ?? new DOMMatrix()))));
+      let O, N;
+      if (M) {
+        (A = M.dataset).layoutCenter ?? (A.layoutCenter = JSON.stringify(new DOMPoint(0, 0).matrixTransform(e.getCTM().inverse().multiply(M.getCTM()))));
+        const z = JSON.parse(M.dataset.layoutCenter);
+        O = { x: z.x, y: z.y };
+        const q = M.getBBox(), et = e.getCTM().inverse().multiply(M.getCTM());
+        N = { x: Math.abs(et.a) * q.width + Math.abs(et.c) * q.height, y: Math.abs(et.b) * q.width + Math.abs(et.d) * q.height };
       }
-      const T = [...t.querySelectorAll(".edge-hit")].find((O) => O.dataset.hitFor === m.id);
-      (g = m.dataset).layoutMarkers ?? (g.layoutMarkers = JSON.stringify([m.getAttribute("marker-start"), m.getAttribute("marker-end")]));
-      const C = JSON.parse(m.dataset.layoutMarkers), E = {
-        markerStart: C[0],
-        markerEnd: C[1],
-        index: h,
-        key: P(e.edges, h),
-        hit: T,
-        labelCenter: M,
-        labelSize: v,
-        element: m,
-        from: w.from,
-        to: w.to,
-        points: x,
-        original: m.dataset.layoutPath,
-        inverse: t.getCTM().inverse().multiply(m.getCTM()).inverse(),
-        label: b,
-        labelMatrix: b ? new DOMMatrix(JSON.parse(b.dataset.layoutMatrix)) : void 0,
-        labelInverse: b ? V(t, b) : void 0
+      const Q = [...e.querySelectorAll(".edge-hit")].find((z) => z.dataset.hitFor === y.id);
+      (w = y.dataset).layoutMarkers ?? (w.layoutMarkers = JSON.stringify([y.getAttribute("marker-start"), y.getAttribute("marker-end")]));
+      const rt = JSON.parse(y.dataset.layoutMarkers), F = {
+        markerStart: rt[0],
+        markerEnd: rt[1],
+        index: p,
+        key: Ut(n.edges, p),
+        hit: Q,
+        labelCenter: O,
+        labelSize: N,
+        element: y,
+        from: D.from,
+        to: D.to,
+        points: E,
+        original: y.dataset.layoutPath,
+        inverse: e.getCTM().inverse().multiply(y.getCTM()).inverse(),
+        label: M,
+        labelMatrix: M ? new DOMMatrix(JSON.parse(M.dataset.layoutMatrix)) : void 0,
+        labelInverse: M ? zn(e, M) : void 0
       };
-      this.edges.add(E), this.edgesByIndex.has(h) || this.edgesByIndex.set(h, []), this.edgesByIndex.get(h).push(E);
-      for (const O of /* @__PURE__ */ new Set([w.from, w.to]))
-        this.adjacent.has(O) || this.adjacent.set(O, /* @__PURE__ */ new Set()), this.adjacent.get(O).add(E);
+      this.edges.add(F), this.edgesByIndex.has(p) || this.edgesByIndex.set(p, []), this.edgesByIndex.get(p).push(F);
+      for (const z of /* @__PURE__ */ new Set([D.from, D.to]))
+        this.adjacent.has(z) || this.adjacent.set(z, /* @__PURE__ */ new Set()), this.adjacent.get(z).add(F);
     }
   }
-  position(t, e) {
-    const n = this.nodes.get(t);
-    if (!n) return;
-    const o = J(e.x - n.center.x, e.y - n.center.y);
-    this.deltas.set(t, o);
-    const a = D(n.inverse, o), i = n.matrix;
-    n.element.setAttribute("transform", `matrix(${i.a} ${i.b} ${i.c} ${i.d} ${i.e + a.x} ${i.f + a.y})`), this.geometry.nodes[t] = { x: n.center.x + o.x, y: n.center.y + o.y };
+  position(e, n) {
+    const i = this.nodes.get(e);
+    if (!i) return;
+    const s = kn(n.x - i.center.x, n.y - i.center.y);
+    this.deltas.set(e, s);
+    const c = Kt(i.inverse, s), a = i.matrix;
+    i.element.setAttribute("transform", `matrix(${a.a} ${a.b} ${a.c} ${a.d} ${a.e + c.x} ${a.f + c.y})`), this.geometry.nodes[e] = { x: i.center.x + s.x, y: i.center.y + s.y };
   }
-  route(t) {
-    var l, d, f;
-    const e = this.deltas.get(t.from) ?? _, n = this.deltas.get(t.to) ?? _, o = D(t.inverse, e), a = D(t.inverse, n), i = t.points.length - 1, s = t.points.map((p, g) => {
-      const m = g / i, h = m * m * (3 - 2 * m);
-      return { x: p.x + o.x * (1 - h) + a.x * h, y: p.y + o.y * (1 - h) + a.y * h };
+  route(e) {
+    var h, T, x;
+    const n = this.deltas.get(e.from) ?? Pn, i = this.deltas.get(e.to) ?? Pn, s = Kt(e.inverse, n), c = Kt(e.inverse, i), a = e.points.length - 1, m = e.points.map((A, w) => {
+      const y = w / a, p = y * y * (3 - 2 * y);
+      return { x: A.x + s.x * (1 - p) + c.x * p, y: A.y + s.y * (1 - p) + c.y * p };
     });
-    let r = { x: (e.x + n.x) / 2, y: (e.y + n.y) / 2 };
-    const u = this.connections[t.key];
-    let y = at(s);
-    if (u) {
-      const p = this.edgesByIndex.get(t.index);
-      if (t !== p[0] && t.from === t.to) {
-        t.element.style.display = "none", t.hit && (t.hit.style.display = "none");
+    let f = { x: (n.x + i.x) / 2, y: (n.y + i.y) / 2 };
+    const g = this.connections[e.key];
+    let b = Ei(m);
+    if (g) {
+      const A = this.edgesByIndex.get(e.index);
+      if (e !== A[0] && e.from === e.to) {
+        e.element.style.display = "none", e.hit && (e.hit.style.display = "none");
         return;
       }
-      t.element.style.removeProperty("display"), (l = t.hit) == null || l.style.removeProperty("display");
-      const g = this.curve(t.index), m = new DOMPoint(g.start.x, g.start.y).matrixTransform(t.inverse), h = new DOMPoint(g.end.x, g.end.y).matrixTransform(t.inverse), w = new DOMPoint(g.c1.x, g.c1.y).matrixTransform(t.inverse), $ = new DOMPoint(g.c2.x, g.c2.y).matrixTransform(t.inverse);
-      if (t.from === t.to) {
-        const S = p.at(-1).markerEnd;
-        S && t.element.setAttribute("marker-end", S);
+      e.element.style.removeProperty("display"), (h = e.hit) == null || h.style.removeProperty("display");
+      const w = this.curve(e.index), y = new DOMPoint(w.start.x, w.start.y).matrixTransform(e.inverse), p = new DOMPoint(w.end.x, w.end.y).matrixTransform(e.inverse), D = new DOMPoint(w.c1.x, w.c1.y).matrixTransform(e.inverse), B = new DOMPoint(w.c2.x, w.c2.y).matrixTransform(e.inverse);
+      if (e.from === e.to) {
+        const R = A.at(-1).markerEnd;
+        R && e.element.setAttribute("marker-end", R);
       }
-      if (y = `M${m.x},${m.y} C${w.x},${w.y} ${$.x},${$.y} ${h.x},${h.y}`, t.labelCenter) {
-        const S = (M) => {
-          const v = 1 - M;
-          return new DOMPoint(v * v * v * m.x + 3 * v * v * M * w.x + 3 * v * M * M * $.x + M * M * M * h.x, v * v * v * m.y + 3 * v * v * M * w.y + 3 * v * M * M * $.y + M * M * M * h.y).matrixTransform(t.inverse.inverse());
-        }, x = [0.5, 0.4, 0.6, 0.3, 0.7, 0.2, 0.8].map(S), b = x.find((M) => [t.from, t.to].every((v) => {
-          const T = this.nodes.get(v), C = this.geometry.nodes[v], E = t.labelSize ?? { x: 0, y: 0 };
-          return Math.abs(M.x - C.x) > (T.width + E.x) / 2 + 6 || Math.abs(M.y - C.y) > (T.height + E.y) / 2 + 6;
-        })) ?? x[0];
-        r = { x: b.x - t.labelCenter.x, y: b.y - t.labelCenter.y };
+      if (b = `M${y.x},${y.y} C${D.x},${D.y} ${B.x},${B.y} ${p.x},${p.y}`, e.labelCenter) {
+        const R = (O) => {
+          const N = 1 - O;
+          return new DOMPoint(N * N * N * y.x + 3 * N * N * O * D.x + 3 * N * O * O * B.x + O * O * O * p.x, N * N * N * y.y + 3 * N * N * O * D.y + 3 * N * O * O * B.y + O * O * O * p.y).matrixTransform(e.inverse.inverse());
+        }, E = [0.5, 0.4, 0.6, 0.3, 0.7, 0.2, 0.8].map(R), M = E.find((O) => [e.from, e.to].every((N) => {
+          const Q = this.nodes.get(N), rt = this.geometry.nodes[N], F = e.labelSize ?? { x: 0, y: 0 };
+          return Math.abs(O.x - rt.x) > (Q.width + F.x) / 2 + 6 || Math.abs(O.y - rt.y) > (Q.height + F.y) / 2 + 6;
+        })) ?? E[0];
+        f = { x: M.x - e.labelCenter.x, y: M.y - e.labelCenter.y };
       }
     } else
-      t.element.style.removeProperty("display"), (d = t.hit) == null || d.style.removeProperty("display"), t.markerStart ? t.element.setAttribute("marker-start", t.markerStart) : t.element.removeAttribute("marker-start"), t.markerEnd ? t.element.setAttribute("marker-end", t.markerEnd) : t.element.removeAttribute("marker-end");
-    if (t.element.setAttribute("d", y), (f = t.hit) == null || f.setAttribute("d", y), t.label && t.labelMatrix && t.labelInverse) {
-      const p = D(t.labelInverse, r), g = t.labelMatrix;
-      t.label.setAttribute("transform", `matrix(${g.a} ${g.b} ${g.c} ${g.d} ${g.e + p.x} ${g.f + p.y})`);
+      e.element.style.removeProperty("display"), (T = e.hit) == null || T.style.removeProperty("display"), e.markerStart ? e.element.setAttribute("marker-start", e.markerStart) : e.element.removeAttribute("marker-start"), e.markerEnd ? e.element.setAttribute("marker-end", e.markerEnd) : e.element.removeAttribute("marker-end");
+    if (e.element.setAttribute("d", b), (x = e.hit) == null || x.setAttribute("d", b), e.label && e.labelMatrix && e.labelInverse) {
+      const A = Kt(e.labelInverse, f), w = e.labelMatrix;
+      e.label.setAttribute("transform", `matrix(${w.a} ${w.b} ${w.c} ${w.d} ${w.e + A.x} ${w.f + A.y})`);
     }
   }
-  endpoint(t, e) {
-    var h;
-    const n = this.flow.edges[t];
-    if (!n) return null;
-    const o = this.nodes.get(n[e]);
-    if (!o) return null;
-    const a = o.shapeElement.getBBox(), i = this.root.getCTM().inverse().multiply(o.shapeElement.getCTM()), s = new DOMPoint(a.x + a.width / 2, a.y + a.height / 2).matrixTransform(i), r = { x: s.x, y: s.y }, u = Math.abs(i.a) * a.width + Math.abs(i.c) * a.height, y = Math.abs(i.b) * a.width + Math.abs(i.d) * a.height, l = this.edgesByIndex.get(t) ?? [], d = e === "from" ? l[0] : l.at(-1);
-    if (!d) return null;
-    const f = e === "from" ? d.points[0] : d.points.at(-1), p = new DOMPoint(f.x, f.y).matrixTransform(d.inverse.inverse()), g = ((h = this.connections[d.key]) == null ? void 0 : h[e]) ?? Math.atan2(p.y - o.center.y, p.x - o.center.x) * 180 / Math.PI, m = ct(r, u, y, o.shape, g);
-    return { center: r, angle: g, point: m };
+  endpoint(e, n) {
+    var p;
+    const i = this.flow.edges[e];
+    if (!i) return null;
+    const s = this.nodes.get(i[n]);
+    if (!s) return null;
+    const c = s.shapeElement.getBBox(), a = this.root.getCTM().inverse().multiply(s.shapeElement.getCTM()), m = new DOMPoint(c.x + c.width / 2, c.y + c.height / 2).matrixTransform(a), f = { x: m.x, y: m.y }, g = Math.abs(a.a) * c.width + Math.abs(a.c) * c.height, b = Math.abs(a.b) * c.width + Math.abs(a.d) * c.height, h = this.edgesByIndex.get(e) ?? [], T = n === "from" ? h[0] : h.at(-1);
+    if (!T) return null;
+    const x = n === "from" ? T.points[0] : T.points.at(-1), A = new DOMPoint(x.x, x.y).matrixTransform(T.inverse.inverse()), w = ((p = this.connections[T.key]) == null ? void 0 : p[n]) ?? Math.atan2(A.y - s.center.y, A.x - s.center.x) * 180 / Math.PI, y = Ai(f, g, b, s.shape, w);
+    return { center: f, angle: w, point: y };
   }
-  curve(t) {
-    const e = this.endpoint(t, "from"), n = this.endpoint(t, "to");
-    if (!e || !n) return null;
-    const o = this.flow.edges[t], a = this.connections[P(this.flow.edges, t)], i = o.from === o.to ? Math.max(90, this.nodes.get(o.from).width * 0.8) : Math.max(35, Math.min(300, Math.hypot(n.point.x - e.point.x, n.point.y - e.point.y) * 0.4)), s = (a == null ? void 0 : a.bendFrom) ?? { x: Math.cos(e.angle * Math.PI / 180) * i, y: Math.sin(e.angle * Math.PI / 180) * i }, r = (a == null ? void 0 : a.bendTo) ?? { x: Math.cos(n.angle * Math.PI / 180) * i, y: Math.sin(n.angle * Math.PI / 180) * i };
-    return { start: e.point, end: n.point, c1: { x: e.point.x + s.x, y: e.point.y + s.y }, c2: { x: n.point.x + r.x, y: n.point.y + r.y } };
+  curve(e) {
+    const n = this.endpoint(e, "from"), i = this.endpoint(e, "to");
+    if (!n || !i) return null;
+    const s = this.flow.edges[e], c = this.connections[Ut(this.flow.edges, e)], a = s.from === s.to ? Math.max(90, this.nodes.get(s.from).width * 0.8) : Math.max(35, Math.min(300, Math.hypot(i.point.x - n.point.x, i.point.y - n.point.y) * 0.4)), m = (c == null ? void 0 : c.bendFrom) ?? { x: Math.cos(n.angle * Math.PI / 180) * a, y: Math.sin(n.angle * Math.PI / 180) * a }, f = (c == null ? void 0 : c.bendTo) ?? { x: Math.cos(i.angle * Math.PI / 180) * a, y: Math.sin(i.angle * Math.PI / 180) * a };
+    return { start: n.point, end: i.point, c1: { x: n.point.x + m.x, y: n.point.y + m.y }, c2: { x: i.point.x + f.x, y: i.point.y + f.y } };
   }
-  setBend(t, e, n) {
-    var s;
-    const o = this.endpoint(t, e);
-    if (!o) return;
-    const a = P(this.flow.edges, t), i = (s = this.connections)[a] ?? (s[a] = {});
-    i[e === "from" ? "bendFrom" : "bendTo"] = { x: n.x - o.point.x, y: n.y - o.point.y };
-    for (const r of this.edgesByIndex.get(t) ?? []) this.route(r);
+  setBend(e, n, i) {
+    var m;
+    const s = this.endpoint(e, n);
+    if (!s) return;
+    const c = Ut(this.flow.edges, e), a = (m = this.connections)[c] ?? (m[c] = {});
+    a[n === "from" ? "bendFrom" : "bendTo"] = { x: i.x - s.point.x, y: i.y - s.point.y };
+    for (const f of this.edgesByIndex.get(e) ?? []) this.route(f);
   }
-  resetConnection(t) {
-    delete this.connections[P(this.flow.edges, t)];
-    for (const e of this.edgesByIndex.get(t) ?? []) this.route(e);
+  resetConnection(e) {
+    delete this.connections[Ut(this.flow.edges, e)];
+    for (const n of this.edgesByIndex.get(e) ?? []) this.route(n);
   }
-  setPort(t, e, n) {
-    var y, l, d;
-    const o = (y = this.endpoint(t, e)) == null ? void 0 : y.angle, a = P(this.flow.edges, t), i = (l = this.connections)[a] ?? (l[a] = {});
-    n === void 0 ? delete i[e] : i[e] = (n % 360 + 360) % 360;
-    const s = (d = this.endpoint(t, e)) == null ? void 0 : d.angle, r = e === "from" ? "bendFrom" : "bendTo", u = i[r];
-    if (u && o !== void 0 && s !== void 0) {
-      const f = (s - o) * Math.PI / 180, p = Math.cos(f), g = Math.sin(f);
-      i[r] = { x: u.x * p - u.y * g, y: u.x * g + u.y * p };
+  setPort(e, n, i) {
+    var b, h, T;
+    const s = (b = this.endpoint(e, n)) == null ? void 0 : b.angle, c = Ut(this.flow.edges, e), a = (h = this.connections)[c] ?? (h[c] = {});
+    i === void 0 ? delete a[n] : a[n] = (i % 360 + 360) % 360;
+    const m = (T = this.endpoint(e, n)) == null ? void 0 : T.angle, f = n === "from" ? "bendFrom" : "bendTo", g = a[f];
+    if (g && s !== void 0 && m !== void 0) {
+      const x = (m - s) * Math.PI / 180, A = Math.cos(x), w = Math.sin(x);
+      a[f] = { x: g.x * A - g.y * w, y: g.x * w + g.y * A };
     }
-    Object.keys(i).length || delete this.connections[a];
-    for (const f of this.edgesByIndex.get(t) ?? []) this.route(f);
+    Object.keys(a).length || delete this.connections[c];
+    for (const x of this.edgesByIndex.get(e) ?? []) this.route(x);
   }
-  move(t, e) {
-    this.moveMany({ [t]: e });
+  move(e, n) {
+    this.moveMany({ [e]: n });
   }
-  moveMany(t) {
-    const e = /* @__PURE__ */ new Set();
-    for (const [n, o] of Object.entries(t)) {
-      this.position(n, o);
-      for (const a of this.adjacent.get(n) ?? []) e.add(a);
+  moveMany(e) {
+    const n = /* @__PURE__ */ new Set();
+    for (const [i, s] of Object.entries(e)) {
+      this.position(i, s);
+      for (const c of this.adjacent.get(i) ?? []) n.add(c);
     }
-    for (const n of e) this.route(n);
+    for (const i of n) this.route(i);
   }
-  apply(t) {
-    for (const [e, n] of Object.entries(t)) this.position(e, n);
-    for (const e of this.edges) (this.deltas.has(e.from) || this.deltas.has(e.to)) && this.route(e);
+  apply(e) {
+    for (const [n, i] of Object.entries(e)) this.position(n, i);
+    for (const n of this.edges) (this.deltas.has(n.from) || this.deltas.has(n.to)) && this.route(n);
     this.resizeGroups();
   }
-  groupBox(t) {
-    const e = [...this.root.querySelectorAll("g.cluster")].find((u) => u.id === t), n = e == null ? void 0 : e.querySelector(":scope > rect");
-    if (!n) return null;
-    const o = n.getBBox(), a = this.root.getScreenCTM().inverse().multiply(n.getScreenCTM()), i = [[o.x, o.y], [o.x + o.width, o.y], [o.x, o.y + o.height], [o.x + o.width, o.y + o.height]].map(([u, y]) => new DOMPoint(u, y).matrixTransform(a)), s = Math.min(...i.map((u) => u.x)), r = Math.min(...i.map((u) => u.y));
-    return { x: s, y: r, width: Math.max(...i.map((u) => u.x)) - s, height: Math.max(...i.map((u) => u.y)) - r };
+  groupBox(e) {
+    const n = [...this.root.querySelectorAll("g.cluster")].find((g) => bt(g) === e), i = n == null ? void 0 : n.querySelector(":scope > rect");
+    if (!i) return null;
+    const s = i.getBBox(), c = this.root.getScreenCTM().inverse().multiply(i.getScreenCTM()), a = [[s.x, s.y], [s.x + s.width, s.y], [s.x, s.y + s.height], [s.x + s.width, s.y + s.height]].map(([g, b]) => new DOMPoint(g, b).matrixTransform(c)), m = Math.min(...a.map((g) => g.x)), f = Math.min(...a.map((g) => g.y));
+    return { x: m, y: f, width: Math.max(...a.map((g) => g.x)) - m, height: Math.max(...a.map((g) => g.y)) - f };
   }
-  setGroupBox(t, e) {
-    this.groups[t] = { ...e, width: Math.max(40, e.width), height: Math.max(40, e.height) }, this.resizeGroups(t);
+  setGroupBox(e, n) {
+    this.groups[e] = { ...n, width: Math.max(40, n.width), height: Math.max(40, n.height) }, this.resizeGroups(e);
   }
-  fitGroup(t) {
-    delete this.groups[t], this.resizeGroups();
-    const e = this.groupBox(t);
-    e && (this.groups[t] = e);
+  fitGroup(e) {
+    delete this.groups[e], this.resizeGroups();
+    const n = this.groupBox(e);
+    n && (this.groups[e] = n);
   }
-  resizeGroups(t) {
-    var n, o, a, i;
-    const e = this.root.getCTM().inverse();
-    for (const s of this.root.querySelectorAll("g.cluster")) {
-      if (t && s.id !== t) continue;
-      const r = s.querySelector(":scope > rect");
-      if (!r) continue;
-      const u = e.multiply(s.getCTM()).inverse(), y = s.querySelector(":scope > .cluster-label");
-      let l;
-      y && ((o = y.dataset).layoutGroupTitle ?? (o.layoutGroupTitle = JSON.stringify(N(((n = y.transform.baseVal.consolidate()) == null ? void 0 : n.matrix) ?? new DOMMatrix()))), y.setAttribute("transform", new DOMMatrix(JSON.parse(y.dataset.layoutGroupTitle)).toString()), l = y.getBBox());
-      let d = 1 / 0, f = 1 / 0, p = -1 / 0, g = -1 / 0;
-      const m = this.groups[s.id];
-      if (m) {
-        const h = new DOMPoint(m.x, m.y).matrixTransform(u), w = new DOMPoint(m.x + m.width, m.y + m.height).matrixTransform(u);
-        d = h.x, f = h.y, p = w.x, g = w.y;
+  resizeGroups(e) {
+    var i, s, c, a;
+    const n = this.root.getCTM().inverse();
+    for (const m of this.root.querySelectorAll("g.cluster")) {
+      if (e && bt(m) !== e) continue;
+      const f = m.querySelector(":scope > rect");
+      if (!f) continue;
+      const g = n.multiply(m.getCTM()).inverse(), b = m.querySelector(":scope > .cluster-label");
+      let h;
+      b && ((s = b.dataset).layoutGroupTitle ?? (s.layoutGroupTitle = JSON.stringify(Re(((i = b.transform.baseVal.consolidate()) == null ? void 0 : i.matrix) ?? new DOMMatrix()))), b.setAttribute("transform", new DOMMatrix(JSON.parse(b.dataset.layoutGroupTitle)).toString()), h = b.getBBox());
+      let T = 1 / 0, x = 1 / 0, A = -1 / 0, w = -1 / 0;
+      const y = this.groups[bt(m)];
+      if (y) {
+        const p = new DOMPoint(y.x, y.y).matrixTransform(g), D = new DOMPoint(y.x + y.width, y.y + y.height).matrixTransform(g);
+        T = p.x, x = p.y, A = D.x, w = D.y;
       } else {
-        for (const $ of this.flow.nodes) {
-          if (!((a = $.group) != null && a.split("/").includes(s.id))) continue;
-          const S = this.nodes.get($.id);
-          if (!S) continue;
-          const x = S.shapeElement.getBBox(), b = u.multiply(e.multiply(S.shapeElement.getCTM())), M = new DOMPoint(x.x, x.y).matrixTransform(b), v = new DOMPoint(x.x + x.width, x.y + x.height).matrixTransform(b);
-          d = Math.min(d, M.x - 20), f = Math.min(f, M.y - ((l == null ? void 0 : l.height) ?? 15) - 24), p = Math.max(p, v.x + 20), g = Math.max(g, v.y + 20);
+        for (const B of this.flow.nodes) {
+          if (!((c = B.group) != null && c.split("/").includes(bt(m)))) continue;
+          const R = this.nodes.get(B.id);
+          if (!R) continue;
+          const E = R.shapeElement.getBBox(), M = g.multiply(n.multiply(R.shapeElement.getCTM())), O = new DOMPoint(E.x, E.y).matrixTransform(M), N = new DOMPoint(E.x + E.width, E.y + E.height).matrixTransform(M);
+          T = Math.min(T, O.x - 20), x = Math.min(x, O.y - ((h == null ? void 0 : h.height) ?? 15) - 24), A = Math.max(A, N.x + 20), w = Math.max(w, N.y + 20);
         }
-        Number.isFinite(d) || (d = r.x.baseVal.value, f = r.y.baseVal.value, p = d + r.width.baseVal.value, g = f + r.height.baseVal.value);
-        const h = Math.max(40, ((l == null ? void 0 : l.width) ?? 0) + 32, p - d), w = (d + p) / 2;
-        d = w - h / 2, p = w + h / 2, g = Math.max(g, f + 40);
+        Number.isFinite(T) || (T = f.x.baseVal.value, x = f.y.baseVal.value, A = T + f.width.baseVal.value, w = x + f.height.baseVal.value);
+        const p = Math.max(40, ((h == null ? void 0 : h.width) ?? 0) + 32, A - T), D = (T + A) / 2;
+        T = D - p / 2, A = D + p / 2, w = Math.max(w, x + 40);
       }
-      if (r.setAttribute("x", String(d)), r.setAttribute("y", String(f)), r.setAttribute("width", String(p - d)), r.setAttribute("height", String(g - f)), y && l) {
-        const h = ((i = y.transform.baseVal.consolidate()) == null ? void 0 : i.matrix) ?? new DOMMatrix(), w = new DOMPoint(l.x + l.width / 2, l.y).matrixTransform(h);
-        y.setAttribute("transform", `matrix(${h.a} ${h.b} ${h.c} ${h.d} ${h.e + (d + p) / 2 - w.x} ${h.f + f + 8 - w.y})`);
+      if (f.setAttribute("x", String(T)), f.setAttribute("y", String(x)), f.setAttribute("width", String(A - T)), f.setAttribute("height", String(w - x)), b && h) {
+        const p = ((a = b.transform.baseVal.consolidate()) == null ? void 0 : a.matrix) ?? new DOMMatrix(), D = new DOMPoint(h.x + h.width / 2, h.y).matrixTransform(p);
+        b.setAttribute("transform", `matrix(${p.a} ${p.b} ${p.c} ${p.d} ${p.e + (T + A) / 2 - D.x} ${p.f + x + 8 - D.y})`);
       }
     }
   }
   bounds() {
-    const t = JSON.parse(this.root.dataset.layoutBox), e = { x: t[0], y: t[1], width: t[2], height: t[3] }, n = this.root.getBBox(), o = 16, a = n.x < e.x ? n.x - o : e.x, i = n.y < e.y ? n.y - o : e.y, s = Math.max(e.x + e.width, n.x + n.width > e.x + e.width ? n.x + n.width + o : 0) - a, r = Math.max(e.y + e.height, n.y + n.height > e.y + e.height ? n.y + n.height + o : 0) - i;
-    return this.root.setAttribute("viewBox", `${a} ${i} ${s} ${r}`), this.geometry.width = s, this.geometry.height = r, { x: a - e.x, y: i - e.y };
+    const e = JSON.parse(this.root.dataset.layoutBox), n = { x: e[0], y: e[1], width: e[2], height: e[3] }, i = this.root.getBBox(), s = 16, c = i.x < n.x ? i.x - s : n.x, a = i.y < n.y ? i.y - s : n.y, m = Math.max(n.x + n.width, i.x + i.width > n.x + n.width ? i.x + i.width + s : 0) - c, f = Math.max(n.y + n.height, i.y + i.height > n.y + n.height ? i.y + i.height + s : 0) - a;
+    return this.root.setAttribute("viewBox", `${c} ${a} ${m} ${f}`), this.geometry.width = m, this.geometry.height = f, { x: c - n.x, y: a - n.y };
   }
 }
-I.initialize({ startOnLoad: !1, suppressErrorRendering: !0 });
-let ht = 0, Z = Promise.resolve();
-function dt(c, t) {
-  const e = Z.then(async () => {
-    const n = document.createElement("div");
-    n.className = "render-host", n.style.cssText = "position:fixed;left:-20000px;top:0;width:1600px;height:1200px;visibility:hidden;pointer-events:none;", document.body.append(n);
+Bt.initialize({
+  startOnLoad: !1,
+  suppressErrorRendering: !0,
+  securityLevel: "strict",
+  htmlLabels: !1,
+  maxTextSize: 2e5,
+  maxEdges: 500,
+  secure: ["secure", "securityLevel", "startOnLoad", "maxTextSize", "maxEdges", "suppressErrorRendering", "htmlLabels", "themeCSS", "fontFamily", "altFontFamily", "themeVariables", "dompurifyConfig"]
+});
+async function wi(o) {
+  ze(o), await Bt.parse(Qt(o));
+}
+let Mi = 0, Fn = Promise.resolve();
+function Oi(o, e) {
+  ze(o);
+  const n = Fn.then(async () => {
+    await Bt.parse(Qt(o));
+    const i = document.createElement("div");
+    i.className = "render-host", i.style.cssText = "position:fixed;left:-20000px;top:0;width:1600px;height:1200px;visibility:hidden;pointer-events:none;", document.body.append(i);
     try {
-      const { svg: o } = await I.render(`mbp_${++ht}`, c, n);
-      n.innerHTML = o;
-      const a = n.querySelector("svg"), i = a.viewBox.baseVal, s = { nodes: {}, width: i.width, height: i.height };
-      if (t)
-        for (const r of a.querySelectorAll("g.node")) {
-          const u = t.nodes.find((f) => r.id.startsWith(`flowchart-${f.id}-`));
-          if (!u) continue;
-          const y = r.getBBox(), l = a.getCTM().inverse().multiply(r.getCTM()), d = new DOMPoint(y.x + y.width / 2, y.y + y.height / 2).matrixTransform(l);
-          s.nodes[u.id] = { x: d.x, y: d.y };
+      const { svg: s } = await Bt.render(`mbp_${++Mi}`, Qt(o), i);
+      i.innerHTML = qn(s);
+      const c = i.querySelector("svg"), a = c.viewBox.baseVal, m = { nodes: {}, width: a.width, height: a.height };
+      if (e)
+        for (const g of c.querySelectorAll("g.node")) {
+          const b = e.nodes.find((A) => bt(g).startsWith(`flowchart-${A.id}-`));
+          if (!b) continue;
+          const h = g.getBBox(), T = c.getCTM().inverse().multiply(g.getCTM()), x = new DOMPoint(h.x + h.width / 2, h.y + h.height / 2).matrixTransform(T);
+          m.nodes[b.id] = { x: x.x, y: x.y };
         }
-      if (t && G(c)) {
-        const r = new lt(a, t, s, rt(c), ot(c));
-        r.apply(st(c)), r.bounds();
+      if (e && Vn(o)) {
+        const g = new Si(c, e, m, xi(o), _i(o));
+        g.apply(Ti(o)), g.bounds();
       }
-      return { svg: a.outerHTML, geometry: s };
+      const f = c.viewBox.baseVal;
+      if (![f.x, f.y, f.width, f.height].every(Number.isFinite) || f.width > 5e4 || f.height > 5e4 || c.querySelectorAll("*").length > 2e4) throw Error("El diagrama supera los límites de complejidad o tamaño.");
+      return { svg: c.outerHTML, geometry: m };
     } finally {
-      n.remove();
+      i.remove();
     }
   });
-  return Z = e.catch(() => {
-  }), e;
+  return Fn = n.catch(() => {
+  }), n;
 }
-function ut(c = document) {
-  const t = /* @__PURE__ */ new Map();
-  for (const e of c.querySelectorAll('.language-mermaid, pre[data-language="mermaid"]')) {
-    const n = e.closest("pre") ?? e;
-    n.isConnected && t.set(n, e.textContent ?? "");
+function vi(o = document) {
+  const e = /* @__PURE__ */ new Map();
+  for (const n of o.querySelectorAll('.language-mermaid, pre[data-language="mermaid"]')) {
+    const i = n.closest("pre") ?? n;
+    i.isConnected && e.set(i, n.textContent ?? "");
   }
-  for (const [e, n] of t) {
-    const o = document.createElement("div");
-    o.className = "mbp-pending", o.style.whiteSpace = "pre-wrap", o.textContent = n, e.id && (o.id = e.id), e.replaceWith(o);
+  for (const [n, i] of e) {
+    const s = document.createElement("div");
+    s.className = "mbp-pending", s.style.whiteSpace = "pre-wrap", s.textContent = i, n.id && (s.id = n.id), n.replaceWith(s);
   }
 }
-const z = /* @__PURE__ */ new WeakSet();
-async function mt(c = document) {
-  var e, n;
-  ut(c);
-  const t = { rendered: 0, failed: 0 };
-  for (const o of c.querySelectorAll(".mbp-pending")) {
-    if (z.has(o)) continue;
-    z.add(o);
-    const a = o.textContent ?? "", i = o;
-    let s = null;
+const Ie = /* @__PURE__ */ new WeakSet();
+async function Di(o = document) {
+  var n, i;
+  vi(o);
+  const e = { rendered: 0, failed: 0 };
+  for (const s of o.querySelectorAll(".mbp-pending")) {
+    if (Ie.has(s)) continue;
+    Ie.add(s);
+    const c = s.textContent ?? "", a = s;
+    let m = null;
     try {
-      const r = G(a) ? et(a) : null, u = !!(r != null && r.ok);
-      if (s = document.createElement("div"), s.className = u ? "mermaid mbp-diagram" : "mermaid", i.id && (s.id = i.id), u) {
-        const y = await dt(a, r.ok ? r.flow : void 0);
-        if (!i.isConnected || o.textContent !== a) continue;
-        s.setAttribute("role", "img"), s.setAttribute("aria-label", "Diagrama Mermaid"), s.style.cssText = "max-width:100%;overflow:auto;", s.innerHTML = y.svg;
-        const l = s.querySelector("svg");
-        l.style.maxWidth = "100%", l.style.height = "auto", l.setAttribute("width", String(y.geometry.width)), l.setAttribute("height", String(y.geometry.height)), i.replaceWith(s);
-      } else
-        s.textContent = a, i.replaceWith(s), await I.run({ nodes: [s], suppressErrors: !1 });
-      (e = s.nextElementSibling) != null && e.classList.contains("mbp-diagram-error") && s.nextElementSibling.remove(), t.rendered++;
+      await wi(c);
+      const f = Vn(c) ? gi(c) : null, g = !!(f != null && f.ok);
+      if (m = document.createElement("div"), m.className = g ? "mermaid mbp-diagram" : "mermaid", a.id && (m.id = a.id), g) {
+        const b = await Oi(c, f.ok ? f.flow : void 0);
+        if (!a.isConnected || s.textContent !== c) continue;
+        m.setAttribute("role", "img"), m.setAttribute("aria-label", "Diagrama Mermaid"), m.style.cssText = "max-width:100%;overflow:auto;", m.innerHTML = b.svg;
+        const h = m.querySelector("svg");
+        h.style.maxWidth = "100%", h.style.height = "auto", h.setAttribute("width", String(b.geometry.width)), h.setAttribute("height", String(b.geometry.height)), a.replaceWith(m);
+      } else {
+        m.textContent = Qt(c), a.replaceWith(m), await Bt.run({ nodes: [m], suppressErrors: !1 });
+        const b = m.querySelector("svg");
+        if (!b) throw Error("No hay SVG");
+        m.innerHTML = qn(b.outerHTML);
+      }
+      (n = m.nextElementSibling) != null && n.classList.contains("mbp-diagram-error") && m.nextElementSibling.remove(), e.rendered++;
     } catch {
-      if (t.failed++, s != null && s.isConnected && s.replaceWith(i), !((n = i.nextElementSibling) != null && n.classList.contains("mbp-diagram-error"))) {
-        const r = document.createElement("p");
-        r.className = "mbp-diagram-error", r.setAttribute("role", "status"), r.textContent = "No se ha podido dibujar este Mermaid. Revisa su código.", i.after(r);
+      if (e.failed++, m != null && m.isConnected && m.replaceWith(a), !((i = a.nextElementSibling) != null && i.classList.contains("mbp-diagram-error"))) {
+        const f = document.createElement("p");
+        f.className = "mbp-diagram-error", f.setAttribute("role", "status"), f.textContent = "No se ha podido dibujar este Mermaid. Revisa su código.", a.after(f);
       }
     } finally {
-      z.delete(o);
+      Ie.delete(s);
     }
   }
-  return t;
+  return e;
 }
-function ft() {
-  const c = () => {
-    mt();
+function Li() {
+  const o = () => {
+    Di();
   };
-  document.readyState === "loading" ? document.addEventListener("DOMContentLoaded", c, { once: !0 }) : c();
+  document.readyState === "loading" ? document.addEventListener("DOMContentLoaded", o, { once: !0 }) : o();
 }
-ft();
+Li();
 
 </script>

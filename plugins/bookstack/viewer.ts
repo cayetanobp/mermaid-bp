@@ -1,6 +1,8 @@
+import {prepareSource} from '../../src/source-security';
 import mermaid from 'mermaid';
+import {sanitizeDiagram} from '../../src/svg-security';
 import { parseFlow } from '../../src/flow';
-import { renderDiagram } from '../../src/render';
+import { validateMermaid, renderDiagram } from '../../src/render';
 import { hasManualLayout } from '../../src/positions';
 
 /** Reservar todos los bloques antes del primer await evita que CodeMirror los sustituya. */
@@ -30,6 +32,7 @@ export async function renderMermaidBlocks(scope: ParentNode = document): Promise
     const target = block;
     let container: HTMLDivElement | null = null;
     try {
+      await validateMermaid(source);
       const parsed = hasManualLayout(source) ? parseFlow(source) : null;
       const manual = !!parsed?.ok;
       container = document.createElement('div');
@@ -47,8 +50,9 @@ export async function renderMermaidBlocks(scope: ParentNode = document): Promise
         target.replaceWith(container);
       } else {
         // Ruta estándar: Mermaid mide y dibuja en el lugar final, sin reescalar ni adaptar el SVG.
-        container.textContent = source; target.replaceWith(container);
+        container.textContent = prepareSource(source); target.replaceWith(container);
         await mermaid.run({ nodes: [container], suppressErrors: false });
+        const root=container.querySelector('svg');if(!root)throw Error('No hay SVG');container.innerHTML=sanitizeDiagram(root.outerHTML);
       }
       if (container.nextElementSibling?.classList.contains('mbp-diagram-error')) container.nextElementSibling.remove();
       result.rendered++;

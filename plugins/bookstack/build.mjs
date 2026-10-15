@@ -13,7 +13,7 @@ const result = await build({
     lib: { entry: 'plugins/bookstack/header.ts', formats: ['es'], fileName: () => 'header.js' },
     rollupOptions: {
       external: ['mermaid'],
-      output: { inlineDynamicImports: true, paths: { mermaid: 'https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.7.0/mermaid.esm.min.mjs' } },
+      output: { inlineDynamicImports: true, paths: { mermaid: 'https://cdn.jsdelivr.net/npm/mermaid@11.17.2/dist/mermaid.esm.min.mjs' } },
     },
   },
 });

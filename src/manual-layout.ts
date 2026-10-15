@@ -1,3 +1,4 @@
+import {mermaidSourceId} from './mermaid-id';
 import { edgePathMap, type Flow } from './flow';
 import type { Geometry, Point } from './layout';
 import type { Positions } from './positions';
@@ -27,7 +28,7 @@ export class ManualLayout {
   constructor(readonly root: SVGSVGElement, readonly flow: Flow, readonly geometry: Geometry, readonly connections: Connections = {}, readonly groups:GroupBoxes = {}) {
     root.dataset.layoutBox ??= JSON.stringify([root.viewBox.baseVal.x, root.viewBox.baseVal.y, root.viewBox.baseVal.width, root.viewBox.baseVal.height]);
     for (const element of root.querySelectorAll<SVGGElement>('g.node')) {
-      const node = flow.nodes.find(n => element.id.startsWith(`flowchart-${n.id}-`));
+      const node = flow.nodes.find(n => mermaidSourceId(element).startsWith(`flowchart-${n.id}-`));
       if (!node || !geometry.nodes[node.id]) continue;
       const baseline = element.dataset.layoutBase ? JSON.parse(element.dataset.layoutBase) : {
         center: { ...geometry.nodes[node.id] }, matrix: values(element.transform.baseVal.consolidate()?.matrix ?? new DOMMatrix())
@@ -43,7 +44,7 @@ export class ManualLayout {
     const labels = [...root.querySelectorAll<SVGGElement>('.edgeLabels > g.edgeLabel')];
     const usedLabels = new Set<SVGGElement>();
     for (const element of root.querySelectorAll<SVGPathElement>('.edgePaths path.flowchart-link')) {
-      const index = pathMap.get(element.id);
+      const index = pathMap.get(mermaidSourceId(element));
       if (index === undefined) continue;
       const edge = flow.edges[index];
       const length = element.getTotalLength();
@@ -199,7 +200,7 @@ export class ManualLayout {
     this.resizeGroups();
   }
   groupBox(id:string):GroupBox|null {
-    const group=[...this.root.querySelectorAll<SVGGElement>('g.cluster')].find(g=>g.id===id);
+    const group=[...this.root.querySelectorAll<SVGGElement>('g.cluster')].find(g=>mermaidSourceId(g)===id);
     const rect=group?.querySelector<SVGRectElement>(':scope > rect');if(!rect)return null;
     // getBBox incluye la geometría CSS efectiva; baseVal puede conservar atributos antiguos.
     // Ambas matrices se refieren a la pantalla, incluso con grupos o SVG anidados.
@@ -220,7 +221,7 @@ export class ManualLayout {
   resizeGroups(only?:string) {
     const rootInverse=this.root.getCTM()!.inverse();
     for(const group of this.root.querySelectorAll<SVGGElement>('g.cluster')) {
-      if(only&&group.id!==only)continue;
+      if(only&&mermaidSourceId(group)!==only)continue;
       const rect=group.querySelector<SVGRectElement>(':scope > rect');if(!rect)continue;
       const inverse=rootInverse.multiply(group.getCTM()!).inverse();
       const label=group.querySelector<SVGGElement>(':scope > .cluster-label');
@@ -231,13 +232,13 @@ export class ManualLayout {
         labelBox=label.getBBox();
       }
       let left=Infinity,top=Infinity,right=-Infinity,bottom=-Infinity;
-      const fixed=this.groups[group.id];
+      const fixed=this.groups[mermaidSourceId(group)];
       if(fixed) {
         const a=new DOMPoint(fixed.x,fixed.y).matrixTransform(inverse),b=new DOMPoint(fixed.x+fixed.width,fixed.y+fixed.height).matrixTransform(inverse);
         left=a.x;top=a.y;right=b.x;bottom=b.y;
       } else {
         for(const node of this.flow.nodes) {
-          if(!node.group?.split('/').includes(group.id))continue;
+          if(!node.group?.split('/').includes(mermaidSourceId(group)))continue;
           const state=this.nodes.get(node.id);if(!state)continue;
           const box=state.shapeElement.getBBox(),matrix=inverse.multiply(rootInverse.multiply(state.shapeElement.getCTM()!));
           const a=new DOMPoint(box.x,box.y).matrixTransform(matrix),b=new DOMPoint(box.x+box.width,box.y+box.height).matrixTransform(matrix);

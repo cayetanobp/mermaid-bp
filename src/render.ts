@@ -1,4 +1,7 @@
+import {mermaidSourceId} from './mermaid-id';
 import mermaid from 'mermaid';
+import {assertSourceSafe,prepareSource} from './source-security';
+import {sanitizeDiagram} from './svg-security';
 import { readGroups } from './groups';
 import { readConnections } from './connections';
 import { readPositions, hasManualLayout } from './positions';
@@ -6,25 +9,29 @@ import { ManualLayout } from './manual-layout';
 import type { Flow } from './flow';
 import type { Geometry } from './layout';
 
-mermaid.initialize({ startOnLoad: false, suppressErrorRendering: true });
+mermaid.initialize({startOnLoad:false,suppressErrorRendering:true,securityLevel:'strict',htmlLabels:false,maxTextSize:200_000,maxEdges:500,
+ secure:['secure','securityLevel','startOnLoad','maxTextSize','maxEdges','suppressErrorRendering','htmlLabels','themeCSS','fontFamily','altFontFamily','themeVariables','dompurifyConfig']});
+export async function validateMermaid(source:string):Promise<void>{assertSourceSafe(source);await mermaid.parse(prepareSource(source));}
 let counter = 0;
 let chain: Promise<unknown> = Promise.resolve();
 export interface Rendered { svg: string; geometry: Geometry }
 export function renderDiagram(source: string, flow?: Flow): Promise<Rendered> {
+  assertSourceSafe(source);
   const task = chain.then(async () => {
+    await mermaid.parse(prepareSource(source));
     const host = document.createElement('div');
     host.className = 'render-host';
     host.style.cssText = 'position:fixed;left:-20000px;top:0;width:1600px;height:1200px;visibility:hidden;pointer-events:none;';
     document.body.append(host);
     try {
-      const { svg } = await mermaid.render(`mbp_${++counter}`, source, host);
-      host.innerHTML = svg;
+      const { svg } = await mermaid.render(`mbp_${++counter}`, prepareSource(source), host);
+      host.innerHTML = sanitizeDiagram(svg);
       const root = host.querySelector('svg')!;
       const box = root.viewBox.baseVal;
       const geometry: Geometry = { nodes: {}, width: box.width, height: box.height };
       if (flow) {
         for (const group of root.querySelectorAll<SVGGElement>('g.node')) {
-          const node = flow.nodes.find(n => group.id.startsWith(`flowchart-${n.id}-`));
+          const node = flow.nodes.find(n => mermaidSourceId(group).startsWith(`flowchart-${n.id}-`));
           if (!node) continue;
           const b = group.getBBox();
           const matrix = root.getCTM()!.inverse().multiply(group.getCTM()!);
@@ -36,6 +43,8 @@ export function renderDiagram(source: string, flow?: Flow): Promise<Rendered> {
         const manual = new ManualLayout(root, flow, geometry, readConnections(source), readGroups(source));
         manual.apply(readPositions(source)); manual.bounds();
       }
+      const bounds=root.viewBox.baseVal;
+      if(![bounds.x,bounds.y,bounds.width,bounds.height].every(Number.isFinite)||bounds.width>50_000||bounds.height>50_000||root.querySelectorAll('*').length>20_000)throw Error('El diagrama supera los límites de complejidad o tamaño.');
       return { svg: root.outerHTML, geometry };
     } finally { host.remove(); }
   });
@@ -59,7 +68,7 @@ export function svgDocument(svg: SVGSVGElement): string {
   copy.setAttribute('height', String(Math.ceil(copy.viewBox.baseVal.height)));
   copy.style.maxWidth = 'none';
   copy.style.background = '#ffffff';
-  return new XMLSerializer().serializeToString(copy);
+  return sanitizeDiagram(new XMLSerializer().serializeToString(copy));
 }
 export function download(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);

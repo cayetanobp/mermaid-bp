@@ -1,3 +1,4 @@
+import {persistDocuments} from '../../src/privacy';
 import {isPluginEnabled,discoverPlugins} from '../../src/plugin-state';
 import { hasManualLayout } from '../../src/positions';
 import { example } from '../../src/flow';
@@ -11,7 +12,13 @@ const textarea = document.getElementById('check-source') as HTMLTextAreaElement;
 const output = document.getElementById('check-output')!;
 const status = document.getElementById('check-state')!;
 const button = document.getElementById('check-run') as HTMLButtonElement;
+const token=location.hash.slice(1);
+const channel=/^[a-f0-9-]{36}$/i.test(token)?new BroadcastChannel('mermaid-bp:preview:'+token):null;
+if(channel)channel.onmessage=event=>{if(typeof event.data==='string'){textarea.value=event.data;void run();}};
+window.addEventListener('pagehide',()=>channel?.close());
 function loadDraft() {
+  if(channel){channel.postMessage('request');return;}
+  if(!persistDocuments){textarea.value=example;return;}
   try { textarea.value = JSON.parse(localStorage.getItem('mermaid-bp:draft:v1') || 'null')?.source ?? example; }
   catch { textarea.value = example; }
 }
@@ -23,7 +30,7 @@ async function run() {
   pre.append(code); output.replaceChildren(pre);
   try {
     const result = await renderMermaidBlocks(output);
-    status.textContent = result.failed ? 'No se ha podido renderizar. Revisa la sintaxis.' : (hasManualLayout(textarea.value) ? 'Renderizado con Mermaid 11.7.0 y posiciones del editor.' : 'Renderizado con Mermaid 11.7.0 estándar.');
+    status.textContent = result.failed ? 'No se ha podido renderizar. Revisa la sintaxis.' : (hasManualLayout(textarea.value) ? 'Renderizado con Mermaid 11.17.2 y posiciones del editor.' : 'Renderizado con Mermaid 11.17.2 estándar.');
   } finally { button.disabled = false; }
 }
 button.onclick = run;
