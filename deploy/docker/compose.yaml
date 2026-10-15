@@ -1,6 +1,9 @@
+name: mermaid-bp
 services:
   mermaid:
-    build: .
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile
     image: mermaid-bp:production
     ports:
       - "127.0.0.1:${APP_PORT:-8088}:8080"

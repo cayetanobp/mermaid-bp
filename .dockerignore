@@ -8,4 +8,6 @@ playwright-report
 
 .env
 .env.*
-!.env.example
+!deploy/docker/.env.example
+artifacts
+test-results-drag

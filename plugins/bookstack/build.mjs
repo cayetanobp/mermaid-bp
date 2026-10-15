@@ -1,9 +1,10 @@
+import {resolve} from 'node:path';
 import { build, transformWithEsbuild } from 'vite';
 import { mkdir, writeFile,readFile } from 'node:fs/promises';
 
 const out=process.env.MERMAID_BP_OUT_DIR || 'dist';
 const packageDir=out+'/plugins/bookstack';
-await build({configFile:false,base:'./',logLevel:'warn',build:{outDir:packageDir,emptyOutDir:false,chunkSizeWarningLimit:1600,rollupOptions:{preserveEntrySignatures:'strict',input:{bookstack:'bookstack.html','bookstack-viewer':'plugins/bookstack/viewer.ts'},output:{entryFileNames:chunk=>chunk.name==='bookstack-viewer'?'bookstack-viewer.js':'assets/[name]-[hash].js'}}}});
+await build({root:resolve('plugins/bookstack'),publicDir:false,configFile:false,base:'./',logLevel:'warn',build:{outDir:resolve(packageDir),emptyOutDir:false,chunkSizeWarningLimit:1600,rollupOptions:{preserveEntrySignatures:'strict',input:{bookstack:resolve('plugins/bookstack/bookstack.html'),'bookstack-viewer':resolve('plugins/bookstack/viewer.ts')},output:{entryFileNames:chunk=>chunk.name==='bookstack-viewer'?'bookstack-viewer.js':'assets/[name]-[hash].js'}}}});
 const result = await build({
   configFile: false,
   logLevel: 'warn',

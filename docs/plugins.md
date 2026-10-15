@@ -7,7 +7,7 @@
 
 Para quitarlo, retira la carpeta y recarga. No hay que editar configuración, reiniciar el servidor ni recompilar. Puedes desactivarlo sin borrarlo desde "Extensiones".
 
-Con `iniciar.cmd`, `npm.cmd run dev` o `npm.cmd run preview`, utiliza la carpeta `plugins/` del proyecto. Si publicas directamente la web compilada, utiliza `plugins/` dentro de la carpeta publicada, por ejemplo `dist/plugins/`.
+Con `scripts/iniciar.cmd`, `npm.cmd run dev` o `npm.cmd run preview`, utiliza la carpeta `plugins/` del proyecto. Si publicas directamente la web compilada, utiliza `plugins/` dentro de la carpeta publicada, por ejemplo `dist/plugins/`.
 
 ## Crear uno sencillo
 

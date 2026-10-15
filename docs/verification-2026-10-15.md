@@ -52,3 +52,21 @@ Comprobaciones realizadas durante la revisión.
 - Arranque en modo de desarrollo, edición, deshacer y descarte del documento al recargar comprobados con `npm run test:local`.
 
 Las pruebas que dependían del borrador ahora descargan el archivo, recargan y vuelven a abrir esa descarga. La comparación con BookStack usa el botón real del plugin y su canal temporal. Los selectores y las comparaciones de SVG admiten los prefijos de identificadores de la versión instalada de Mermaid.
+
+
+## Paquete para Nginx y organización del proyecto
+
+El paquete `artifacts/releases/mermaid-bp-web.zip` contiene únicamente `site/`, los ejemplos de configuración de Nginx y la guía de instalación. Se genera también su checksum SHA-256. El servidor solo necesita Nginx; la compilación se realiza en el equipo de desarrollo o mediante el flujo manual de GitHub Actions. Ese flujo no publica releases ni despliega automáticamente.
+
+La raíz queda en nueve archivos. Vite y Playwright están en `config/`; `tsconfig.json` se conserva en la raíz para la detección de los editores. La alternativa Docker queda en `deploy/docker/`, las utilidades en `scripts/`, la página fuente de BookStack dentro de su plugin y las próximas mejoras en `docs/roadmap.md`. Los registros y paquetes generados están en `artifacts/`, fuera de Git. `style.md` permanece en la raíz.
+
+Se han actualizado los comandos de npm, los contextos de compilación de Docker, Compose, el lanzador de Windows y los enlaces de la documentación. El empaquetado de plugins copia primero los recursos y compila después, evitando que una página fuente sustituya al HTML compilado. El servidor de preview utiliza la salida compilada de las entradas que declara el autor; los mods listos para navegador siguen pudiéndose añadir por carpeta.
+
+Validaciones realizadas.
+
+- 43 pruebas unitarias, incluida la estructura y el checksum del ZIP, y 12 pruebas de seguridad aprobadas.
+- `nginx -t` y ocho pruebas de navegador sobre los archivos extraídos del paquete aprobadas. Se comprueban edición, historial, exportación, aislamiento, ausencia de persistencia y comunicación con BookStack.
+- Añadir y retirar un plugin en el directorio publicado funciona sin recompilar ni reiniciar Nginx.
+- Arranque local y vista previa de BookStack comprobados tanto en desarrollo como en preview, con las nuevas configuraciones de Playwright.
+- Pruebas de header, ajuste de subgrupos, tiradores y reapertura aprobadas tras los movimientos de archivos.
+- Compose y el script de despliegue pasan sus comprobaciones de sintaxis; la imagen Docker se construye y arranca con el editor y el listado de plugins accesibles.

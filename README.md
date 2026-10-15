@@ -8,24 +8,36 @@ Para un servidor con Nginx, usa el paquete web compilado. Solo hay que subir los
 
 ## Arranque local
 
-Requiere Node.js 22.18 o posterior. Las dependencias ya están instaladas en esta copia.
+Para desarrollar o compilar necesitas Node.js 22.18 o posterior. Los usuarios de la web desplegada no necesitan instalarlo.
 
 ```powershell
-cd C:\proyectos\mermaid-bp
-npm.cmd install
+npm.cmd ci
 npm.cmd run dev
 ```
 
-Abre la dirección local que muestra Vite. También puedes hacer doble clic en `iniciar.cmd`, que abre el navegador y mantiene el servidor en su ventana. Cierra esa ventana para detenerlo. La instalación inicial requiere internet; después, la aplicación sirve sus recursos localmente.
+Abre la dirección local que muestra Vite. También puedes hacer doble clic en `scripts/iniciar.cmd`, que abre el navegador y mantiene el servidor en su ventana. Cierra esa ventana para detenerlo. La instalación inicial requiere internet; después, la aplicación sirve sus recursos localmente.
 
 No abras `index.html` directamente mediante `file://`. La aplicación utiliza módulos y necesita un servidor HTTP local.
+
+## Organización del repositorio
+
+- `src/`, código y estilos de la aplicación.
+- `plugins/`, extensiones instalables y la integración de BookStack, incluida su página fuente.
+- `config/`, configuración de Vite y Playwright. Los comandos de npm ya usan estas rutas.
+- `deploy/nginx/`, configuración para servir el ZIP estático; `deploy/docker/`, alternativa con contenedor.
+- `scripts/`, compilación, empaquetado y utilidades de desarrollo y despliegue.
+- `tests/`, pruebas y archivos de ejemplo para verificarlas.
+- `docs/`, guías y próximas mejoras; `style.md` conserva la dirección visual en la raíz.
+- `artifacts/`, paquetes y registros locales, excluidos de Git. `dist/` contiene la compilación y también está excluida.
+
+`package.json`, su lockfile, `index.html` y `tsconfig.json` permanecen en la raíz para que npm, el editor y las herramientas detecten el proyecto directamente.
 
 ## Uso
 
 - Usa el botón pequeño de la esquina superior derecha del diagrama para ampliar el lienzo dentro de la aplicación, sin activar la pantalla completa del navegador. Los menús siguen disponibles y las acciones de "Diagrama" aparecen directamente sobre el lienzo para editar nodos y conexiones. Sal con Esc o "Salir de pantalla completa"; al volver se restaura el encuadre anterior.
 - Una sola barra agrupa las acciones en "Archivo", "Edición", "Ver", "Diagrama", "Configuración" y "Ayuda". Los menús admiten ratón, flechas, Inicio/Fin y Esc. Ctrl S guarda desde cualquier vista.
 - Edita el código a la izquierda y consulta el diagrama a la derecha. La vista se actualiza tras una pausa de 350 ms.
-- Abre un `.mmd` con "Archivo > Abrir .mmd" o soltándolo en la ventana. El límite de apertura es de 2 MB.
+- Abre un `.mmd` con "Archivo > Abrir .mmd" o soltándolo en la ventana. El límite de apertura es de 200 kB.
 - Usa "Conectar nodos" para elegir origen y destino en el lienzo y completar la relación. Escape cancela la elección. Usa los botones de nodos y conexiones, el doble clic en un nodo para editarlo y el panel de selección para eliminar. Los cambios visuales se pueden deshacer.
 - Arrastra el fondo para seleccionar varios elementos. Mayús añade o quita elementos; arrastrar un nodo seleccionado mueve el conjunto. Para desplazar el lienzo, mantén espacio mientras arrastras o usa el botón central. La rueda cambia el zoom alrededor del puntero. El separador admite arrastre y las flechas del teclado.
 - Guarda con "Archivo > Guardar .mmd" o Ctrl S. Guardar descarga una copia; el navegador no sobrescribe automáticamente el archivo original.
@@ -64,7 +76,7 @@ El arrastre fija posiciones libres. El nodo sigue al puntero mediante requestAni
 
 Al mover un nodo se añade la etiqueta superior `%% mermaid-bp:manual-layout`. Solo los bloques con esa etiqueta activan la extensión de posiciones; los demás quedan intactos para que los dibuje el visor habitual de BookStack. Las coordenadas se guardan en `%% graph:positions` dentro del archivo .mmd. Los agentes deben conservar los identificadores de los nodos y ese comentario. "Recolocar todo" recupera la distribución automática y permite deshacer.
 
-Se conservan las formas y los estilos generados por Mermaid. Las conexiones se redondean, pero no esquivan automáticamente los obstáculos y los nodos pueden solaparse al colocarlos manualmente. Al seleccionar una relación puedes arrastrar los puntos de origen y destino alrededor de sus nodos, girarlos con "Origen ↻" y "Destino ↻" o restaurarlos. Los dos círculos azules son manejadores Bézier independientes. "Restablecer conexión" restaura los anclajes y la curva automática. Los ángulos y los vectores se guardan en `%% graph:connections`, con claves por conexión y número entre conexiones paralelas.
+Se conservan las formas y los estilos generados por Mermaid. Las conexiones se redondean, pero no esquivan automáticamente los obstáculos y los nodos pueden solaparse al colocarlos manualmente. Al seleccionar una relación puedes arrastrar los puntos de origen y destino alrededor de sus nodos o restaurarlos. Los dos círculos azules son manejadores Bézier independientes. "Restablecer conexión" restaura los anclajes y la curva automática. Los ángulos y los vectores se guardan en `%% graph:connections`, con claves por conexión y número entre conexiones paralelas.
 
 Los bloques antiguos entre `%% mbp-layout:start` y `%% mbp-layout:end` siguen siendo aceptados. El arrastre ya no añade enlaces invisibles ni cambia el orden de las declaraciones.
 
@@ -92,11 +104,11 @@ Si Chromium ya está instalado en otra ruta, puedes indicar el ejecutable con `P
 La carpeta `dist` contiene la aplicación estática y se puede servir con cualquier servidor HTTP. No hay configuración de base de datos, credenciales ni almacenamiento en el servidor. Los documentos no se guardan en el navegador.
 
 ```powershell
-docker build -t mermaid-bp:local .
-docker run --rm -p 8080:80 mermaid-bp:local
+docker build -f deploy/docker/Dockerfile -t mermaid-bp:local .
+docker run --rm -p 8080:8080 mermaid-bp:local
 ```
 
-Abre `http://localhost:8080`. Para Kubernetes, la imagen escucha en el puerto 80 y basta un Deployment y un Service. No se incluyen manifiestos porque no se ha inspeccionado la configuración de tu clúster. Con HTTP remoto, el navegador puede impedir copiar al portapapeles; el editor ofrece descargar el bloque Markdown como alternativa.
+Abre `http://localhost:8080`. Para Kubernetes, la imagen escucha en el puerto 8080 y basta un Deployment y un Service. No se incluyen manifiestos porque no se ha inspeccionado la configuración de tu clúster. Con HTTP remoto, el navegador puede impedir copiar al portapapeles; el editor ofrece descargar el bloque Markdown como alternativa.
 
 ## Decisiones y límites
 
@@ -145,7 +157,7 @@ Instala un plugin copiando su carpeta dentro de `plugins/` y recargando la web c
 
 En una web publicada directamente desde `dist`, utiliza `dist/plugins/`. BookStack se entrega como paquete autónomo en `dist/plugins/bookstack/`. La guía de creación está en [docs/plugins.md](docs/plugins.md).
 
-La dirección visual está en [style.md](style.md). Las siguientes mejoras se mantienen en [ROADMAP.md](ROADMAP.md).
+La dirección visual está en [style.md](style.md). Las siguientes mejoras se mantienen en [docs/roadmap.md](docs/roadmap.md).
 
 ## Verificación actual de cascada y extensiones
 
@@ -154,6 +166,6 @@ La revisión actual supera 40 pruebas unitarias y 59 comprobaciones de navegador
 
 ## Despliegue desde Git
 
-El mismo repositorio sirve para desarrollo local y producción. Consulta [docs/production.md](docs/production.md). En el servidor, clona el repositorio, copia `.env.example` a `.env`, configura el origen de tu web y ejecuta `./deploy.sh`. Para actualizar, ejecuta `git pull --ff-only` y `./deploy.sh`. Las protecciones y comprobaciones del perfil público están en [docs/security.md](docs/security.md).
+El mismo repositorio sirve para desarrollo local y producción. Consulta [docs/production.md](docs/production.md). En el servidor, clona el repositorio, copia `deploy/docker/.env.example` a `.env`, configura el origen de tu web y ejecuta `sh scripts/deploy.sh`. Para actualizar, ejecuta `git pull --ff-only` y `sh scripts/deploy.sh`. Las protecciones y comprobaciones del perfil público están en [docs/security.md](docs/security.md).
 
 La aplicación no persiste documentos en ningún modo. Tanto desarrollo como producción descartan el trabajo al recargar.

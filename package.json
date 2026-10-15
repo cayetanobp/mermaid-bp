@@ -4,14 +4,14 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite --host 127.0.0.1",
-    "build": "tsc --noEmit && vite build && node --experimental-strip-types scripts/build-plugins.ts",
-    "preview": "vite preview --host 127.0.0.1",
+    "dev": "vite --config config/vite.config.ts --host 127.0.0.1",
+    "build": "tsc --noEmit && vite build --config config/vite.config.ts && node --experimental-strip-types scripts/build-plugins.ts",
+    "preview": "vite preview --config config/vite.config.ts --host 127.0.0.1",
     "test": "node --experimental-strip-types --test tests/unit.test.ts tests/drag-plan.test.ts tests/exact-preview.test.ts tests/positions.test.ts tests/connections.test.ts tests/package-web.test.mjs",
-    "test:browser": "playwright test",
+    "test:browser": "playwright test --config config/playwright.config.ts",
     "test:security": "node --experimental-strip-types --test tests/security.test.ts",
-    "test:public": "playwright test --config playwright.security.config.ts",
-    "test:local": "playwright test --config playwright.local.config.ts",
+    "test:public": "playwright test --config config/playwright.security.config.ts",
+    "test:local": "playwright test --config config/playwright.local.config.ts",
     "package:web": "npm run build && node scripts/package-web.mjs"
   },
   "dependencies": {

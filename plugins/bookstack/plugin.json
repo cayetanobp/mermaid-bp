@@ -6,8 +6,13 @@
   "apiVersion": 1,
   "enabledByDefault": true,
   "build": {
-    "entries": { "bookstack": "../../bookstack.html", "bookstack-viewer": "viewer.ts" },
-    "outputs": { "bookstack-viewer": "bookstack-viewer.js" },
+    "entries": {
+      "bookstack": "bookstack.html",
+      "bookstack-viewer": "viewer.ts"
+    },
+    "outputs": {
+      "bookstack-viewer": "bookstack-viewer.js"
+    },
     "script": "build.mjs"
   }
 }

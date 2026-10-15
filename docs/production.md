@@ -9,7 +9,7 @@ El servidor necesita Git, Docker y Docker Compose. Clona tu repositorio y crea l
 ```sh
 git clone <url-del-repositorio> mermaid-bp
 cd mermaid-bp
-cp .env.example .env
+cp deploy/docker/.env.example .env
 ```
 
 Edita `.env`, con el puerto local para tu proxy y el origen HTTPS de tu web si vas a incrustar la herramienta.
@@ -24,7 +24,7 @@ EMBED_ORIGIN=https://www.example.org
 Inicia el despliegue.
 
 ```sh
-./deploy.sh
+sh scripts/deploy.sh
 ```
 
 El script construye el código de ese checkout y levanta el contenedor. La herramienta escucha en `http://127.0.0.1:8088`; ese puerto no se publica en las interfaces externas. Configura tu proxy HTTPS para dirigir el subdominio elegido a esa dirección. Por ejemplo, en Caddy basta este bloque, con tu dominio real y DNS configurado.
@@ -43,7 +43,7 @@ Desde ese mismo directorio del servidor, ejecuta lo siguiente.
 
 ```sh
 git pull --ff-only
-./deploy.sh
+sh scripts/deploy.sh
 ```
 
 Docker construye la nueva versión y sustituye el contenedor. El código que cambies, confirmes y envíes a tu remoto seguirá este mismo flujo. No necesitas volver a copiar archivos o reinstalar la aplicación. El `.env` queda fuera del seguimiento de Git.
@@ -51,8 +51,8 @@ Docker construye la nueva versión y sustituye el contenedor. El código que cam
 Para renovar también la imagen base y sus paquetes, puedes ejecutar periódicamente lo siguiente.
 
 ```sh
-docker compose build --pull --no-cache
-docker compose up -d
+docker compose --env-file .env -f deploy/docker/compose.yaml build --pull --no-cache
+docker compose --env-file .env -f deploy/docker/compose.yaml up -d
 ```
 
 ## Integrarlo en tu web
@@ -75,7 +75,7 @@ Establece el origen de la web principal en `EMBED_ORIGIN`. Si tu web usa CSP, pe
 
 En producción, el documento y su nombre permanecen en memoria del navegador. No se escriben en localStorage, sessionStorage, un backend ni el servidor. Recargar pierde los cambios no descargados. Guardar y exportar descargan archivos solo a petición del usuario.
 
-La vista previa de BookStack recibe el texto mediante un canal temporal del navegador. No se envía el documento al servidor ni se introduce en la URL. También en desarrollo local, `npm.cmd run dev` o `iniciar.cmd` mantienen el documento únicamente en memoria; recargar lo descarta.
+La vista previa de BookStack recibe el texto mediante un canal temporal del navegador. No se envía el documento al servidor ni se introduce en la URL. También en desarrollo local, `npm.cmd run dev` o `scripts/iniciar.cmd` mantienen el documento únicamente en memoria; recargar lo descarta.
 
 Solo se admiten `.mmd` UTF-8, de hasta 200 kB, con comprobación de sintaxis. Se bloquean contenido activo, callbacks y recursos externos; el SVG se sanitiza antes de mostrarlo o exportarlo. La configuración de etiquetas HTML se desactiva sin modificar el archivo original.
 
@@ -86,8 +86,8 @@ La ruta `/plugins/` enumera únicamente las extensiones instaladas para permitir
 ## Comprobar el despliegue
 
 ```sh
-docker compose ps
-docker compose logs --tail=50
+docker compose --env-file .env -f deploy/docker/compose.yaml ps
+docker compose --env-file .env -f deploy/docker/compose.yaml logs --tail=50
 ```
 
 Para ejecutar las comprobaciones desde un equipo con Node.js y Chromium instalado, utiliza lo siguiente.
