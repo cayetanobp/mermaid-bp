@@ -1,0 +1,14 @@
+{
+  "name": "mermaid-bp-desktop",
+  "version": "1.0.0-alpha.2",
+  "private": true,
+  "scripts": {
+    "dev": "tauri dev",
+    "build": "tauri build",
+    "build:frontend": "node build.mjs",
+    "test": "cd .. && node --test tests/desktop.test.mjs"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.0.0"
+  }
+}

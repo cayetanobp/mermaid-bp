@@ -74,6 +74,8 @@ export function svgDocument(svg: SVGSVGElement): string {
   return sanitizeDiagram(new XMLSerializer().serializeToString(copy));
 }
 export function download(blob: Blob, filename: string): void {
+  const save = (window as Window & {__MERMAID_BP_SAVE__?: (blob: Blob, filename: string) => Promise<void>}).__MERMAID_BP_SAVE__;
+  if (save) { void save(blob, filename); return; }
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url; link.download = filename; link.click();

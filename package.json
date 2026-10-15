@@ -12,7 +12,9 @@
     "test:security": "node --experimental-strip-types --test tests/security.test.ts",
     "test:public": "playwright test --config config/playwright.security.config.ts",
     "test:local": "playwright test --config config/playwright.local.config.ts",
-    "package:web": "npm run build && node scripts/package-web.mjs"
+    "package:web": "npm run build && node scripts/package-web.mjs",
+    "desktop:dev": "npm --prefix desktop-app run dev",
+    "desktop:build": "npm --prefix desktop-app run build"
   },
   "dependencies": {
     "@codemirror/commands": "6.8.1",

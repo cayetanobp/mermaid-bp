@@ -1,0 +1,93 @@
+%% mermaid-bp:manual-layout
+%% Fixture sintético para pruebas de diagramas extensos con grupos, bucles y posiciones.
+%%{init: {"flowchart": {"nodeSpacing": 60, "rankSpacing": 80, "diagramPadding": 25, "htmlLabels": true, "curve": "linear"}}}%%
+flowchart TD
+  subgraph Ingreso[Ingreso de prueba]
+    intake["Recibir solicitud de ejemplo<br/>Paso ficticio para verificar edición, guardado y renderizado"]
+    check["Comprobar formato del registro<br/>Paso ficticio para verificar edición, guardado y renderizado"]
+    normalize["Normalizar campos públicos<br/>Paso ficticio para verificar edición, guardado y renderizado"]
+    catalog["Crear entrada de catálogo<br/>Paso ficticio para verificar edición, guardado y renderizado"]
+    tag["Asignar etiquetas de prueba<br/>Paso ficticio para verificar edición, guardado y renderizado"]
+    dedupe["Buscar registros duplicados<br/>Paso ficticio para verificar edición, guardado y renderizado"]
+    archive["Guardar copia temporal<br/>Paso ficticio para verificar edición, guardado y renderizado"]
+    receipt["Emitir acuse simulado<br/>Paso ficticio para verificar edición, guardado y renderizado"]
+    notify["Notificar al operador de prueba<br/>Paso ficticio para verificar edición, guardado y renderizado"]
+    retry["Reintentar validación local<br/>Paso ficticio para verificar edición, guardado y renderizado"]
+    queue["Añadir a la cola de trabajo<br/>Paso ficticio para verificar edición, guardado y renderizado"]
+    batch["Preparar lote de ejemplo<br/>Paso ficticio para verificar edición, guardado y renderizado"]
+  end
+  subgraph Proceso[Proceso de prueba]
+    scan["Examinar el lote de prueba<br/>Paso ficticio para verificar edición, guardado y renderizado"]
+    audit["Registrar pasos del proceso<br/>Paso ficticio para verificar edición, guardado y renderizado"]
+    transform["Transformar datos ficticios<br/>Paso ficticio para verificar edición, guardado y renderizado"]
+    enrich["Añadir metadatos de muestra<br/>Paso ficticio para verificar edición, guardado y renderizado"]
+    index["Construir índice temporal<br/>Paso ficticio para verificar edición, guardado y renderizado"]
+    search["Consultar ejemplos similares<br/>Paso ficticio para verificar edición, guardado y renderizado"]
+    compare["Comparar dos versiones de muestra<br/>Paso ficticio para verificar edición, guardado y renderizado"]
+    merge["Combinar resultados simulados<br/>Paso ficticio para verificar edición, guardado y renderizado"]
+    review["Revisar el contenido generado<br/>Paso ficticio para verificar edición, guardado y renderizado"]
+    approve["Aprobar el flujo de ejemplo<br/>Paso ficticio para verificar edición, guardado y renderizado"]
+    publish["Publicar salida simulada<br/>Paso ficticio para verificar edición, guardado y renderizado"]
+    snapshot["Guardar estado de referencia<br/>Paso ficticio para verificar edición, guardado y renderizado"]
+  end
+  subgraph Seguimiento[Seguimiento de prueba]
+    metric["Calcular métricas locales<br/>Paso ficticio para verificar edición, guardado y renderizado"]
+    report["Preparar informe de ensayo<br/>Paso ficticio para verificar edición, guardado y renderizado"]
+    alert["Detectar incidencias ficticias<br/>Paso ficticio para verificar edición, guardado y renderizado"]
+    triage["Clasificar incidencia simulada<br/>Paso ficticio para verificar edición, guardado y renderizado"]
+    assign["Asignar tarea de ejemplo<br/>Paso ficticio para verificar edición, guardado y renderizado"]
+    resolve["Aplicar corrección de prueba<br/>Paso ficticio para verificar edición, guardado y renderizado"]
+    verify["Verificar resultado esperado<br/>Paso ficticio para verificar edición, guardado y renderizado"]
+    close["Cerrar el caso de muestra<br/>Paso ficticio para verificar edición, guardado y renderizado"]
+    export["Exportar datos de muestra<br/>Paso ficticio para verificar edición, guardado y renderizado"]
+    backup["Crear respaldo temporal<br/>Paso ficticio para verificar edición, guardado y renderizado"]
+    restore["Restaurar respaldo de ensayo<br/>Paso ficticio para verificar edición, guardado y renderizado"]
+    finish["Finalizar flujo sintético<br/>Paso ficticio para verificar edición, guardado y renderizado"]
+  end
+  intake -->|abrir| check
+  check -->|válido| normalize
+  normalize -->|preparar| catalog
+  catalog -->|clasificar| tag
+  tag -->|continuar| dedupe
+  dedupe -->|único| archive
+  archive -->|guardar| receipt
+  receipt -->|avisar| notify
+  notify -->|revisar| retry
+  retry -->|repetir si falla| retry
+  retry -->|correcto| queue
+  queue -->|agrupar| batch
+  batch -->|enviar| scan
+  scan -->|procesar| transform
+  queue -->|registrar| audit
+  audit -->|documentar| enrich
+  transform -->|indexar| index
+  enrich -->|consultar| search
+  index -->|comparar| compare
+  search -->|unificar| merge
+  review -->|confirmar| publish
+  compare -->|coincide| merge
+  merge -->|inspeccionar| review
+  review -->|validar| approve
+  approve -->|autorizar| publish
+  publish -->|conservar| snapshot
+  snapshot -->|medir| metric
+  metric -->|informar| report
+  report -->|evaluar| alert
+  alert -->|atender| triage
+  triage -->|delegar| assign
+  assign -->|resolver| resolve
+  resolve -->|probar| verify
+  verify -->|cerrar| close
+  close -->|extraer| export
+  export -->|respaldar| backup
+  backup -->|ensayar| restore
+  restore -->|terminar| finish
+  verify -->|repetir| retry
+  report -->|sin incidencias| finish
+  classDef entry fill:#eaf3f8,stroke:#476576,color:#173443;
+  classDef process fill:#dcf1e2,stroke:#476576,color:#173443;
+  classDef outcome fill:#fff0bf,stroke:#476576,color:#173443;
+  class intake,check,normalize,catalog,tag,dedupe,archive,receipt,notify,retry,queue,batch entry;
+  class scan,audit,transform,enrich,index,search,compare,merge,review,approve,publish,snapshot process;
+  class metric,report,alert,triage,assign,resolve,verify,close,export,backup,restore,finish outcome;
+%% graph:positions {"intake":{"x":180,"y":160},"check":{"x":480,"y":160},"normalize":{"x":780,"y":160},"catalog":{"x":1080,"y":160},"tag":{"x":1380,"y":160},"dedupe":{"x":1680,"y":160},"archive":{"x":180,"y":570},"receipt":{"x":480,"y":570},"notify":{"x":780,"y":570},"retry":{"x":1080,"y":570},"queue":{"x":1380,"y":570},"batch":{"x":1680,"y":570},"scan":{"x":180,"y":980},"audit":{"x":480,"y":980},"transform":{"x":780,"y":980},"enrich":{"x":1080,"y":980},"index":{"x":1380,"y":980},"search":{"x":1680,"y":980},"compare":{"x":180,"y":1390},"merge":{"x":480,"y":1390},"review":{"x":780,"y":1390},"approve":{"x":1080,"y":1390},"publish":{"x":1380,"y":1390},"snapshot":{"x":1680,"y":1390},"metric":{"x":180,"y":1800},"report":{"x":480,"y":1800},"alert":{"x":780,"y":1800},"triage":{"x":1080,"y":1800},"assign":{"x":1380,"y":1800},"resolve":{"x":1680,"y":1800},"verify":{"x":180,"y":2210},"close":{"x":480,"y":2210},"export":{"x":780,"y":2210},"backup":{"x":1080,"y":2210},"restore":{"x":1380,"y":2210},"finish":{"x":1680,"y":2210}}

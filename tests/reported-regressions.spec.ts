@@ -22,6 +22,20 @@ test('ajustar el subgrupo recupera sus márgenes de importación',async({page})=
  const after=await rect.evaluate(r=>{const b=(r as SVGGraphicsElement).getBBox();return {x:b.x,y:b.y,width:b.width,height:b.height};});
  for(const key of ['x','y','width','height'] as const)expect(after[key]).toBeCloseTo(before[key],1);
 });
+
+
+test('tiradores del diagrama sintético estables bajo zoom y desplazamiento',async({page})=>{
+ page.on('dialog',d=>d.accept());await page.goto('/');await ready(page);
+ await code(page,await readFile(new URL('./fixtures/large-workflow-positioned.mmd',import.meta.url),'utf8'));await command(page,'fit-view');
+ await page.locator('path[data-edge-index="0"]').dispatchEvent('pointerdown',{button:0,pointerId:91});
+ const v=(await page.locator('#diagram-viewport').boundingBox())!;
+ await page.mouse.move(v.x+v.width/2,v.y+v.height/2);await page.mouse.wheel(0,-80);
+ for(const kind of ['bend','port'])for(let i=0;i<5;i++){
+  const h=(await page.locator(`[data-${kind}-end="from"]`).boundingBox())!;
+  await page.mouse.move(h.x+h.width/2,h.y+h.height/2);await page.mouse.down();await page.mouse.move(h.x+h.width/2+12,h.y+h.height/2-14,{steps:8});await page.mouse.up();await ready(page);
+  for(const distance of await attached(page))expect(distance).toBeLessThan(1);
+ }
+});
 test('el control no deriva al ampliar el lienzo con curvas grandes',async({page})=>{
  page.on('dialog',d=>d.accept());await page.goto('/');await ready(page);
  await code(page,'flowchart LR\nsubgraph G[Grupo]\nA[Origen] -->|continuar| B[Destino]\nend');await command(page,'fit-view');

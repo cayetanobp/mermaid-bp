@@ -169,3 +169,7 @@ La revisión actual supera 40 pruebas unitarias y 59 comprobaciones de navegador
 El mismo repositorio sirve para desarrollo local y producción. Consulta [docs/production.md](docs/production.md). En el servidor, clona el repositorio, copia `deploy/docker/.env.example` a `.env`, configura el origen de tu web y ejecuta `sh scripts/deploy.sh`. Para actualizar, ejecuta `git pull --ff-only` y `sh scripts/deploy.sh`. Las protecciones y comprobaciones del perfil público están en [docs/security.md](docs/security.md).
 
 La aplicación no persiste documentos en ningún modo. Tanto desarrollo como producción descartan el trabajo al recargar.
+
+## Aplicación de escritorio
+
+La versión de Windows usa Tauri 2. Consulta [desktop-app/README.md](desktop-app/README.md) para compilarla y publicar el instalador.

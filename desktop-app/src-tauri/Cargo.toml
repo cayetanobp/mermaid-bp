@@ -1,0 +1,12 @@
+[package]
+name = "mermaid-bp-desktop"
+version = "1.0.0-alpha.2"
+description = "Editor local de diagramas Mermaid"
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+rfd = "0.15"

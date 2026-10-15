@@ -60,6 +60,16 @@ test('dos controles Bézier cambian la curva manteniendo el mismo par y se conse
   await page.mouse.move(endpoint.x+endpoint.width/2,endpoint.y+endpoint.height/2);await page.mouse.down();await page.mouse.move(node.x+node.width/2,node.y-50,{steps:15});await page.mouse.up();await ready(page);await attached(page,'A','B',0);
   await page.screenshot({path:'test-results/bezier-cuatro-controles.png'});
 });
+test('arrastrar extremos del diagrama sintético conserva la conexión bajo zoom, pan y grupos',async({page})=>{
+  const source=await readFile(new URL('./fixtures/large-workflow-positioned.mmd',import.meta.url),'utf8');
+  await command(page,'save');await page.locator('#file').setInputFiles({name:'ejemplo.mmd',mimeType:'text/plain',buffer:Buffer.from(source)});await ready(page);
+  const box=(await page.locator('#diagram-viewport').boundingBox())!;await page.mouse.move(box.x+50,box.y+100);await page.mouse.wheel(0,-80);
+  await page.keyboard.down('Space');await page.mouse.down();await page.mouse.move(box.x+80,box.y+120);await page.mouse.up();await page.keyboard.up('Space');
+  for(const [id,from,to]of [['L_intake_check_0','intake','check'],['L_catalog_tag_0','catalog','tag'],['L_queue_audit_0','queue','audit'],['L_review_publish_0','review','publish']]){
+    const index=Number(await page.locator('[id$="'+id+'"]').getAttribute('data-edge-index'));await selectEdge(page,index);
+    for(let i=0;i<3;i++){await dragPort(page,'from');await dragPort(page,'to');await attached(page,from,to,index);}
+  }
+});
 test('un bucle permite ajustar ambos controles sin perder el nodo de anclaje',async({page})=>{
   await code(page,'flowchart TD\nA["bucle"] -->|revisar| A');
   await selectEdge(page,0);await expect(page.getByRole('button',{name:/^(Origen|Destino) ↻$/})).toHaveCount(0);await dragPort(page,'from');

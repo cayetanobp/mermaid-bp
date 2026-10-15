@@ -7,7 +7,8 @@ const key='mermaid-bp:plugins:v1';
 export function discoverPlugins(base=new URL('./plugins/',document.baseURI)):Promise<void>{
  return discovery??=(async()=>{
   try{
-   const response=await fetch(base,{cache:'no-store'});if(response.status===404)return;if(!response.ok)throw Error();
+   const index=document.querySelector('meta[name="mermaid-bp-desktop"]')?new URL('index.json',base):base;
+   const response=await fetch(index,{cache:'no-store'});if(response.status===404)return;if(!response.ok)throw Error();
    const entries:unknown=await response.json();if(!Array.isArray(entries))throw Error();
    const names=[...new Set(entries.filter(e=>e?.type==='directory'&&typeof e.name==='string').map(e=>e.name.replace(/\/$/,'')))].filter(name=>/^[a-z][a-z0-9-]*$/.test(name)).sort();
    const found=await Promise.all(names.map(async id=>{

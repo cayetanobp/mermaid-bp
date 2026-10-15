@@ -9,3 +9,6 @@ test-results-drag/
 .env
 
 artifacts/
+
+desktop-app/src-tauri/target/
+desktop-app/src-tauri/gen/

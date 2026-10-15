@@ -8,6 +8,17 @@ async function geometry(page:Page){return page.locator('#diagram svg').evaluate(
  const box=(el:SVGGraphicsElement)=>{const b=el.getBBox(),m=inverse.multiply(el.getScreenCTM()!),p=new DOMPoint(b.x,b.y).matrixTransform(m);return [p.x,p.y,b.width*m.a,b.height*m.d].map(n=>Math.round(n*100)/100);};
  return {nodes:[...root.querySelectorAll<SVGGraphicsElement>('g.node')].map(el=>box(el)),groups:[...root.querySelectorAll<SVGGraphicsElement>('g.cluster > rect')].map(el=>box(el)),paths:[...root.querySelectorAll<SVGPathElement>('path.flowchart-link')].map(el=>[0,0.5,1].map(t=>{const p=el.getPointAtLength(el.getTotalLength()*t);return [p.x,p.y].map(n=>Math.round(n*100)/100);}))};
 });}
+test('reabrir el archivo restaura la misma geometría que abrir el archivo y conserva los controles',async({page})=>{
+ page.on('dialog',d=>d.accept());await page.goto('/');await ready(page);await command(page,'save');
+ const source=await readFile(new URL('./fixtures/large-workflow-positioned.mmd',import.meta.url),'utf8');await page.locator('#file').setInputFiles({name:'restaurar.mmd',mimeType:'text/plain',buffer:Buffer.from(source)});await ready(page);
+ await page.locator('path.flowchart-link[data-edge-index="9"]').dispatchEvent('pointerdown',{button:0,pointerId:90});
+ const h=(await page.locator('[data-bend-end="to"]').boundingBox())!;await page.mouse.move(h.x+h.width/2,h.y+h.height/2);await page.mouse.down();await page.mouse.move(h.x+h.width/2+30,h.y+h.height/2+20,{steps:8});await page.mouse.up();await ready(page);
+ await page.locator('#inspector-close').click();const before=await geometry(page);
+ for(let i=0;i<3;i++){
+  await reopenSavedDocument(page);await ready(page);const after=await geometry(page);expect(after.groups).toEqual(before.groups);expect(after.nodes).toEqual(before.nodes);expect(after.paths[after.paths.length-1]).toEqual(before.paths[before.paths.length-1]);
+  await page.locator('path.flowchart-link[data-edge-index="9"]').dispatchEvent('pointerdown',{button:0,pointerId:90});await expect(page.locator('.port-handle')).toHaveCount(2);await expect(page.locator('.bend-handle')).toHaveCount(2);for(const selector of ['[data-port-end="from"]','[data-port-end="to"]','[data-bend-end="from"]','[data-bend-end="to"]'])expect(await page.locator(selector).evaluate(el=>{const r=el.getBoundingClientRect();return document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)===el;})).toBe(true);await page.locator('#inspector-close').click();
+ }
+});
 
 test('guardar y reabrir el mismo archivo tienen los mismos grupos y conexiones',async({page})=>{
  page.on('dialog',d=>d.accept());await page.goto('/');await ready(page);await command(page,'save');

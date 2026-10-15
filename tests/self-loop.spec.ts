@@ -16,6 +16,23 @@ async function attached(page:Page,index:number,id:string){
  },{index,id});expect(result).toEqual([true,true]);
 }
 test.beforeEach(async({page})=>{page.on('dialog',dialog=>dialog.accept());await page.goto('/');await ready(page);});
+
+test('la relación recursiva se selecciona con clic real en su etiqueta y permite mover ambos controles',async({page})=>{
+ await code(page,'flowchart TD\nstart["Inicio"] --> retry["Revisar el registro de prueba"]\nretry -->|Intentar de nuevo| retry\nretry --> finish["Continuar"]');
+ await expect(page.locator('path.flowchart-link[data-edge-index="1"]')).toHaveCount(1);await expect(page.locator('.edge-hit[data-hit-edge="1"]')).toHaveCount(1);await selectLoop(page,1);
+ const before=await path(page,1),node=(await page.locator('[data-node-id="retry"]').boundingBox())!,camera=await page.locator('#diagram-stage').getAttribute('style');
+ await bend(page,'from',65,30);await attached(page,1,'retry');await bend(page,'to',-45,40);await attached(page,1,'retry');expect(await path(page,1)).not.toBe(before);
+ const after=(await page.locator('[data-node-id="retry"]').boundingBox())!;expect(after.x+after.width/2).toBeCloseTo(node.x+node.width/2,3);expect(after.y+after.height/2).toBeCloseTo(node.y+node.height/2,3);expect(await page.locator('#diagram-stage').getAttribute('style')).toBe(camera);
+ await expect(page.locator('.cm-content')).toContainText('"bendFrom"');await expect(page.locator('.cm-content')).toContainText('"bendTo"');await page.screenshot({path:'test-results/bucle-editable.png'});
+ const saved=await page.locator('.cm-content').innerText(),curve=normalize(await path(page,1));await reopenSavedDocument(page);await ready(page);expect(await page.locator('.cm-content').innerText()).toBe(saved);expect(normalize(await path(page,1))).toBe(curve);await attached(page,1,'retry');
+});
+test('el bucle del diagrama sintético sigue anclado al nodo al abrirlo, moverlo y comprobar BookStack',async({page,context})=>{
+ const source=await readFile(new URL('./fixtures/large-workflow-positioned.mmd',import.meta.url),'utf8');await command(page,'save');await page.locator('#file').setInputFiles({name:'bucle-sintetico.mmd',mimeType:'text/plain',buffer:Buffer.from(source)});await ready(page);
+ await expect(page.locator('path.flowchart-link[data-edge-index="9"]')).toHaveCount(1);await attached(page,9,'retry');await selectLoop(page,9);await bend(page,'to',40,30);await attached(page,9,'retry');
+ const curve=normalize(await path(page,9)),check=await openBookStack(page);await expect(check.locator('#check-state')).toContainText('posiciones del editor');
+ const other=await check.locator('path.flowchart-link[id$="L_retry_retry_0"]').getAttribute('d');expect(normalize(other)).toBe(curve);await check.close();
+ await reopenSavedDocument(page);await ready(page);await attached(page,9,'retry');expect(normalize(await path(page,9))).toBe(curve);
+});
 test('la edición del bucle permite deshacer, rehacer y restablecer sin perder su conexión',async({page})=>{
  await code(page,'flowchart TD\nA["Origen y destino"] -->|Revisar de nuevo| A\nA --> B["Siguiente paso"]');const original=await page.locator('.cm-content').innerText();await selectLoop(page,0);await bend(page,'from',55,30);await bend(page,'to',-40,45);const changed=await page.locator('.cm-content').innerText();
  await command(page,'undo');await ready(page);await command(page,'undo');await ready(page);expect(await page.locator('.cm-content').innerText()).toBe(original);await command(page,'redo');await ready(page);await command(page,'redo');await ready(page);expect(await page.locator('.cm-content').innerText()).toBe(changed);await selectLoop(page,0);await page.getByRole('button',{name:'Restablecer conexión',exact:true}).click();await attached(page,0,'A');await expect(page.locator('path.flowchart-link[data-edge-index="0"]')).toHaveCount(1);await expect(page.locator('.cm-content')).toContainText('-->|Revisar de nuevo| A');

@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "main",
+  "description": "Ventanas locales del editor y vistas previas",
+  "windows": ["main", "preview-*"],
+  "permissions": ["core:default"]
+}
