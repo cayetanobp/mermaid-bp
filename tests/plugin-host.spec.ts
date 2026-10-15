@@ -2,7 +2,7 @@ import {test,expect} from '@playwright/test';
 import {build} from 'vite';
 let bundle='';
 test.beforeAll(async()=>{
- const result=await build({configFile:false,logLevel:'silent',plugins:[{name:'empty-registry',resolveId:id=>id==='virtual:editor-plugins'?'\0empty-registry':null,load:id=>id==='\0empty-registry'?'export default [];':null}],build:{write:false,minify:false,lib:{entry:'src/plugin-host.ts',formats:['es'],fileName:'host.js'}}});
+ const result=await build({configFile:false,logLevel:'silent',build:{write:false,minify:false,lib:{entry:'src/plugin-host.ts',formats:['es'],fileName:'host.js'}}});
  bundle=(Array.isArray(result)?result:[result]).flatMap(r=>'output'in r?r.output:[]).filter(r=>r.type==='chunk').map(r=>r.code).join('\n');
 });
 test('host aísla errores, limpia contribuciones y cancela activaciones pendientes',async({page})=>{

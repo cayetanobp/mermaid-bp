@@ -113,15 +113,9 @@ El separador sobre "Información" cambia la altura del panel y deja el resto par
 
 BookStack es una extensión incluida y activa por defecto. Desde "Extensiones" puedes desactivarla o volver a activarla; la preferencia es local. Copiar Mermaid, editar, guardar y exportar no dependen de ella. La arquitectura y un ejemplo de contribución están en [docs/plugins.md](docs/plugins.md).
 
-Para construir una distribución sin extensiones, en PowerShell ejecuta lo siguiente.
+Instala un plugin copiando su carpeta dentro de `plugins/` y recargando la web con F5. Aparecerá automáticamente en "Extensiones". Para quitarlo, retira su carpeta y recarga. No requiere registro, reinicio del servidor ni recompilación.
 
-```powershell
-$env:MERMAID_BP_PLUGINS='none'
-npm.cmd run build
-Remove-Item Env:MERMAID_BP_PLUGINS
-```
-
-También puedes establecer `"plugins": []` en `plugins.config.json`. Esa compilación omite los módulos, la página y el encabezado de BookStack. La configuración normal incluye `bookstack`.
+En una web publicada directamente desde `dist`, utiliza `dist/plugins/`. BookStack se entrega como paquete autónomo en `dist/plugins/bookstack/`. La guía de creación está en [docs/plugins.md](docs/plugins.md).
 
 La dirección visual está en [style.md](style.md). Las siguientes mejoras se mantienen en [ROADMAP.md](ROADMAP.md).
 

@@ -1,65 +1,76 @@
-# Extensiones del editor
+# Crear e instalar plugins
 
-El núcleo conserva edición, archivos, cámara, cascada y exportación. Una extensión añade acciones y pasos de guía usando la API v1 de `src/plugin-api.ts`. No necesita modificar `main.ts`. BookStack, en `plugins/bookstack`, es la primera implementación.
+## Instalación
 
-## Registrar una extensión
+1. Descomprime el plugin y copia su carpeta dentro de `plugins/`.
+2. Recarga la web con F5. Aparecerá en "Extensiones".
 
-1. Crea `plugins/mi-extension/plugin.json` e `index.ts`.
-2. Añade `mi-extension` al array `plugins` de `plugins.config.json`.
-3. Ejecuta `npm.cmd run build` y las pruebas correspondientes.
+Para quitarlo, retira la carpeta y recarga. No hay que editar configuración, reiniciar el servidor ni recompilar. Puedes desactivarlo sin borrarlo desde "Extensiones".
+
+Con `iniciar.cmd`, `npm.cmd run dev` o `npm.cmd run preview`, utiliza la carpeta `plugins/` del proyecto. Si publicas directamente la web compilada, utiliza `plugins/` dentro de la carpeta publicada, por ejemplo `dist/plugins/`.
+
+## Crear uno sencillo
+
+Crea esta estructura. El nombre de la carpeta debe coincidir con el identificador del manifiesto.
+
+```text
+plugins/
+  contador/
+    plugin.json
+    index.js
+```
+
+Contenido de `plugin.json`.
 
 ```json
 {
-  "id": "mi-extension",
-  "name": "Mi extensión",
-  "description": "Describe la función para el usuario.",
+  "id": "contador",
+  "name": "Contador de líneas",
+  "description": "Cuenta las líneas del documento actual.",
   "version": "1.0.0",
-  "apiVersion": 1,
-  "enabledByDefault": false
+  "apiVersion": 1
 }
 ```
 
-```typescript
-import type {EditorPlugin} from '../../src/plugin-api';
-const plugin:EditorPlugin={
-  setup(context){
-    context.ui.addAction({id:'contar',label:'Contar líneas',run(){
-      context.ui.notify(`${context.document.read().source.split('\n').length} líneas`);
-    }});
-    context.ui.addGuideStep({id:'contar',title:'Contar líneas',description:'Consulta el número de líneas del documento.',target:'#plugin-mi-extension-contar'});
-    const unsubscribe=context.document.subscribe(snapshot=>{
-      // Consultar el documento; no modificar directamente el DOM del editor.
-      void snapshot.fileName;
+Contenido de `index.js`.
+
+```javascript
+export default {
+  setup(editor) {
+    editor.ui.addAction({
+      id: 'contar',
+      label: 'Contar líneas',
+      run() {
+        const total = editor.document.read().source.split('\n').length;
+        editor.ui.notify(`${total} líneas`);
+      }
     });
-    return unsubscribe;
   }
 };
-export default plugin;
 ```
 
-El host retira acciones, suscripciones y pasos al desactivar. Los errores de carga o activación no detienen el editor y las contribuciones parciales se limpian. Las versiones de API incompatibles no se activan. La preferencia se guarda en el navegador; no se escribe en los documentos.
+Guarda los archivos y recarga. El botón "Contar líneas" estará disponible. Este ejemplo no necesita herramientas de compilación ni dependencias.
 
-Una extensión se ejecuta como código de la aplicación, con acceso al mismo entorno del navegador. La API organiza las contribuciones y limita las mutaciones ofrecidas; no constituye un aislamiento de seguridad. Instala solo código revisado. No hay descarga ni ejecución de extensiones desde URL introducidas por usuarios.
+## Otras funciones
 
-## Compilación opcional
+La API v1, descrita en `src/plugin-api.ts`, permite leer el documento, suscribirse a sus cambios, añadir acciones y añadir pasos a la guía. `setup` puede devolver una función para limpiar recursos propios al desactivar el plugin. El editor retira automáticamente sus acciones, suscripciones y pasos.
 
-El registro virtual de Vite solo importa las extensiones configuradas. `MERMAID_BP_PLUGINS=none` genera el núcleo sin sus módulos. Una lista separada por comas permite seleccionar las incluidas. `MERMAID_BP_OUT_DIR` permite elegir otro directorio de salida para verificar una distribución independiente.
+Para un recurso propio, usa `new URL('./mi-pagina.html', import.meta.url).href`. Puedes distribuir otros módulos JavaScript, hojas de estilo e imágenes dentro de la misma carpeta. El paquete entregado al usuario debe contener JavaScript listo para el navegador; si como autor utilizas TypeScript o dependencias npm, prepara esos archivos antes de distribuirlo.
 
-Opcionalmente, el manifiesto admite `build.entries` para entradas adicionales, `build.outputs` para nombres públicos estables y `build.script` para una tarea de empaquetado. Las rutas se resuelven desde la extensión y deben permanecer dentro del proyecto. Consulta el manifiesto de BookStack como ejemplo. Los scripts de compilación son código de confianza.
+Los errores de manifiesto o activación se muestran sin detener el editor. Una versión de API incompatible no se activa. Los plugins ejecutan código con los permisos de la aplicación; la API organiza sus aportaciones, pero no es un aislamiento de seguridad.
 
 ## BookStack
 
-La extensión aporta el botón "BS preview", un paso de guía, la página `bookstack.html`, el módulo público `bookstack-viewer.js` y el encabezado instalable. La colocación manual usa el mismo renderizador del núcleo. Los antiguos archivos `src/bookstack*.ts` se mantienen como entradas de compatibilidad que delegan en la extensión.
+Está incluido en `plugins/bookstack/`. La compilación genera su paquete completo en `dist/plugins/bookstack/`, con su página, visor, encabezado y recursos. Esa carpeta se puede copiar a otra distribución ya compilada, sin reconstruirla. Se mantienen los enlaces antiguos de BookStack por compatibilidad.
 
-Desactivarla oculta la acción y la vista previa informa de que está desactivada. Excluirla de la compilación omite también esos archivos de salida. El ejemplo inicial y el botón "Copiar Mermaid" son independientes de BookStack. La instalación en BookStack se describe en [bookstack.md](bookstack.md).
-## Repetir la prueba sin extensiones
+## Publicación y desarrollo del núcleo
 
-```powershell
-$env:MERMAID_BP_PLUGINS='none'
-npm.cmd run build
-npm.cmd exec -- playwright test tests/core-only.spec.ts
-Remove-Item Env:MERMAID_BP_PLUGINS
-npm.cmd run build
-```
+El navegador consulta las carpetas disponibles en `/plugins/`. Los servidores locales del proyecto lo hacen automáticamente y el nginx incluido utiliza un listado JSON únicamente para esa carpeta. Si usas otro servidor estático, debe ofrecer ese mismo listado. No se requiere un registro de plugins.
 
-La prueba comprueba edición, cascada, navegación al nodo, exportación y guía sin acciones de BookStack. La batería normal comprueba también desactivación, persistencia de la preferencia, reactivación y equivalencia de geometría con la vista previa. `tests/plugin-host.spec.ts` utiliza extensiones de prueba que fallan o terminan de cargar después de desactivarlas para verificar la limpieza y la continuidad del editor.
+`npm.cmd run build` empaqueta automáticamente las carpetas presentes. `MERMAID_BP_PLUGINS=none` permite construir una distribución inicial vacía y una lista de identificadores separados por comas permite limitar el empaquetado. Son opciones de desarrollo; no se necesitan para instalar plugins.
+
+Los plugins incluidos que necesitan preparar recursos pueden definir `build.script` en su manifiesto fuente. El paquete distribuido elimina esos metadatos y funciona sin herramientas de desarrollo.
+
+## Pruebas
+
+`tests/runtime-plugins.spec.ts` verifica la instalación y retirada de carpetas con el servidor ya abierto, la persistencia al desactivar, los manifiestos inválidos y la instalación de BookStack en una distribución independiente sin recompilar. `tests/plugin-host.spec.ts` comprueba errores y limpieza durante cargas pendientes.

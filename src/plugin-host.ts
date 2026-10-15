@@ -1,4 +1,4 @@
-import { descriptors, enabledPreference, savePluginPreference } from './plugin-state';
+import { descriptors, discoverPlugins, discoveryErrors, enabledPreference, savePluginPreference } from './plugin-state';
 import type { DocumentSnapshot, GuideStep, PluginContext, PluginDescriptor } from './plugin-api';
 interface Active { cleanups: Array<()=>void>; listeners: Set<(snapshot:Readonly<DocumentSnapshot>)=>void>; steps: GuideStep[] }
 export class PluginHost {
@@ -10,6 +10,7 @@ export class PluginHost {
   constructor(private read:()=>DocumentSnapshot,private notify:(message:string)=>void,private installed:PluginDescriptor[]=descriptors) {}
   async start() {
     this.createManager();
+    if(this.installed===descriptors)await discoverPlugins();
     await Promise.all(this.installed.filter(d=>enabledPreference(d.manifest.id,d.manifest.enabledByDefault!==false)).map(d=>this.setEnabled(d.manifest.id,true,false)));
     this.refreshManager();
   }
@@ -76,6 +77,7 @@ export class PluginHost {
   }
   private refreshManager() {
     const list=document.getElementById('plugin-list');if(!list)return;list.replaceChildren();
+    if(this.installed===descriptors)for(const error of discoveryErrors){const p=document.createElement('p');p.textContent=error;list.append(p);}
     if(!this.installed.length){const p=document.createElement('p');p.textContent='Esta compilación no incluye extensiones.';list.append(p);return;}
     for(const descriptor of this.installed){
       const m=descriptor.manifest,row=document.createElement('section');row.className='plugin-row';

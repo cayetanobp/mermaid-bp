@@ -1,6 +1,9 @@
 import { build } from 'vite';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile,readFile } from 'node:fs/promises';
 
+const out=process.env.MERMAID_BP_OUT_DIR || 'dist';
+const packageDir=out+'/plugins/bookstack';
+await build({configFile:false,base:'./',logLevel:'warn',build:{outDir:packageDir,emptyOutDir:false,chunkSizeWarningLimit:1600,rollupOptions:{preserveEntrySignatures:'strict',input:{bookstack:'bookstack.html','bookstack-viewer':'plugins/bookstack/viewer.ts'},output:{entryFileNames:chunk=>chunk.name==='bookstack-viewer'?'bookstack-viewer.js':'assets/[name]-[hash].js'}}}});
 const result = await build({
   configFile: false,
   logLevel: 'warn',
@@ -19,9 +22,13 @@ const code = outputs.flatMap(r => r.output).filter(chunk => chunk.type === 'chun
 if (!code || code.includes('from "mermaid"') || code.includes("from 'mermaid'")) throw new Error('El encabezado no se ha generado correctamente.');
 const header = '<!-- Mermaid BP: sustituye el script Mermaid anterior por todo este bloque. -->\n<script type="module">\n' +
   code.replace(/<\/script/gi, '<\\/script') + '\n</script>\n';
-const out=process.env.MERMAID_BP_OUT_DIR || 'dist';
 await mkdir(out,{recursive:true});
 await writeFile(out+'/bookstack-header.html', header);
+await writeFile(packageDir+'/bookstack-header.html',header);
+// Entradas antiguas para enlaces ya guardados; el paquete funciona por sí solo.
+const html=await readFile(packageDir+'/bookstack.html','utf8');
+await writeFile(out+'/bookstack.html',html.replaceAll('./assets/','./plugins/bookstack/assets/'));
+await writeFile(out+'/bookstack-viewer.js',"export * from './plugins/bookstack/bookstack-viewer.js';\n");
 await mkdir('plugins/bookstack/public',{recursive:true});
 await writeFile('plugins/bookstack/public/bookstack-header.html', header);
 console.log('Encabezado BookStack listo para pegar (' + Buffer.byteLength(header) + ' bytes).');

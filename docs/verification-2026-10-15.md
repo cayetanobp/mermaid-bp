@@ -25,3 +25,12 @@ Comprobación del 15 de octubre de 2026 en Windows, con Node.js 24.15 y Chromium
 Se revisaron capturas de la interfaz institucional y de la cascada con el archivo real. Las pruebas de BookStack utilizan la simulación local y el encabezado generado; no se ha modificado ninguna instancia externa.
 
 Para repetir las pruebas, consulta `README.md` y `docs/plugins.md`. Las capturas y trazas se guardan en `test-results`, excluido de Git.
+
+
+## Instalación de plugins por carpeta
+
+La revisión posterior sustituye el registro de compilación por descubrimiento en tiempo de ejecución. Compilación y comprobación de TypeScript aprobadas, junto con 12 pruebas de navegador de plugins, guía y BookStack.
+
+Se ha copiado un plugin nuevo a `plugins/` con el servidor de producción ya iniciado, recargado la web y ejecutado su acción sin recompilar ni reiniciar. También se verificaron desactivación persistente, reactivación, retirada de carpeta y un manifiesto inválido.
+
+Una prueba adicional sirve una copia independiente del núcleo estático, sin BookStack, y añade después el paquete `dist/plugins/bookstack/`. La acción, la página de comprobación y la descarga del encabezado funcionan sin reconstruir el núcleo. Retirar la carpeta vuelve a dejarlo sin plugins.

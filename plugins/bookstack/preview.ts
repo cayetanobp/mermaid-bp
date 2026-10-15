@@ -1,4 +1,4 @@
-import {isPluginEnabled} from '../../src/plugin-state';
+import {isPluginEnabled,discoverPlugins} from '../../src/plugin-state';
 import { hasManualLayout } from '../../src/positions';
 import { example } from '../../src/flow';
 import { renderMermaidBlocks } from './viewer';
@@ -27,5 +27,11 @@ async function run() {
   } finally { button.disabled = false; }
 }
 button.onclick = run;
-document.getElementById('check-draft')!.onclick = () => { loadDraft(); void run(); };
-loadDraft(); void run();
+document.getElementById('check-draft')!.onclick = () => { const folder=new URL('.',document.baseURI);
+const packaged=folder.pathname.endsWith('/plugins/bookstack/');
+if(packaged)document.querySelector<HTMLAnchorElement>('.check-layout>header>a')!.href=new URL('../../',folder).href;
+void discoverPlugins(packaged?new URL('../',folder):undefined).then(()=>{loadDraft();void run();}); };
+const folder=new URL('.',document.baseURI);
+const packaged=folder.pathname.endsWith('/plugins/bookstack/');
+if(packaged)document.querySelector<HTMLAnchorElement>('.check-layout>header>a')!.href=new URL('../../',folder).href;
+void discoverPlugins(packaged?new URL('../',folder):undefined).then(()=>{loadDraft();void run();});
