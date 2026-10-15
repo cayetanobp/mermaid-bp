@@ -1,3 +1,4 @@
+import {command} from './menu-helpers';
 import { test, expect, type Page } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 async function ready(page: Page) { await expect(page.locator('#render-state')).toHaveText('Actualizado'); }
@@ -8,7 +9,7 @@ async function code(page: Page, text: string) {
 async function finishDrag(page: Page) { await page.mouse.up(); }
 async function text(page: Page) { return page.locator('.cm-content').innerText(); }
 async function downloadText(page: Page) {
-  const pending = page.waitForEvent('download'); await page.locator('#save').click();
+  const pending = page.waitForEvent('download'); await command(page,'save');
   const file = await pending; return readFile((await file.path())!, 'utf8');
 }
 test.beforeEach(async ({ page }) => { page.on('dialog', dialog => dialog.accept()); await page.goto('/'); await ready(page); });
@@ -22,7 +23,7 @@ test('arranque sin errores y sin peticiones externas', async ({ page }) => {
   await page.screenshot({ path: 'test-results/editor-desktop.png', fullPage: true });
 });
 test('crear, editar y eliminar un nodo con historial', async ({ page }) => {
-  await page.locator('#add-node').click();
+  await command(page,'add-node');
   await page.locator('#node-label').fill('Revisión "manual" & final');
   await page.locator('#node-shape').selectOption('diamond');
   await page.locator('#node-form button[type=submit]').click(); await ready(page);
@@ -32,12 +33,12 @@ test('crear, editar y eliminar un nodo con historial', async ({ page }) => {
   await expect(page.locator('[data-node-id="N1"]')).toContainText('Texto actualizado');
   await page.locator('[data-node-id="N1"]').click(); await page.locator('#selection .danger').click(); await ready(page);
   await expect(page.locator('#diagram g.node')).toHaveCount(4);
-  await page.locator('#undo').click(); await ready(page);
+  await command(page,'undo'); await ready(page);
   await expect(page.locator('#diagram g.node')).toHaveCount(5);
 });
 test('crear una conexión, seleccionarla y eliminarla', async ({ page }) => {
   await code(page, 'flowchart LR\nA["uno"]\nB["dos"]');
-  await page.locator('#add-edge').click(); await page.locator('#edge-label').fill('sí | quizá');
+  await command(page,'add-edge'); await page.locator('#edge-label').fill('sí | quizá');
   await page.locator('#edge-form button[type=submit]').click(); await ready(page);
   await expect(page.locator('[data-edge-index]')).toHaveCount(1);
   expect(await text(page)).toContain('#124;');
@@ -66,26 +67,26 @@ test('otros tipos y estilos por índice conservan código sin edición visual', 
   await expect(page.locator('#diagram svg')).toBeVisible();
 });
 test('abrir, descargar, recuperar borrador y cancelar sustitución', async ({ page }) => {
-  await page.locator('#save').click();
+  await command(page,'save');
   const original = 'flowchart LR\n    A["áéíóú ñ"] --> B["final"]\n';
   await page.locator('#file').setInputFiles({ name: 'prueba.mmd', mimeType: 'text/plain', buffer: Buffer.from(original) }); await ready(page);
   await expect(page.locator('#filename')).toHaveText('prueba.mmd');
   expect(await downloadText(page)).toBe(original);
   await code(page, 'flowchart TD\nA["borrador"]');
   await page.reload(); await ready(page); expect(await text(page)).toContain('borrador');
-  await page.locator('#new').click(); await expect(page.locator('#confirm-dialog')).toBeVisible();
+  await command(page,'new'); await expect(page.locator('#confirm-dialog')).toBeVisible();
   await page.locator('#confirm-dialog button[value=cancel]').click(); expect(await text(page)).toContain('borrador');
-  await page.locator('#new').click(); await page.locator('#confirm-dialog button[value=replace]').click(); await ready(page);
-  await page.locator('#add-node').click(); await page.locator('#node-label').fill('Primer nodo');
+  await command(page,'new'); await page.locator('#confirm-dialog button[value=replace]').click(); await ready(page);
+  await command(page,'add-node'); await page.locator('#node-label').fill('Primer nodo');
   await page.locator('#node-form button[type=submit]').click(); await ready(page);
   await expect(page.locator('#diagram g.node')).toHaveCount(1);
-  await page.locator('#undo').click(); await ready(page);
+  await command(page,'undo'); await ready(page);
   expect(await text(page)).not.toContain('borrador');
 });
 test('exporta SVG limpio y PNG válido', async ({ page }) => {
   await page.locator('[data-node-id="Inicio"]').click();
   for (const format of ['svg', 'png']) {
-    const pending = page.waitForEvent('download'); await page.locator(`#${format}`).click();
+    const pending = page.waitForEvent('download'); await command(page,format);
     const file = await pending, bytes = await readFile((await file.path())!);
     expect(file.suggestedFilename()).toBe(`diagrama.${format}`);
     if (format === 'svg') { expect(bytes.toString()).toContain('<svg'); expect(bytes.toString()).not.toContain('selection-ring'); }
@@ -94,7 +95,7 @@ test('exporta SVG limpio y PNG válido', async ({ page }) => {
 });
 test('copiar para BookStack genera un bloque Markdown', async ({ page, context }) => {
   await context.grantPermissions(['clipboard-read', 'clipboard-write']);
-  await page.locator('#copy').click();
+  await command(page,'copy');
   const clipboard = (await page.evaluate(() => navigator.clipboard.readText())).replace(/\r\n/g, '\n');
   expect(clipboard.startsWith('```mermaid\nflowchart TD')).toBe(true); expect(clipboard.endsWith('\n```')).toBe(true);
 });
@@ -125,7 +126,7 @@ test('el arrastre ajusta un flujo y mantiene sus conexiones', async ({ page }) =
   const after = await text(page);
   expect(after).toMatch(/A(?:\["inicio"\])? -+> B/); expect(after).toMatch(/B(?:\["segundo"\])? -+> C/);
   expect(after).not.toBe(before);
-  await page.locator('#undo').click(); await ready(page); expect(await text(page)).toBe(before);
+  await command(page,'undo'); await ready(page); expect(await text(page)).toBe(before);
 });
 test('un nodo aislado admite colocación libre', async ({ page }) => {
   await code(page, 'flowchart TD\nA["solo"]'); const before = await text(page);

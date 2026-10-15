@@ -69,6 +69,9 @@ export class PluginHost {
   private cleanup(active:Active) { for(const cleanup of [...active.cleanups].reverse())try{cleanup();}catch{/* Limpiar el resto aunque falle una contribución. */}active.cleanups=[];active.listeners.clear();active.steps=[]; }
   private dispose(id:string) {const pending=this.pending.get(id);if(pending)this.cleanup(pending);this.pending.delete(id);const active=this.active.get(id);if(active)this.cleanup(active);this.active.delete(id);}
   private createManager() {
+    if(document.getElementById('plugin-list')){
+      document.getElementById('plugins-button')!.addEventListener('click',()=>this.refreshManager());return;
+    }
     const dialog=document.createElement('dialog');dialog.id='plugins-dialog';dialog.setAttribute('aria-labelledby','plugins-title');
     dialog.innerHTML='<h2 id="plugins-title">Extensiones</h2><p class="dialog-intro">Activa las funciones que necesitas. Desactivarlas conserva tus documentos.</p><div id="plugin-list"></div><div class="dialog-actions"><button id="plugins-close" type="button">Cerrar</button></div>';
     document.getElementById('app')!.append(dialog);

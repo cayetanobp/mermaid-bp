@@ -1,3 +1,4 @@
+import {sameEdgeLabel} from './edge-label';
 import {mermaidSourceId} from './mermaid-id';
 import { edgePathMap, type Flow } from './flow';
 import type { Geometry, Point } from './layout';
@@ -56,7 +57,7 @@ export class ManualLayout {
       element.dataset.layoutPath ??= element.getAttribute('d') ?? '';
       // Mermaid etiqueta cada conexión con un data-id; el orden solo es respaldo para versiones antiguas.
       const label = labels.find(g => g.querySelector('[data-id]')?.getAttribute('data-id') === element.id)
-        ?? (edge.label ? labels.find(g => !usedLabels.has(g) && g.textContent?.trim() === edge.label.trim()) : undefined);
+        ?? (edge.label ? labels.find(g => !usedLabels.has(g) && sameEdgeLabel(g.textContent,edge.label)) : undefined);
       if (label) {
         usedLabels.add(label);
         label.dataset.layoutMatrix ??= JSON.stringify(values(label.transform.baseVal.consolidate()?.matrix ?? new DOMMatrix()));

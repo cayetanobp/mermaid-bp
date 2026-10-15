@@ -18,15 +18,39 @@ No abras `index.html` directamente mediante `file://`. La aplicación utiliza m�
 
 ## Uso
 
-- Pulsa "Pantalla completa" en las herramientas del diagrama para ampliar el lienzo. Puedes seguir editando nodos y conexiones, usar la rueda para el zoom y salir con Esc o con el mismo botón. Al volver se restaura el encuadre anterior.
-- Usa "Ocultar herramientas" en la cabecera para plegar la barra de archivos y exportación. El botón permite recuperarla y la preferencia se conserva al volver a abrir la web. Ctrl S sigue disponible con la barra plegada.
+- Usa el botón pequeño de la esquina superior derecha del diagrama para ampliar el lienzo dentro de la aplicación, sin activar la pantalla completa del navegador. Los menús siguen disponibles y las acciones de "Diagrama" aparecen directamente sobre el lienzo para editar nodos y conexiones. Sal con Esc o "Salir de pantalla completa"; al volver se restaura el encuadre anterior.
+- Una sola barra agrupa las acciones en "Archivo", "Edición", "Ver", "Diagrama", "Configuración" y "Ayuda". Los menús admiten ratón, flechas, Inicio/Fin y Esc. Ctrl S guarda desde cualquier vista.
 - Edita el código a la izquierda y consulta el diagrama a la derecha. La vista se actualiza tras una pausa de 350 ms.
-- Abre un `.mmd` con el botón o soltándolo en la ventana. El límite de apertura es de 2 MB.
+- Abre un `.mmd` con "Archivo > Abrir .mmd" o soltándolo en la ventana. El límite de apertura es de 2 MB.
 - Usa "Conectar nodos" para elegir origen y destino en el lienzo y completar la relación. Escape cancela la elección. Usa los botones de nodos y conexiones, el doble clic en un nodo para editarlo y el panel de selección para eliminar. Los cambios visuales se pueden deshacer.
 - Arrastra el fondo para seleccionar varios elementos. Mayús añade o quita elementos; arrastrar un nodo seleccionado mueve el conjunto. Para desplazar el lienzo, mantén espacio mientras arrastras o usa el botón central. La rueda cambia el zoom alrededor del puntero. El separador admite arrastre y las flechas del teclado.
-- Guarda con el botón o Ctrl S. Guardar descarga una copia; el navegador no sobrescribe automáticamente el archivo original.
+- Guarda con "Archivo > Guardar .mmd" o Ctrl S. Guardar descarga una copia; el navegador no sobrescribe automáticamente el archivo original.
 - El último documento se recupera desde el almacenamiento del navegador. El borrador no sustituye a una copia descargada. En navegación privada o si el almacenamiento está lleno puede no conservarse.
 - SVG y PNG exportan el último diagrama válido. El PNG tiene fondo blanco y hasta doble resolución, con límites de 8192 píxeles por lado y 32 millones de píxeles.
+
+## Distribución de los menús
+
+| Menú | Acciones |
+| --- | --- |
+| Archivo | Nuevo, abrir, guardar, copiar Mermaid y exportar SVG o PNG. |
+| Edición | Deshacer y rehacer. |
+| Ver | Código, cascada, encajar y acciones de los plugins. |
+| Diagrama | Crear nodos y conexiones, conectar nodos, gestionar subgrupos, recolocar y cambiar la dirección. |
+| Configuración | Abrir preferencias o gestionar extensiones en el panel de ajustes. |
+| Ayuda | Abrir la guía de uso. |
+
+Las pestañas del documento y el inspector siguen junto al editor. Los menús también están disponibles en pantalla completa, con un acceso directo para salir. Abrir y cerrar un menú no modifica el archivo, el zoom ni las posiciones.
+
+## Configuración
+
+Abre "Configuración > Preferencias". El panel contiene un lateral con cuatro secciones.
+
+- General, para elegir la vista al abrir, mostrar u ocultar la ayuda y reducir animaciones.
+- Editor, para ajustar tamaño del texto, líneas largas, números de línea y resaltado de la línea actual.
+- Diagrama, para mostrar la cuadrícula y elegir la sensibilidad del zoom.
+- Extensiones, para activar o desactivar plugins. "Configuración > Extensiones" abre esta sección directamente.
+
+Los cambios se aplican al momento y se guardan en este navegador. No se escriben en los archivos `.mmd` ni modifican sus estilos o posiciones. "Restablecer sección" recupera sus valores predeterminados y conserva las otras secciones, los documentos y las extensiones. Si el navegador no permite guardar preferencias, los ajustes funcionan durante la sesión y el panel lo indica.
 
 ## Arrastre y compatibilidad con BookStack
 
@@ -105,7 +129,7 @@ Los límites se guardan con el comentario `%% graph:groups` y se reproducen en "
 
 "Código" y "Cascada" muestran el mismo documento. La cascada permite buscar nodos y subgrupos, consultar miembros y navegar las relaciones desde la ficha. Seleccionar o navegar no modifica el Mermaid ni mueve la cámara.
 
-El separador sobre "Información" cambia la altura del panel y deja el resto para código o cascada. Admite arrastre, flechas arriba/abajo e Inicio/Fin; conserva su proporción en el navegador. "Ir a" centra el nodo manteniendo el zoom y lo señala durante seis segundos. Con movimiento reducido, la señal permanece estática.
+El separador sobre "Información" cambia la altura del panel y deja el resto para código o cascada. Admite arrastre, flechas arriba/abajo e Inicio/Fin; conserva su proporción en el navegador. Seleccionar un nodo en cascada lo resalta sin mover la cámara. El resaltado se mantiene hasta cambiar o quitar la selección. "Ir a" solo centra el nodo y mantiene el zoom y el resaltado existente. Con movimiento reducido, la señal permanece estática.
 
 "Guía de uso" inicia un recorrido por código, cascada, información, diagrama y extensiones. Incluye la vista previa de BookStack cuando está activa y recupera la pestaña anterior al terminar o pulsar Esc.
 

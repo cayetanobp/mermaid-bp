@@ -1,11 +1,18 @@
-let timer:ReturnType<typeof setTimeout>;
-export function clearNodeLocation(){clearTimeout(timer);document.querySelectorAll('[data-editor-overlay]').forEach(el=>el.remove());}
+const ns='http://www.w3.org/2000/svg';
+const nodeElement=(id:string)=>[...document.querySelectorAll<SVGGElement>('#diagram g.node')].find(node=>node.dataset.nodeId===id);
+export function clearNodeLocation(){document.querySelectorAll('[data-editor-overlay]').forEach(element=>element.remove());}
+/** Una capa independiente del SVG evita que la marca altere límites, posiciones o exportaciones. */
+export function highlightNode(id:string,zoom:number){
+ clearNodeLocation();const node=nodeElement(id),stage=document.getElementById('diagram-stage');if(!node||!stage)return;
+ const box=node.getBoundingClientRect(),origin=stage.getBoundingClientRect(),pad=8/zoom;
+ const overlay=document.createElementNS(ns,'svg'),rect=document.createElementNS(ns,'rect');
+ overlay.setAttribute('data-editor-overlay','node-location');overlay.setAttribute('data-highlight-node',id);overlay.setAttribute('aria-hidden','true');overlay.setAttribute('width','1');overlay.setAttribute('height','1');
+ overlay.style.cssText='position:absolute;left:0;top:0;overflow:visible;pointer-events:none;z-index:2;display:block';
+ for(const[key,value]of Object.entries({x:(box.left-origin.left)/zoom-pad,y:(box.top-origin.top)/zoom-pad,width:box.width/zoom+pad*2,height:box.height/zoom+pad*2,fill:'none',stroke:'#1f3a5f','stroke-width':3,'vector-effect':'non-scaling-stroke'}))rect.setAttribute(key,String(value));
+ rect.classList.add('node-location');overlay.append(rect);stage.append(overlay);
+}
+/** Centrar es independiente de la selección y conserva la escala y su resaltado. */
 export function locateNode(id:string,camera:{x:number;y:number;zoom:number},transform:()=>void){
- clearNodeLocation();const viewport=document.getElementById('diagram-viewport')!,root=document.querySelector<SVGSVGElement>('#diagram svg');
- const node=[...document.querySelectorAll<SVGGElement>('#diagram g.node')].find(n=>n.dataset.nodeId===id);if(!root||!node)return;
+ const node=nodeElement(id),viewport=document.getElementById('diagram-viewport');if(!node||!viewport)return;
  const box=node.getBoundingClientRect(),canvas=viewport.getBoundingClientRect();camera.x+=canvas.left+canvas.width/2-(box.left+box.width/2);camera.y+=canvas.top+canvas.height/2-(box.top+box.height/2);transform();
- const b=node.getBBox(),matrix=root.getScreenCTM()!.inverse().multiply(node.getScreenCTM()!);const points=[[b.x,b.y],[b.x+b.width,b.y],[b.x,b.y+b.height],[b.x+b.width,b.y+b.height]].map(([x,y])=>new DOMPoint(x,y).matrixTransform(matrix));
- const pad=8/camera.zoom,x=Math.min(...points.map(p=>p.x)),y=Math.min(...points.map(p=>p.y)),right=Math.max(...points.map(p=>p.x)),bottom=Math.max(...points.map(p=>p.y));
- const g=document.createElementNS('http://www.w3.org/2000/svg','g'),rect=document.createElementNS(g.namespaceURI,'rect');g.setAttribute('data-editor-overlay','node-location');g.setAttribute('aria-hidden','true');g.style.pointerEvents='none';
- for(const [key,value]of Object.entries({x:x-pad,y:y-pad,width:right-x+pad*2,height:bottom-y+pad*2,fill:'none',stroke:'#1f3a5f','stroke-width':3,'vector-effect':'non-scaling-stroke'}))rect.setAttribute(key,String(value));rect.classList.add('node-location');g.append(rect);root.append(g);timer=setTimeout(clearNodeLocation,6000);
 }

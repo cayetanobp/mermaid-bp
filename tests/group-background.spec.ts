@@ -1,7 +1,8 @@
+import {command} from './menu-helpers';
 import {test,expect,type Page} from '@playwright/test';
 const ready=(p:Page)=>expect(p.locator('#render-state')).toHaveText('Actualizado');
 async function open(p:Page,text:string) {
-  await p.goto('/');await ready(p);await p.locator('#save').click();
+  await p.goto('/');await ready(p);await command(p,'save');
   await p.locator('#file').setInputFiles({name:'grupos.mmd',mimeType:'text/plain',buffer:Buffer.from(text)});await expect(p.locator('#filename')).toHaveText('grupos.mmd');await ready(p);
 }
 async function scene(p:Page,selector='#diagram svg') {
@@ -48,7 +49,7 @@ test('ajustar al contenido reduce un fondo sobredimensionado y permite deshacer'
   await page.mouse.click(r.x+8,r.y+30);
   const before=await scene(page);await page.getByRole('button',{name:'Ajustar al contenido'}).click();
   const fitted=await scene(page);expect(fitted.box.width).toBeLessThan(before.box.width);expect(fitted.box.height).toBeLessThan(before.box.height);expect(fitted.nodes).toEqual(before.nodes);
-  await page.locator('#undo').click();await ready(page);expect((await scene(page)).box).toEqual(before.box);
+  await command(page,'undo');await ready(page);expect((await scene(page)).box).toEqual(before.box);
 });
 
 test('mover un nodo interior no amplía el fondo aunque todavía no se haya redimensionado',async({page})=>{

@@ -1,0 +1,36 @@
+import {test,expect,type Page} from '@playwright/test';
+import {command} from './menu-helpers';
+async function ready(page:Page){page.on('dialog',dialog=>dialog.accept());await page.goto('/');await expect(page.locator('#render-state')).toHaveText('Actualizado');}
+const camera=(page:Page)=>page.locator('#diagram-stage').getAttribute('style');
+const code=(page:Page)=>page.locator('.cm-content').innerText();
+const scale=(page:Page)=>page.locator('#diagram-stage').evaluate(el=>new DOMMatrix(getComputedStyle(el).transform).a);
+for(const fallback of [false,true])test(`pantalla completa muestra las acciones del diagrama y conserva sus estados; alternativa ${fallback}`,async({page})=>{
+ await ready(page);await expect(page.locator('#fullscreen-diagram-tools')).toBeHidden();if(fallback)await page.evaluate(()=>{document.getElementById('app')!.requestFullscreen=()=>Promise.reject(new DOMException('Bloqueado','NotAllowedError'));});
+ await command(page,'diagram-fullscreen');const tools=page.getByRole('toolbar',{name:'Herramientas del diagrama'});await expect(tools).toBeVisible();for(const id of ['add-node','add-edge','connect-nodes','manage-groups','fit-view','relayout'])await expect(page.locator('#fullscreen-'+id)).toBeVisible();
+ const box=(await tools.boundingBox())!,canvas=(await page.locator('#diagram-viewport').boundingBox())!;expect(box.y+box.height).toBeLessThanOrEqual(canvas.y+1);
+ await page.locator('#fullscreen-add-node').click();await page.locator('#node-label').fill('Nodo desde barra ampliada');await page.locator('#node-form button[type=submit]').click();await expect(page.locator('#render-state')).toHaveText('Actualizado');await expect(page.locator('#diagram [data-node-id]')).toHaveCount(5);
+ await page.locator('#fullscreen-direction').selectOption('LR');await expect(page.locator('#render-state')).toHaveText('Actualizado');await expect(page.locator('#direction')).toHaveValue('LR');
+ await page.locator('#fullscreen-connect-nodes').click();await expect(page.locator('#connect-nodes')).toHaveAttribute('aria-pressed','true');await expect(page.locator('#fullscreen-connect-nodes')).toHaveAttribute('aria-pressed','true');await page.locator('#fullscreen-connect-nodes').click();
+ await page.locator('#fullscreen-add-edge').click();await expect(page.locator('#edge-dialog')).toBeVisible();await page.locator('#edge-cancel').click();await page.locator('#fullscreen-manage-groups').click();await expect(page.locator('#groups-dialog')).toBeVisible();await page.locator('#groups-close').click();
+ await page.locator('#fullscreen-fit-view').click();await page.locator('#diagram-exit-fullscreen').click();await expect(tools).toBeHidden();await expect(page.locator('.code-pane')).toBeVisible();if(!fallback){await command(page,'diagram-fullscreen');await page.screenshot({path:'test-results/fullscreen-acciones-directas.png'});}
+});
+test('clic en cascada resalta de forma persistente sin mover cámara, cambiar documento ni renderizar',async({page})=>{
+ await ready(page);await page.locator('#tab-cascade').click();const before=await camera(page),source=await code(page),viewBox=await page.locator('#diagram svg').getAttribute('viewBox');
+ await page.evaluate(()=>{(window as any).cascadeRenders=0;new MutationObserver(records=>{for(const record of records)for(const node of record.addedNodes)if(node instanceof Element&&node.classList.contains('render-host'))(window as any).cascadeRenders++;}).observe(document.body,{childList:true});});
+ const first=page.locator('[data-cascade-node]').first(),last=page.locator('[data-cascade-node]').last(),firstId=await first.getAttribute('data-cascade-node'),lastId=await last.getAttribute('data-cascade-node');await first.click();await expect(page.locator('[data-highlight-node]')).toHaveAttribute('data-highlight-node',firstId!);expect(await camera(page)).toBe(before);expect(await code(page)).toBe(source);expect(await page.locator('#diagram svg').getAttribute('viewBox')).toBe(viewBox);await expect(page.locator('#diagram [data-editor-overlay]')).toHaveCount(0);
+ await page.clock.install();await page.clock.fastForward(7000);await expect(page.locator('[data-highlight-node]')).toHaveCount(1);await last.click();await expect(page.locator('[data-highlight-node]')).toHaveAttribute('data-highlight-node',lastId!);await expect(page.locator('[data-highlight-node]')).toHaveCount(1);expect(await camera(page)).toBe(before);expect(await page.evaluate(()=>(window as any).cascadeRenders)).toBe(0);await page.screenshot({path:'test-results/cascada-resaltado-sin-centrar.png'});
+ await page.locator('#inspector-close').click();await expect(page.locator('[data-editor-overlay]')).toHaveCount(0);
+});
+test('ir a solo centra, conserva zoom y no recrea el resaltado seleccionado en cascada',async({page})=>{
+ await ready(page);await page.locator('#diagram-viewport').hover();await page.mouse.wheel(0,-180);await page.locator('#tab-cascade').click();const row=page.locator('[data-cascade-node]').last(),id=await row.getAttribute('data-cascade-node');await row.click();const zoom=await scale(page),source=await code(page);
+ await page.evaluate(()=>{(window as any).selectedHighlight=document.querySelector('[data-highlight-node]');});await page.locator('#locate-node').click();expect(await scale(page)).toBe(zoom);expect(await code(page)).toBe(source);expect(await page.evaluate(()=>document.querySelector('[data-highlight-node]')===(window as any).selectedHighlight)).toBe(true);
+ const node=(await page.locator(`[data-node-id="${id}"]`).boundingBox())!,canvas=(await page.locator('#diagram-viewport').boundingBox())!,highlight=(await page.locator('.node-location').boundingBox())!;
+ expect(Math.abs(node.x+node.width/2-canvas.x-canvas.width/2)).toBeLessThan(2);expect(Math.abs(node.y+node.height/2-canvas.y-canvas.height/2)).toBeLessThan(2);expect(Math.abs(highlight.x+highlight.width/2-node.x-node.width/2)).toBeLessThan(2);expect(Math.abs(highlight.y+highlight.height/2-node.y-node.height/2)).toBeLessThan(2);
+ const pending=page.waitForEvent('download');await command(page,'svg');const stream=await (await pending).createReadStream();let svg='';for await(const chunk of stream!)svg+=chunk.toString();expect(svg).not.toContain('node-location');expect(svg).not.toContain('data-highlight-node');await expect(page.locator('[data-highlight-node]')).toHaveCount(1);
+});
+test('ir a desde una selección del lienzo no inicia un resaltado de cascada',async({page})=>{
+ await ready(page);await page.locator('[data-node-id]').first().click();await page.locator('#locate-node').click();await expect(page.locator('[data-editor-overlay]')).toHaveCount(0);
+});
+test('la barra ampliada refleja los controles desactivados en diagramas de solo código',async({page})=>{
+ await ready(page);const editor=page.getByRole('textbox',{name:'Código Mermaid'});await editor.click();await editor.press('ControlOrMeta+a');await page.keyboard.insertText('sequenceDiagram\nAlice->>Bob: hola');await expect(page.locator('#render-state')).toHaveText('Actualizado');await command(page,'diagram-fullscreen');await expect(page.locator('#fullscreen-diagram-tools')).toBeVisible();for(const id of ['add-node','add-edge','connect-nodes','manage-groups','relayout','direction'])await expect(page.locator('#fullscreen-'+id)).toBeDisabled();await expect(page.locator('#fullscreen-fit-view')).toBeEnabled();
+});

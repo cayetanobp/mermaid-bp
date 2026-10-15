@@ -1,11 +1,12 @@
+import {command} from './menu-helpers';
 import {test,expect,type Page,type Locator} from '@playwright/test';
 const ready=(page:Page)=>expect(page.locator('#render-state')).toHaveText('Actualizado');
 async function open(page:Page,source:string) {
-  page.on('dialog',d=>d.accept());await page.goto('/');await ready(page);await page.locator('#save').click();
+  page.on('dialog',d=>d.accept());await page.goto('/');await ready(page);await command(page,'save');
   await page.locator('#file').setInputFiles({name:'alineacion.mmd',mimeType:'text/plain',buffer:Buffer.from(source)});await ready(page);
 }
 async function select(page:Page,id='G') {
-  const rect=page.locator(`g.cluster#${id} > rect`),box=(await rect.boundingBox())!;
+  const rect=page.locator(`g.cluster:is(#${id},[id$="-${id}"]) > rect`),box=(await rect.boundingBox())!;
   await page.mouse.click(box.x+4,box.y+4);
   await expect(page.locator('.group-handle')).toHaveCount(4);
 }
@@ -13,7 +14,7 @@ async function visibleBox(locator:Locator) {
   return locator.evaluate(element=>{const b=element.getBoundingClientRect();return{x:b.x,y:b.y,width:b.width,height:b.height};});
 }
 async function aligned(page:Page,id='G') {
-  const rect=await visibleBox(page.locator(`g.cluster#${id} > rect`));
+  const rect=await visibleBox(page.locator(`g.cluster:is(#${id},[id$="-${id}"]) > rect`));
   const outline=await visibleBox(page.locator('.group-selection'));
   for(const key of ['x','y','width','height'] as const)expect(Math.abs(outline[key]-rect[key]),key).toBeLessThan(0.5);
   for(const corner of ['nw','ne','sw','se']) {

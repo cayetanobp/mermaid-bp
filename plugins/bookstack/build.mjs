@@ -1,4 +1,4 @@
-import { build } from 'vite';
+import { build, transformWithEsbuild } from 'vite';
 import { mkdir, writeFile,readFile } from 'node:fs/promises';
 
 const out=process.env.MERMAID_BP_OUT_DIR || 'dist';
@@ -20,8 +20,11 @@ const result = await build({
 const outputs = Array.isArray(result) ? result : [result];
 const code = outputs.flatMap(r => r.output).filter(chunk => chunk.type === 'chunk').map(chunk => chunk.code).join('\n');
 if (!code || code.includes('from "mermaid"') || code.includes("from 'mermaid'")) throw new Error('El encabezado no se ha generado correctamente.');
+// Compactar también espacios: Vite los conserva en bibliotecas ES y el campo de BookStack puede truncarse.
+const compact = await transformWithEsbuild(code,'bookstack-header.js',{loader:'js',minify:true,target:'es2022',legalComments:'none'});
 const header = '<!-- Mermaid BP: sustituye el script Mermaid anterior por todo este bloque. -->\n<script type="module">\n' +
-  code.replace(/<\/script/gi, '<\\/script') + '\n</script>\n';
+  compact.code.replace(/<\/script/gi, '<\\/script') + '\n</script>\n';
+if(Buffer.byteLength(header)>60_000)throw new Error('El encabezado supera el tamaño previsto para pegarlo en BookStack.');
 await mkdir(out,{recursive:true});
 await writeFile(out+'/bookstack-header.html', header);
 await writeFile(packageDir+'/bookstack-header.html',header);

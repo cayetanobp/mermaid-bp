@@ -1,7 +1,8 @@
+import {sameEdgeLabel} from './edge-label';
 import {mermaidSourceId} from './mermaid-id';
 import {persistDocuments} from './privacy';
 import {assertSourceSafe,readMmdFile} from './source-security';
-import { EditorState, Transaction } from '@codemirror/state';
+import { EditorState, Transaction, Compartment } from '@codemirror/state';
 import { EditorView, keymap, lineNumbers, highlightActiveLine, drawSelection } from '@codemirror/view';
 import { history, historyKeymap, defaultKeymap, undo, redo, isolateHistory } from '@codemirror/commands';
 import { bracketMatching } from '@codemirror/language';
@@ -24,8 +25,13 @@ import '@fontsource/source-serif-4/latin-600.css';
 import './institutional.css';
 import {PluginHost} from './plugin-host';
 import {setupInspectorResize} from './inspector-resize';
-import {locateNode,clearNodeLocation} from './node-location';
+import {locateNode,highlightNode,clearNodeLocation} from './node-location';
 import {setupTour} from './tour';
+import {setupAppMenus} from './app-menus';
+import {setupFullscreenTools} from './fullscreen-tools';
+import './app-menus.css';
+import {getPreferences} from './preferences';
+import {setupSettings} from './settings';
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 const app = $('app');
@@ -63,6 +69,9 @@ app.innerHTML = `
   <section id="groups-dialog" class="inspector-editor" hidden><form id="groups-form"><h2>Subgrupos</h2><label>Subgrupo<select id="groups-list"></select></label><button type="button" id="group-new">+ Nuevo subgrupo</button><label>Nombre<input id="group-name" required maxlength="200"></label><label>Dentro de<select id="group-parent"></select></label><p class="group-help">Eliminar un subgrupo conserva sus nodos y conexiones.</p><div class="dialog-actions"><button type="button" id="groups-close">Cerrar</button><button type="button" id="group-delete" class="danger">Eliminar subgrupo</button><button type="submit" class="primary">Guardar subgrupo</button></div></form></section>
   <section id="edge-dialog" class="inspector-editor" hidden><form id="edge-form"><h2 id="edge-title">Nueva conexión</h2><button type="button" id="edge-pick">Elegir nodos en el lienzo</button><div class="form-row"><label>Origen<select id="edge-from"></select></label><label>Destino<select id="edge-to"></select></label></div><label>Texto opcional<input id="edge-label"></label><label>Tipo<select id="edge-arrow"><option value="-->">Flecha</option><option value="---">Línea</option><option value="-.->">Flecha discontinua</option></select></label><div class="dialog-actions"><button type="button" id="edge-cancel">Cancelar</button><button class="primary" type="submit">Aplicar</button></div></form></section>
 `;
+
+setupAppMenus();
+setupFullscreenTools();
 
 for(const id of ['node-dialog','edge-dialog','groups-dialog'])$('inspector-body').append($(id));
 document.querySelector('.code-pane')!.insertBefore($('inspector'),document.querySelector('.code-footer'));
@@ -103,13 +112,18 @@ let needsFit = true;
 let pointerFrame = 0;
 let editingNode: string | null = null;
 let editingEdge: number | null = null;
-const editorExtensions = [
-    lineNumbers(), history(), drawSelection(), highlightActiveLine(), bracketMatching(),
+const codeAppearance=new Compartment();
+function codeAppearanceExtensions(){
+  const preferences=getPreferences();
+  return [preferences.lineNumbers?lineNumbers():[],preferences.highlightActiveLine?highlightActiveLine():[],preferences.lineWrapping?EditorView.lineWrapping:[]];
+}
+function editorExtensions(){return [
+    codeAppearance.of(codeAppearanceExtensions()), history(), drawSelection(), bracketMatching(),
     keymap.of([...defaultKeymap, ...historyKeymap, { key: 'Mod-s', run: () => { saveFile(); return true; } }]),
-    EditorView.lineWrapping, EditorView.contentAttributes.of({ 'aria-label': 'Código Mermaid', spellcheck: 'false' }),
+    EditorView.contentAttributes.of({ 'aria-label': 'Código Mermaid', spellcheck: 'false' }),
     EditorView.updateListener.of(update => { if (update.docChanged) changed(); }),
-  ];
-const editor = new EditorView({ state: EditorState.create({ doc: recovered?.source ?? example, extensions: editorExtensions }), parent: $('editor') });
+  ];}
+const editor = new EditorView({ state: EditorState.create({ doc: recovered?.source ?? example, extensions: editorExtensions() }), parent: $('editor') });
 const source = () => editor.state.doc.toString().replace(/\n/g, lineEnding);
 const dirty = () => source() !== savedSource || filename !== savedName;
 function message(text: string) { $('message').textContent = text; }
@@ -179,6 +193,7 @@ async function render() {
   flow = parsed.ok ? parsed.flow : null;
   if (flow) $<HTMLSelectElement>('direction').value = flow.direction === 'TB' ? 'TD' : flow.direction;
   $('visual-mode').textContent = parsed.ok ? 'Edición visual' : 'Edición por código';
+  $('visual-note').dataset.note=parsed.ok?'help':'notice';
   $('visual-note').textContent = parsed.ok ? 'Arrastra el fondo para seleccionar varios; espacio + arrastre mueve el lienzo. Mayús añade o quita elementos.' : `${parsed.reason} El código se conserva íntegro.`;
   if (!text.trim()) {
     $('empty').hidden = false; $('diagram').innerHTML = ''; current = null; valid = false;
@@ -236,7 +251,7 @@ function decorate(model: Flow | null = flow) {
       hit.style.setProperty('stroke-width','16px','important'); hit.style.setProperty('pointer-events','stroke','important');
       hit.setAttribute('vector-effect','non-scaling-stroke'); path.before(hit);
       const labels=[...$('diagram').querySelectorAll<SVGGElement>('.edgeLabels > g.edgeLabel')];
-      const label=labels.find(g=>g.querySelector('[data-id]')?.getAttribute('data-id')===path.id) ?? (model.edges[index].label ? labels.find(g=>!usedLabels.has(g)&&g.textContent?.trim()===model.edges[index].label.trim()) : undefined);
+      const label=labels.find(g=>g.querySelector('[data-id]')?.getAttribute('data-id')===path.id) ?? (model.edges[index].label ? labels.find(g=>!usedLabels.has(g)&&sameEdgeLabel(g.textContent,model.edges[index].label)) : undefined);
       if(label) usedLabels.add(label);
       if(label) label.dataset.edgeLabel=String(index);
     }
@@ -459,14 +474,7 @@ function showSelection() {
     const edit=document.createElement('button');edit.textContent='Editar';edit.onclick=()=>node?openNode(node.id):openEdge(selected.edge);panel.append(edit);
   }
   if(selected.edge!==undefined) {
-    for(const end of ['from','to'] as const) {
-      const button=document.createElement('button');button.textContent=end==='from'?'Origen ↻':'Destino ↻';
-      button.title='Girar el anclaje 45°. También puedes arrastrar el punto de la conexión.';
-      button.onclick=()=>{
-        const layout=sceneLayout(), port=layout.endpoint(selected.edge!,end);if(!port)return;
-        layout.apply({...current!.geometry.nodes});layout.setPort(selected.edge!,end,port.angle+45);commitScene(layout);
-      };panel.append(button);
-    }
+    const hint=document.createElement('span');hint.textContent='Arrastra los extremos para mover el anclaje y los tiradores azules para ajustar la curva.';panel.append(hint);
     const reset=document.createElement('button');reset.textContent='Restablecer conexión';
     reset.onclick=()=>{const layout=sceneLayout();layout.apply({...current!.geometry.nodes});layout.resetConnection(selected.edge!);commitScene(layout);};
     panel.append(reset);
@@ -479,21 +487,33 @@ function paintPortHandles(layout:ManualLayout|null=null) {
   if(selected.edge===undefined||!flow||!current)return;
   layout ??= sceneLayout();
   const curve=layout.curve(selected.edge);if(!curve)return;
-  const ns='http://www.w3.org/2000/svg';
-  for(const end of ['from','to'] as const) {
-    const point=end==='from'?curve.start:curve.end,bend=end==='from'?curve.c1:curve.c2;
-    const guide=document.createElementNS(ns,'line');guide.classList.add('port-guide');
-    for(const[key,value]of Object.entries({x1:point.x,y1:point.y,x2:bend.x,y2:bend.y}))guide.setAttribute(key,String(value));
-    guide.style.setProperty('stroke','#7596b5','important');guide.style.setProperty('stroke-width',String(1/view.zoom),'important');guide.style.strokeDasharray=`${4/view.zoom} ${3/view.zoom}`;guide.style.pointerEvents='none';layout.root.append(guide);
-    for(const kind of ['port','bend'] as const) {
-      const position=kind==='port'?point:bend,handle=document.createElementNS(ns,'circle');handle.classList.add(kind==='port'?'port-handle':'bend-handle');
-      if(kind==='port'){handle.dataset.portEdge=String(selected.edge);handle.dataset.portEnd=end;}
-      else{handle.dataset.bendEdge=String(selected.edge);handle.dataset.bendEnd=end;}
-      handle.setAttribute('cx',String(position.x));handle.setAttribute('cy',String(position.y));handle.setAttribute('r',String((kind==='port'?6:5)/view.zoom));
-      handle.style.setProperty('fill',kind==='port'?'#fff':'#d8e9ff','important');handle.style.setProperty('stroke',kind==='port'?'#245d4b':'#3266a8','important');
-      handle.style.setProperty('stroke-width',String(2/view.zoom),'important');handle.style.cursor=kind==='port'?'crosshair':'move';
-      const title=document.createElementNS(ns,'title');title.textContent=kind==='bend'?(end==='from'?'Curvatura junto al origen':'Curvatura junto al destino'):(end==='from'?'Recorre el contorno del nodo de origen':'Recorre el contorno del nodo de destino');handle.append(title);layout.root.append(handle);
+  const ns='http://www.w3.org/2000/svg',placed:Point[]=[],spacing=20/view.zoom;
+  const guide=(a:Point,b:Point)=>{
+    const line=document.createElementNS(ns,'line');line.classList.add('port-guide');
+    for(const[key,value]of Object.entries({x1:a.x,y1:a.y,x2:b.x,y2:b.y}))line.setAttribute(key,String(value));
+    line.style.setProperty('stroke','#7596b5','important');line.style.setProperty('stroke-width',String(1/view.zoom),'important');line.style.strokeDasharray=`${4/view.zoom} ${3/view.zoom}`;line.style.pointerEvents='none';layout!.root.append(line);
+  };
+  // Separar los controles en pantalla sin cambiar los extremos ni la curva guardada.
+  for(const kind of ['port','bend'] as const)for(const end of ['from','to'] as const) {
+    const point=end==='from'?curve.start:curve.end,bend=end==='from'?curve.c1:curve.c2,actual=kind==='port'?point:bend;
+    let position={...actual};
+    const free=(p:Point)=>placed.every(q=>Math.hypot(p.x-q.x,p.y-q.y)>=spacing);
+    if(!free(position)){
+      const angle=Math.atan2(bend.y-point.y,bend.x-point.x);
+      search:for(let ring=1;ring<=8;ring++)for(let step=0;step<16;step++){
+        const direction=angle+step*Math.PI/8,candidate={x:actual.x+Math.cos(direction)*spacing*ring,y:actual.y+Math.sin(direction)*spacing*ring};
+        if(free(candidate)){position=candidate;break search;}
+      }
     }
+    placed.push(position);if(kind==='bend')guide(point,position);else if(position.x!==actual.x||position.y!==actual.y)guide(actual,position);
+    const handle=document.createElementNS(ns,'circle');handle.classList.add(kind==='port'?'port-handle':'bend-handle');
+    if(kind==='port'){handle.dataset.portEdge=String(selected.edge);handle.dataset.portEnd=end;}
+    else{handle.dataset.bendEdge=String(selected.edge);handle.dataset.bendEnd=end;}
+    handle.dataset.handleOffsetX=String(position.x-actual.x);handle.dataset.handleOffsetY=String(position.y-actual.y);
+    handle.setAttribute('cx',String(position.x));handle.setAttribute('cy',String(position.y));handle.setAttribute('r',String((kind==='port'?6:5)/view.zoom));
+    handle.style.setProperty('fill',kind==='port'?'#fff':'#d8e9ff','important');handle.style.setProperty('stroke',kind==='port'?'#245d4b':'#3266a8','important');
+    handle.style.setProperty('stroke-width',String(2/view.zoom),'important');handle.style.cursor=kind==='port'?'crosshair':'move';
+    const title=document.createElementNS(ns,'title');title.textContent=kind==='bend'?(end==='from'?'Curvatura junto al origen':'Curvatura junto al destino'):(end==='from'?'Recorre el contorno del nodo de origen':'Recorre el contorno del nodo de destino');handle.append(title);layout.root.append(handle);
   }
 }
 function paintGroupHandles(layout:ManualLayout|null=null) {
@@ -516,7 +536,7 @@ function paintGroupHandles(layout:ManualLayout|null=null) {
   }
 }
 function markSelection() {
-  syncSelected();
+  syncSelected();clearNodeLocation();
   $('diagram').querySelectorAll('.selection-ring').forEach(el=>el.remove());
   $('diagram').querySelectorAll('.selected-edge').forEach(el=>el.classList.remove('selected-edge'));
   for(const group of $('diagram').querySelectorAll<SVGGElement>('[data-node-id]')) {
@@ -531,6 +551,7 @@ function markSelection() {
   paintPortHandles();
   if(selectedGroup||selectedNodes.size||selectedEdges.size)showSelection();else { $('selection').hidden=true;if(!inspectorMode)$('inspector').hidden=true; }
   syncCascadeSelection();
+  if(selectionOrigin==='cascade'&&selected.node)highlightNode(selected.node,view.zoom);
 }
 function deleteSelection() {
   if(!flow||!valid||busy)return;
@@ -677,7 +698,7 @@ function replaceDocument(text: string) {
   needsFit = true;
   lineEnding = text.includes('\r\n') ? '\r\n' : '\n';
   keepView = false;
-  editor.setState(EditorState.create({ doc: text, extensions: editorExtensions }));
+  editor.setState(EditorState.create({ doc: text, extensions: editorExtensions() }));
   changed();
 }
 $('save').onclick = saveFile;
@@ -727,7 +748,7 @@ window.addEventListener('drop', event => { event.preventDefault(); app.classList
 interface Drag {
   pointer:number; mode:'nodes'|'pan'|'marquee'|'port'|'bend'|'group'|'group-resize'; id?:string; start:Point; previous:Point; moved:boolean; token:number;
   inverse:DOMMatrix; camera:{x:number;y:number;zoom:number}; layout:ManualLayout|null; startPoint:Point;
-  origins:Record<string,Point>; edge?:number; end?:'from'|'to'; originalConnections:Connections;
+  origins:Record<string,Point>; edge?:number; end?:'from'|'to'; originalConnections:Connections;handleOffset?:Point;
   baseNodes:string[];baseEdges:number[];
   originalRoot?:SVGSVGElement;
   group?:string;groupOrigin?:GroupBox;corner?:string;
@@ -735,6 +756,7 @@ interface Drag {
 }
 let drag:Drag|null=null;
 let lastNodeClick:{id:string;time:number}|null=null;
+let lastEdgeClick:{index:number;time:number}|null=null;
 let spacePressed=false;
 const viewport=$('diagram-viewport');
 function release(state:Drag) { if(viewport.hasPointerCapture(state.pointer))viewport.releasePointerCapture(state.pointer); }
@@ -771,10 +793,11 @@ function paintDragFrame() {
   }
   if(!state.layout) { state.originalRoot=$('diagram').querySelector('svg')!.cloneNode(true) as SVGSVGElement; state.layout=sceneLayout();state.layout.apply({...current!.geometry.nodes});
     if(state.mode==='nodes')for(const group of state.layout.root.querySelectorAll('g.cluster')) {
-      const box=state.layout.groupBox(group.id);if(box&&!state.layout.groups[group.id])state.layout.groups[group.id]=box;
+      const id=mermaidSourceId(group),box=state.layout.groupBox(id);if(box&&!state.layout.groups[id])state.layout.groups[id]=box;
     }
   }
   const point=new DOMPoint(state.previous.x,state.previous.y).matrixTransform(state.inverse);
+  point.x-=state.handleOffset?.x??0;point.y-=state.handleOffset?.y??0;
   if(state.mode==='bend'){state.layout.setBend(state.edge!,state.end!,point);paintPortHandles(state.layout);return;}
   if(state.mode==='port') {
     const port=state.layout.endpoint(state.edge!,state.end!);if(!port)return;
@@ -798,6 +821,8 @@ function commitScene(layout:ManualLayout) {
   if(!current||!flow)return;
   layout.root.querySelectorAll('.selection-ring,.port-handle,.bend-handle,.port-guide,.group-handle,.group-selection').forEach(el=>el.remove());
   layout.resizeGroups();
+  // Guardar los rectángulos efectivos, también los calculados automáticamente.
+  for(const group of flow.groups??[]){const box=layout.groupBox(group.id);if(box)layout.groups[group.id]=box;}
   const root=layout.root,before={x:root.viewBox.baseVal.x,y:root.viewBox.baseVal.y};
   layout.bounds();view.x+=(root.viewBox.baseVal.x-before.x)*view.zoom;view.y+=(root.viewBox.baseVal.y-before.y)*view.zoom;
   let text=writePositions(source(),current.geometry.nodes);
@@ -811,7 +836,7 @@ function commitScene(layout:ManualLayout) {
 }
 viewport.onpointerdown=event=>{
   if((event.button!==0&&event.button!==1)||busy)return;
-  const target=event.target as Element;if(target.closest('a')){event.preventDefault();return;}
+  const target=event.target as Element;if(target.closest('#diagram-fullscreen'))return;if(target.closest('a')){event.preventDefault();return;}
   cancelDragPreview();
   const root=$('diagram').querySelector('svg'),matrix=root?.getScreenCTM();if(!root||!matrix||!current)return;
   const inverse=matrix.inverse(),startPoint=new DOMPoint(event.clientX,event.clientY).matrixTransform(inverse);
@@ -831,8 +856,11 @@ viewport.onpointerdown=event=>{
     const index=Number(edge.dataset.edgeIndex ?? edge.dataset.hitEdge ?? edge.dataset.edgeLabel);
     if(!additive){selectedNodes.clear();selectedEdges.clear();}
     if(additive&&selectedEdges.has(index))selectedEdges.delete(index);else selectedEdges.add(index);
-    markSelection();viewport.focus();event.preventDefault();return;
+    const time=performance.now(),edit= !additive&&lastEdgeClick?.index===index&&time-lastEdgeClick.time<450;
+    lastEdgeClick=edit?null:{index,time};lastNodeClick=null;
+    markSelection();viewport.focus();if(edit)openEdge(index);event.preventDefault();return;
   }
+  lastEdgeClick=null;
   if(mode==='group'||mode==='group-resize') {
     selectedGroup=group!;selectedNodes.clear();selectedEdges.clear();markSelection();
   }
@@ -853,6 +881,7 @@ viewport.onpointerdown=event=>{
   drag={pointer:event.pointerId,mode,id,start:{x:event.clientX,y:event.clientY},previous:{x:event.clientX,y:event.clientY},moved:false,token:generation,
     inverse,camera:{...view},layout:null,startPoint,origins,edge:port?Number(port.dataset.portEdge):bend?Number(bend.dataset.bendEdge):undefined,end:(port?.dataset.portEnd??bend?.dataset.bendEnd) as 'from'|'to'|undefined,
     group:group??undefined,groupOrigin:group?sceneLayout().groupBox(group)??undefined:undefined,corner:resizeHandle?.dataset.groupResize,
+    handleOffset:port||bend?{x:Number((port??bend)!.dataset.handleOffsetX??0),y:Number((port??bend)!.dataset.handleOffsetY??0)}:undefined,
     originalConnections:readConnections(source()),baseNodes:mode==='marquee'&&additive?baseNodes:[],baseEdges:mode==='marquee'&&additive?baseEdges:[],items};
   viewport.setPointerCapture(event.pointerId);viewport.focus();event.preventDefault();
 };
@@ -892,7 +921,7 @@ window.addEventListener('blur',()=>{spacePressed=false;cancelDragPreview();});
 viewport.addEventListener('wheel',event=>{
   event.preventDefault();const rect=viewport.getBoundingClientRect();
   const delta=event.deltaY*(event.deltaMode===WheelEvent.DOM_DELTA_LINE?16:event.deltaMode===WheelEvent.DOM_DELTA_PAGE?rect.height:1);
-  zoom(Math.exp(-delta*0.002),event.clientX-rect.left,event.clientY-rect.top);paintPortHandles();
+  zoom(Math.exp(-delta*0.002*getPreferences().zoomSpeed),event.clientX-rect.left,event.clientY-rect.top);paintPortHandles();
   if(drag){drag.camera={...view};const matrix=$('diagram').querySelector('svg')?.getScreenCTM();if(matrix)drag.inverse=matrix.inverse();if(drag.mode==='pan')drag.start={...drag.previous};}
 },{passive:false});
 
@@ -928,11 +957,12 @@ setupWorkspaceControls({
   },
   onToolbarChange() { editor.requestMeasure(); },
 });
-try{setPaneMode(localStorage.getItem('mermaid-bp:pane-mode')==='cascade'?'cascade':'code');}catch{setPaneMode('code');}
+const initialPane=getPreferences().defaultPane;
+try{setPaneMode(initialPane==='remember'?(localStorage.getItem('mermaid-bp:pane-mode')==='cascade'?'cascade':'code'):initialPane);}catch{setPaneMode(initialPane==='cascade'?'cascade':'code');}
 persist(); if (recovered) message('Se ha recuperado el último borrador de este navegador.');
 setupInspectorResize(()=>editor.requestMeasure());
+setupSettings(()=>{editor.dispatch({effects:codeAppearance.reconfigure(codeAppearanceExtensions())});editor.requestMeasure();});
 pluginHost=new PluginHost(()=>({source:source(),fileName:filename}),message);
 void pluginHost.start();
 setupTour(()=>pluginHost!.guideSteps(),()=>paneMode,setPaneMode);
-document.addEventListener('pointerdown',event=>{if(!(event.target as Element).closest('[data-go-node]'))clearNodeLocation();},true);
 void render();

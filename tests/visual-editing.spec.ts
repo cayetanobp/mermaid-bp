@@ -1,3 +1,4 @@
+import {command} from './menu-helpers';
 import {test,expect,type Page} from '@playwright/test';
 import {readFile} from 'node:fs/promises';
 const normalizedPath=(path:string|null)=>path?.replace(/-?\d+(?:\.\d+)?(?:e[+-]?\d+)?/gi,value=>String(Math.round(Number(value)*1e6)/1e6));
@@ -20,7 +21,7 @@ test('selección rectangular, movimiento conjunto, Mayús, deshacer y eliminar v
   expect(after.C.x).toBeCloseTo(before.C.x,2);expect(after.C.y).toBeCloseTo(before.C.y,2);
   await page.keyboard.down('Shift');await page.locator('[data-node-id="C"]').click();await page.keyboard.up('Shift');await expect(page.locator('.selection-ring')).toHaveCount(3);
   await page.locator('#selection .danger').click();await expect(page.locator('#diagram g.node')).toHaveCount(0);
-  await page.locator('#undo').click();await ready(page);await expect(page.locator('#diagram g.node')).toHaveCount(3);
+  await command(page,'undo');await ready(page);await expect(page.locator('#diagram g.node')).toHaveCount(3);
 });
 test('las relaciones tienen una zona de clic amplia y anclajes giratorios y arrastrables',async({page,context})=>{
   await code(page,'flowchart LR\nA["origen"] -->|relación| B["destino"]');

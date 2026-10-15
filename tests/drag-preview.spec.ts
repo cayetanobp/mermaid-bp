@@ -1,3 +1,4 @@
+import {command} from './menu-helpers';
 import { test, expect, type Page } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 const ready = (p: Page) => expect(p.locator('#render-state')).toHaveText('Actualizado');
@@ -71,8 +72,8 @@ test('Escape cancela y deshacer/rehacer recupera las posiciones', async ({ page 
   await begin(page, 'C'); await page.keyboard.press('Escape'); await page.mouse.up();
   expect(await centers(page)).toEqual(before); expect(await page.locator('.cm-content').innerText()).toBe(text);
   await begin(page, 'C'); await page.mouse.up(); const placed = await centers(page);
-  await page.locator('#undo').click(); await ready(page); expect(await centers(page)).toEqual(before);
-  await page.locator('#redo').click(); await ready(page);
+  await command(page,'undo'); await ready(page); expect(await centers(page)).toEqual(before);
+  await command(page,'redo'); await ready(page);
   const after = await centers(page);
   expect(after.C.x).toBeCloseTo(placed.C.x, 2); expect(after.C.y).toBeCloseTo(placed.C.y, 2);
 });

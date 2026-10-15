@@ -1,3 +1,4 @@
+import {sameEdgeLabel} from '../src/edge-label.ts';
 import { test } from 'node:test';
 import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
@@ -94,4 +95,16 @@ test('Mermaid 11.7 numera las conexiones paralelas con 0, 2 y 3',()=>{
  const flow=parsed('flowchart LR\nA --> B\nA --> B\nA --> B\n'),paths=edgePathMap(flow);
  assert.equal(paths.get('L_A_B_0'),0);assert.equal(paths.get('L_A_B_2'),1);assert.equal(paths.get('L_A_B_3'),2);
  assert.equal(paths.has('L_A_B_1'),false);
+});
+
+test('los bucles recientes y los trazos antiguos se asignan a su conexión sin perder las siguientes',()=>{
+ const flow=parsed('flowchart TD\nA -->|uno| A\nA --> B\nA -->|dos| A\nA -->|tres| A\n');const paths=edgePathMap(flow);
+ assert.equal(paths.get('L_A_A_0'),0);assert.equal(paths.get('L_A_A_2'),2);assert.equal(paths.get('L_A_A_3'),3);assert.equal(paths.get('L_A_B_0'),1);
+ assert.equal(paths.has('A-cyclic-special-1'),false);
+ const single=edgePathMap(parsed('flowchart TD\nA --> A\n'));
+ for(const id of ['L_A_A_0','A-cyclic-special-1','A-cyclic-special-mid','A-cyclic-special-2'])assert.equal(single.get(id),0);
+});
+test('la etiqueta de una conexión sigue reconocible al partirse en varias líneas SVG',()=>{
+ assert.equal(sameEdgeLabel('Convertir a .elpx en casode no serlo','Convertir a .elpx en caso de no serlo'),true);
+ assert.equal(sameEdgeLabel('Convertir a .elpx','Revisar el archivo'),false);
 });

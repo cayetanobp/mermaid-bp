@@ -32,7 +32,7 @@ button:focus-visible,a:focus-visible,select:focus-visible,textarea:focus-visible
 .plugin-row{padding:16px 0;border-block-end:1px solid var(--line)}
 .plugin-row label{display:flex;align-items:center;gap:12px;font-weight:600}.plugin-row input{width:18px;height:18px;accent-color:#1f3a5f}
 .plugin-row p{margin:8px 0}.plugin-row small{color:#5b606b}
-.node-location{animation:node-breathe 2s ease-in-out 3}
+.node-location{animation:node-breathe 2s ease-in-out infinite}
 @keyframes node-breathe{0%,100%{opacity:.35;stroke-width:2px}50%{opacity:1;stroke-width:4px}}
 @media(prefers-reduced-motion:reduce){.node-location{animation:none}}
 @media(max-width:900px){.topbar{flex-wrap:wrap;height:auto;min-height:54px;gap:8px;padding:8px}.local-badge{display:none}#tour-dialog{inset:auto 16px 16px;max-width:calc(100vw - 32px)}}
