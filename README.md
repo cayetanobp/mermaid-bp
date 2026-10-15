@@ -22,8 +22,8 @@ No abras `index.html` directamente mediante `file://`. La aplicación utiliza m�
 - Usa "Ocultar herramientas" en la cabecera para plegar la barra de archivos y exportación. El botón permite recuperarla y la preferencia se conserva al volver a abrir la web. Ctrl S sigue disponible con la barra plegada.
 - Edita el código a la izquierda y consulta el diagrama a la derecha. La vista se actualiza tras una pausa de 350 ms.
 - Abre un `.mmd` con el botón o soltándolo en la ventana. El límite de apertura es de 2 MB.
-- Usa los botones de nodos y conexiones, el doble clic en un nodo para editarlo y el panel de selección para eliminar. Los cambios visuales se pueden deshacer.
-- Arrastra el fondo para desplazarte. Usa los botones de zoom o Ctrl y la rueda. El separador admite arrastre y las flechas del teclado.
+- Usa "Conectar nodos" para elegir origen y destino en el lienzo y completar la relación. Escape cancela la elección. Usa los botones de nodos y conexiones, el doble clic en un nodo para editarlo y el panel de selección para eliminar. Los cambios visuales se pueden deshacer.
+- Arrastra el fondo para seleccionar varios elementos. Mayús añade o quita elementos; arrastrar un nodo seleccionado mueve el conjunto. Para desplazar el lienzo, mantén espacio mientras arrastras o usa el botón central. La rueda cambia el zoom alrededor del puntero. El separador admite arrastre y las flechas del teclado.
 - Guarda con el botón o Ctrl S. Guardar descarga una copia; el navegador no sobrescribe automáticamente el archivo original.
 - El último documento se recupera desde el almacenamiento del navegador. El borrador no sustituye a una copia descargada. En navegación privada o si el almacenamiento está lleno puede no conservarse.
 - SVG y PNG exportan el último diagrama válido. El PNG tiene fondo blanco y hasta doble resolución, con límites de 8192 píxeles por lado y 32 millones de píxeles.
@@ -32,17 +32,19 @@ No abras `index.html` directamente mediante `file://`. La aplicación utiliza m�
 
 El editor utiliza la versión exacta de tu integración y sus valores predeterminados de renderizado. El botón de copia produce un bloque Markdown delimitado con `mermaid` para el editor Markdown de BookStack.
 
-El arrastre expresa una preferencia de posición. Mermaid vuelve a calcular la distribución; el editor evalúa hasta ocho alternativas que modifican el orden de declaración de nodos, añaden enlaces invisibles o aumentan la longitud mínima de conexiones. No añade nodos ficticios ni cambia los extremos o etiquetas de las conexiones reales.
+El arrastre fija posiciones libres. El nodo sigue al puntero mediante requestAnimationFrame y solo se actualizan sus conexiones incidentes. No se invoca Mermaid durante el movimiento ni al soltar. Se conserva el zoom; Escape cancela y deshacer/rehacer recuperan la colocación.
 
-El evaluador minimiza la distancia al destino, con penalizaciones por movimiento de los demás nodos y crecimiento del dibujo. Compara posiciones relativas para ignorar las traslaciones del SVG. Solo acepta una mejora; si no la encuentra, conserva el documento. Un ajuste aceptado es una sola acción de deshacer.
+Al mover un nodo se añade la etiqueta superior `%% mermaid-bp:manual-layout`. Solo los bloques con esa etiqueta activan la extensión de posiciones; los demás se dibujan en BookStack con Mermaid estándar, sin alterar dimensiones o posiciones. Las coordenadas se guardan en `%% graph:positions` dentro del archivo .mmd. Los agentes deben conservar los identificadores de los nodos y ese comentario. "Recolocar todo" recupera la distribución automática y permite deshacer.
 
-Las restricciones añadidas se guardan en un bloque entre `%% mbp-layout:start` y `%% mbp-layout:end`. Esos marcadores son comentarios Mermaid; el contenido utiliza enlaces invisibles estándar. No se necesitan extensiones ni cambios en tu script de BookStack. Cambiar la dirección desde la interfaz elimina esos enlaces auxiliares para empezar una distribución nueva.
+Se conservan las formas y los estilos generados por Mermaid. Las conexiones se redondean, pero no esquivan automáticamente los obstáculos y los nodos pueden solaparse al colocarlos manualmente. Al seleccionar una relación puedes arrastrar los puntos de origen y destino alrededor de sus nodos, girarlos con "Origen ↻" y "Destino ↻" o restaurarlos. Los dos círculos azules son manejadores Bézier independientes. "Restablecer conexión" restaura los anclajes y la curva automática. Los ángulos y los vectores se guardan en `%% graph:connections`, con claves por conexión y número entre conexiones paralelas.
 
-La edición visual admite `flowchart` y `graph`, las direcciones habituales, rectángulos, formas redondeadas, terminales, rombos, círculos, conexiones encadenadas y etiquetas. Conserva directivas `init` de una línea en JSON, subgráficos identificados, `classDef`, `class` y `style`. Las acciones visuales modifican las declaraciones afectadas y preservan las demás líneas, los comentarios y los saltos de línea del archivo. Una cadena afectada por una edición de conexión se puede expandir localmente. El arrastre solo reordena nodos dentro de su propio subgráfico.
+Los bloques antiguos entre `%% mbp-layout:start` y `%% mbp-layout:end` siguen siendo aceptados. El arrastre ya no añade enlaces invisibles ni cambia el orden de las declaraciones.
+
+La edición visual admite `flowchart` y `graph`, las direcciones habituales, rectángulos, formas redondeadas, terminales, rombos, círculos, conexiones encadenadas y etiquetas. Conserva directivas `init` de una línea en JSON, subgráficos identificados, `classDef`, `class` y `style`. Las acciones visuales modifican las declaraciones afectadas y preservan las demás líneas, los comentarios y los saltos de línea del archivo. Una cadena afectada por una edición de conexión se puede expandir localmente. Arrastrar no cambia la pertenencia a subgráficos.
 
 Los demás tipos de diagramas y las construcciones que no se puedan modificar con seguridad, como `linkStyle` por índice, enlaces a subgráficos o frontmatter, siguen disponibles por código. El editor no realiza una conversión parcial que pueda borrar información.
 
-`bookstack.html` reproduce localmente tu transformación de `.language-mermaid` a `.mermaid` y llama a `mermaid.run()`. Permite cargar el último borrador y comparar. La distribución se verifica con la misma versión, pero las fuentes, el tema y el ancho de tu BookStack real pueden producir diferencias. No se promete una posición absoluta ni identidad de píxeles.
+`bookstack.html` reproduce localmente tu transformación de `.language-mermaid` a `.mermaid` y llama a `mermaid.run()`. Permite cargar el último borrador y comparar. El visor interpreta las posiciones manuales mediante el mismo módulo del editor. El encabezado instalable y los pasos de instalación están en [docs/bookstack.md](docs/bookstack.md). La distribución se verifica con la misma versión, pero las fuentes, el tema y el ancho de tu BookStack real pueden producir diferencias. No se promete una posición absoluta ni identidad de píxeles.
 
 ## Compilación y pruebas
 
@@ -89,3 +91,40 @@ Verificado el 15 de octubre de 2026 en Windows con Chromium y Node.js 24.15, y c
 - Dos avisos de auditoría pendientes, uno bajo y otro moderado, asociados a la cadena Mermaid y KaTeX fijada por compatibilidad.
 
 El contenedor de comprobación se ha detenido. La imagen queda disponible localmente.
+
+
+## Fondos y gestión de subgrupos
+
+Pulsa el fondo o el título de un subgraph para seleccionarlo. Arrastra el fondo para desplazarlo o sus cuatro esquinas para cambiar el tamaño. Los nodos y conexiones permanecen en su sitio. Al mover nodos, los fondos conservan sus límites. "Ajustar al contenido" encaja el fondo alrededor de sus nodos.
+
+Los límites se guardan con el comentario `%% graph:groups` y se reproducen en "BS preview". El encabezado actualizado se genera en `dist/bookstack-header.html` y `plugins/bookstack/public/bookstack-header.html`.
+
+"Subgrupos" permite crear, renombrar, anidar y eliminar grupos. La ficha de un nodo permite cambiar su pertenencia. Eliminar un grupo conserva sus nodos y conexiones. Los cambios se pueden deshacer y se conservan en la comprobación de BookStack.
+
+## Cascada, información y guía
+
+"Código" y "Cascada" muestran el mismo documento. La cascada permite buscar nodos y subgrupos, consultar miembros y navegar las relaciones desde la ficha. Seleccionar o navegar no modifica el Mermaid ni mueve la cámara.
+
+El separador sobre "Información" cambia la altura del panel y deja el resto para código o cascada. Admite arrastre, flechas arriba/abajo e Inicio/Fin; conserva su proporción en el navegador. "Ir a" centra el nodo manteniendo el zoom y lo señala durante seis segundos. Con movimiento reducido, la señal permanece estática.
+
+"Guía de uso" inicia un recorrido por código, cascada, información, diagrama y extensiones. Incluye la vista previa de BookStack cuando está activa y recupera la pestaña anterior al terminar o pulsar Esc.
+
+## Extensiones
+
+BookStack es una extensión incluida y activa por defecto. Desde "Extensiones" puedes desactivarla o volver a activarla; la preferencia es local. Copiar Mermaid, editar, guardar y exportar no dependen de ella. La arquitectura y un ejemplo de contribución están en [docs/plugins.md](docs/plugins.md).
+
+Para construir una distribución sin extensiones, en PowerShell ejecuta lo siguiente.
+
+```powershell
+$env:MERMAID_BP_PLUGINS='none'
+npm.cmd run build
+Remove-Item Env:MERMAID_BP_PLUGINS
+```
+
+También puedes establecer `"plugins": []` en `plugins.config.json`. Esa compilación omite los módulos, la página y el encabezado de BookStack. La configuración normal incluye `bookstack`.
+
+La dirección visual está en [style.md](style.md). Las siguientes mejoras se mantienen en [ROADMAP.md](ROADMAP.md).
+
+## Verificación actual de cascada y extensiones
+
+La revisión actual supera 40 pruebas unitarias y 59 comprobaciones de navegador entre la distribución normal y la compilación sin extensiones. El detalle, los escenarios y el alcance están en [docs/verification-2026-10-15.md](docs/verification-2026-10-15.md).

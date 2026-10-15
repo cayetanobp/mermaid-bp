@@ -5,12 +5,7 @@ async function code(page: Page, text: string) {
   const editor = page.getByRole('textbox', { name: 'Código Mermaid' });
   await editor.click(); await editor.press('ControlOrMeta+a'); await page.keyboard.insertText(text); await ready(page);
 }
-async function finishDrag(page: Page) {
-  if (await page.locator('#drag-preview').count()) {
-    await expect(page.locator('#drag-ghost')).toContainText(/Soltar para aplicar|Sin ajuste mejor/, {timeout:30000});
-  }
-  await page.mouse.up();
-}
+async function finishDrag(page: Page) { await page.mouse.up(); }
 async function text(page: Page) { return page.locator('.cm-content').innerText(); }
 async function downloadText(page: Page) {
   const pending = page.waitForEvent('download'); await page.locator('#save').click();
@@ -19,7 +14,7 @@ async function downloadText(page: Page) {
 test.beforeEach(async ({ page }) => { page.on('dialog', dialog => dialog.accept()); await page.goto('/'); await ready(page); });
 test('arranque sin errores y sin peticiones externas', async ({ page }) => {
   const external: string[] = [], errors: string[] = [];
-  page.on('request', r => { if (!r.url().startsWith('http://127.0.0.1:4177/')) external.push(r.url()); });
+  page.on('request', r => { if (!r.url().startsWith(new URL(page.url()).origin + '/')) external.push(r.url()); });
   page.on('pageerror', e => errors.push(e.message));
   await page.reload(); await ready(page);
   await expect(page.locator('#diagram g.node')).toHaveCount(4);
@@ -126,18 +121,18 @@ test('el arrastre ajusta un flujo y mantiene sus conexiones', async ({ page }) =
   const box = (await page.locator('[data-node-id="C"]').boundingBox())!;
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   await page.mouse.down(); await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2 + 160, { steps: 12 }); await finishDrag(page);
-  await expect(page.locator('#message')).toContainText(/Distribución ajustada|no ha encontrado/, { timeout: 30_000 }); await ready(page);
+  await expect(page.locator('#message')).toContainText('Posición guardada', { timeout: 30_000 }); await ready(page);
   const after = await text(page);
   expect(after).toMatch(/A(?:\["inicio"\])? -+> B/); expect(after).toMatch(/B(?:\["segundo"\])? -+> C/);
   expect(after).not.toBe(before);
   await page.locator('#undo').click(); await ready(page); expect(await text(page)).toBe(before);
 });
-test('un arrastre imposible no cambia un nodo aislado', async ({ page }) => {
+test('un nodo aislado admite colocación libre', async ({ page }) => {
   await code(page, 'flowchart TD\nA["solo"]'); const before = await text(page);
   const box = (await page.locator('[data-node-id="A"]').boundingBox())!;
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2); await page.mouse.down();
-  await page.mouse.move(box.x + box.width / 2 + 100, box.y + box.height / 2 + 40, { steps: 5 }); await page.mouse.up();
-  await expect(page.locator('#message')).toContainText('no ha encontrado'); expect(await text(page)).toBe(before);
+  await page.mouse.move(box.x + box.width / 2 + 100, box.y + box.height / 2 + 40, { steps: 5 }); await finishDrag(page);
+  await expect(page.locator('#message')).toContainText('Posición guardada'); expect(await text(page)).not.toBe(before);
 });
 test('las respuestas antiguas no sustituyen código reciente y se ve en pantalla estrecha', async ({ page }) => {
   const editor = page.getByRole('textbox', { name: 'Código Mermaid' });
@@ -160,7 +155,12 @@ async function metrics(page: Page, selector: string) {
         const p = new DOMPoint(b.x + b.width/2, b.y + b.height/2).matrixTransform(matrix);
         return { id: n.id.replace(/-\d+$/, ''), x: round(p.x), y: round(p.y), w: round(b.width), h: round(b.height), text: n.textContent, fill: getComputedStyle(shape).fill, stroke: getComputedStyle(shape).stroke };
       }).sort((a,b) => a.id.localeCompare(b.id)),
-      edges: [...root.querySelectorAll('.edgePaths path.flowchart-link')].map(e => ({ id: e.id, d: e.getAttribute('d'), stroke: getComputedStyle(e).stroke })).sort((a,b) => a.id.localeCompare(b.id)),
+      edges: [...root.querySelectorAll('.edgePaths path.flowchart-link')].map(e => {
+        // La selección es una ayuda del editor y no forma parte del diagrama publicado.
+        const selected=e.classList.contains('selected-edge');if(selected)e.classList.remove('selected-edge');
+        const result={id:e.id,d:e.getAttribute('d'),stroke:getComputedStyle(e).stroke};
+        if(selected)e.classList.add('selected-edge');return result;
+      }).sort((a,b) => a.id.localeCompare(b.id)),
       groups: [...root.querySelectorAll('g.cluster')].map(g => ({ id: g.id, text: g.querySelector('.cluster-label')?.textContent, transform: g.getAttribute('transform') })).sort((a,b) => a.id.localeCompare(b.id)),
     };
   });
@@ -185,8 +185,8 @@ async function centerNode(page: Page, id: string) {
     }
     throw new Error('No hay un margen libre para desplazar el lienzo.');
   });
-  await page.mouse.move(background.x, background.y); await page.mouse.down();
+  await page.mouse.move(background.x, background.y); await page.keyboard.down('Space'); await page.mouse.down();
   await page.mouse.move(background.x + box.x+box.width/2-b.x-b.width/2, background.y + box.y+box.height/2-b.y-b.height/2, {steps:12});
-  await page.mouse.up();
+  await page.mouse.up(); await page.keyboard.up('Space');
   return node;
 }

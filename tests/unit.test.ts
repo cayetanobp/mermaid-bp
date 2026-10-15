@@ -89,3 +89,9 @@ test('editar o eliminar un segmento de una cadena conserva el resto del grafo', 
   assert.equal(deleted.edges.length, 1); assert.equal(deleted.nodes.length, 3);
   assert.equal(deleted.nodes.find(n => n.id === 'A')?.group, 'G');
 });
+
+test('Mermaid 11.7 numera las conexiones paralelas con 0, 2 y 3',()=>{
+ const flow=parsed('flowchart LR\nA --> B\nA --> B\nA --> B\n'),paths=edgePathMap(flow);
+ assert.equal(paths.get('L_A_B_0'),0);assert.equal(paths.get('L_A_B_2'),1);assert.equal(paths.get('L_A_B_3'),2);
+ assert.equal(paths.has('L_A_B_1'),false);
+});

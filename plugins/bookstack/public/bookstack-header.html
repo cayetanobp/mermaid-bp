@@ -1,0 +1,567 @@
+<!-- Mermaid BP: sustituye el script Mermaid anterior por todo este bloque. -->
+<script type="module">
+var R = Object.defineProperty;
+var H = (c, t, e) => t in c ? R(c, t, { enumerable: !0, configurable: !0, writable: !0, value: e }) : c[t] = e;
+var k = (c, t, e) => H(c, typeof t != "symbol" ? t + "" : t, e);
+import I from "https://cdnjs.cloudflare.com/ajax/libs/mermaid/11.7.0/mermaid.esm.min.mjs";
+const K = /^[A-Za-z_][A-Za-z0-9_]*/, Q = "%% mbp-layout:start", U = "%% mbp-layout:end", X = [["((", "))", "circle"], ["([", "])", "stadium"], ["[", "]", "rect"], ["(", ")", "round"], ["{", "}", "diamond"]], Y = (c) => ({ direction: c.direction, nodes: c.nodes, edges: c.edges, comments: c.comments, constraints: c.constraints, groups: c.groups ?? [] });
+function q(c) {
+  return c.replace(/<br\s*\/?\s*>/gi, `
+`).replace(/#quot;/g, '"').replace(/#(\d+);/g, (t, e) => String.fromCodePoint(Number(e)));
+}
+function tt(c) {
+  const t = c.match(K);
+  if (!t || ["end", "subgraph"].includes(t[0])) throw new Error("Identificador no admitido en edición visual.");
+  const e = t[0];
+  let n = c.slice(e.length).trimStart();
+  for (const [o, a, i] of X) {
+    if (!n.startsWith(o)) continue;
+    n = n.slice(o.length);
+    let s;
+    if (n.startsWith('"')) {
+      const r = n.indexOf('"', 1);
+      if (r < 0 || !n.slice(r + 1).startsWith(a)) throw new Error("Etiqueta no admitida.");
+      s = n.slice(1, r), n = n.slice(r + 1 + a.length);
+    } else {
+      const r = n.indexOf(a);
+      if (r < 0) throw new Error("Forma incompleta.");
+      if (s = n.slice(0, r), /[\[\]{}()";<>]/.test(s)) throw new Error("Forma o etiqueta avanzada.");
+      n = n.slice(r + a.length);
+    }
+    if (/[`]/.test(s) || /<(?!br\s*\/?\s*>)/i.test(s) || /#(?!quot;)[a-z]+;/i.test(s)) throw new Error("Formato avanzado en la etiqueta.");
+    return { node: { id: e, label: q(s), shape: i }, length: c.length - n.length, explicit: !0 };
+  }
+  return { node: { id: e, label: e, shape: "rect" }, length: e.length, explicit: !1 };
+}
+function et(c) {
+  try {
+    const t = c.split(/\r?\n/), e = { direction: "TD", nodes: [], edges: [], comments: [], constraints: [], groups: [] }, n = [], o = /* @__PURE__ */ new Map(), a = /* @__PURE__ */ new Set(), i = /* @__PURE__ */ new Set(), s = [];
+    let r = !1, u = !1;
+    const y = (l) => {
+      const d = o.get(l.node.id), f = s.join("/");
+      if (l.explicit && a.has(l.node.id) && d && (d.label !== l.node.label || d.shape !== l.node.shape || (d.group ?? "") !== f))
+        throw new Error("Hay declaraciones distintas para el mismo nodo.");
+      (!d || l.explicit) && o.set(l.node.id, f ? { ...l.node, group: f } : l.node), l.explicit && a.add(l.node.id);
+    };
+    for (const [l, d] of t.entries()) {
+      const f = d.replace(/^\uFEFF/, "").trim(), p = { raw: d, kind: "raw", scope: s.join("/") };
+      if (f === Q) {
+        if (u || s.length) throw new Error("Bloque de distribución fuera de lugar.");
+        u = !0, p.kind = "layout", n.push(p);
+        continue;
+      }
+      if (f === U) {
+        if (!u) throw new Error("Bloque de distribución incompleto.");
+        u = !1;
+        continue;
+      }
+      if (u) {
+        const x = f.match(/^([A-Za-z_][\w]*)\s*~~~\s*([A-Za-z_][\w]*)$/);
+        if (!x) throw new Error("Restricción de distribución desconocida.");
+        e.constraints.push({ from: x[1], to: x[2] });
+        continue;
+      }
+      if (n.push(p), !f) continue;
+      if (f.startsWith("%%")) {
+        if (f.startsWith("%%{")) {
+          const x = f.match(/^%%\{\s*(?:init|initialize)\s*:\s*(\{.*\})\s*\}%%$/);
+          if (!x || !JSON.parse(x[1]) || r) throw new Error("Directiva avanzada no admitida visualmente.");
+        } else e.comments.push(d);
+        continue;
+      }
+      if (!r) {
+        const x = f.match(/^(?:flowchart|graph)\s+(TD|TB|BT|LR|RL)\s*;?$/);
+        if (!x) throw new Error("La edición visual admite diagramas flowchart y graph.");
+        e.direction = x[1], r = !0, p.kind = "header";
+        continue;
+      }
+      if (f.startsWith("subgraph ")) {
+        const x = f.match(/^subgraph\s+([A-Za-z_][\w]*)(?:\s*\[\s*(?:"[^"\r\n]*"|[^\[\]"\r\n]+)\s*\])?\s*$/);
+        if (!x || i.has(x[1])) throw new Error("Subgráfico avanzado o identificador duplicado.");
+        const b = f.slice(f.indexOf(x[1]) + x[1].length).trim();
+        e.groups.push({ id: x[1], label: q(b.startsWith("[") ? b.slice(1, -1).trim().replace(/^"|"$/g, "") : x[1]), ...s.length ? { parent: s.at(-1) } : {} }), i.add(x[1]), s.push(x[1]);
+        continue;
+      }
+      if (f === "end" || f === "end;") {
+        if (!s.length) throw new Error("Cierre de subgráfico sin apertura.");
+        s.pop();
+        continue;
+      }
+      if (/^direction\s+(TD|TB|BT|LR|RL)\s*;?$/.test(f) && s.length || /^classDef\s+[A-Za-z_][\w]*(?:,[A-Za-z_][\w]*)*\s+[^\r\n]+$/.test(f)) continue;
+      const g = f.match(/^class\s+([A-Za-z_][\w]*(?:\s*,\s*[A-Za-z_][\w]*)*)\s+([A-Za-z_][\w]*(?:,[A-Za-z_][\w]*)*)\s*;?$/);
+      if (g) {
+        p.kind = "class", p.classIds = g[1].split(/\s*,\s*/);
+        continue;
+      }
+      const m = f.match(/^style\s+([A-Za-z_][\w]*)\s+[^\r\n]+$/);
+      if (m) {
+        p.kind = "style", p.classIds = [m[1]];
+        continue;
+      }
+      p.kind = "content", p.refs = [], p.edges = [];
+      let h = d.search(/\S/);
+      const w = () => {
+        const x = tt(d.slice(h));
+        return y(x), p.refs.push({ id: x.node.id, start: h, end: h + x.length, explicit: x.explicit }), h += x.length, x;
+      };
+      let $ = w();
+      const S = () => {
+        for (; /\s/.test(d[h] ?? "") && h < d.length; ) h++;
+      };
+      for (S(); h < d.length && d.slice(h).trim() !== ";"; ) {
+        const x = d.slice(h).match(/^(--+>|---+|-\.->)\s*/);
+        if (!x) throw new Error("Esta construcción necesita edición por código.");
+        h += x[0].length;
+        let b = "";
+        if (d[h] === "|") {
+          const T = d.indexOf("|", h + 1);
+          if (T < 0) throw new Error("Etiqueta de conexión incompleta.");
+          if (b = d.slice(h + 1, T), b.startsWith('"') && b.endsWith('"') && (b = b.slice(1, -1)), /[<>`"\r\n]/.test(b) || /#(?!quot;)[a-z]+;/i.test(b)) throw new Error("Etiqueta de conexión avanzada.");
+          b = q(b), h = T + 1, S();
+        }
+        const M = w(), v = `e${l}_${p.edges.length}`;
+        e.edges.push({ from: $.node.id, to: M.node.id, arrow: x[1], label: b, key: v }), p.edges.push(v), $ = M, S();
+      }
+    }
+    if (!r || u || s.length) throw new Error("Diagrama incompleto.");
+    if (e.nodes = [...o.values()], e.nodes.some((l) => i.has(l.id))) throw new Error("Las conexiones a subgráficos requieren edición por código.");
+    if (e.constraints.some((l) => !o.has(l.from) || !o.has(l.to))) throw new Error("Restricción con nodos inexistentes.");
+    return e.source = { text: c, newline: c.includes(`\r
+`) ? `\r
+` : `
+`, lines: n, original: structuredClone(Y(e)) }, { ok: !0, flow: e };
+  } catch (t) {
+    return { ok: !1, reason: t instanceof Error ? t.message : "Sintaxis avanzada." };
+  }
+}
+function nt(c) {
+  const t = /* @__PURE__ */ new Map(), e = /* @__PURE__ */ new Map(), n = /* @__PURE__ */ new Set(), o = (a, i) => {
+    t.has(a) ? n.add(a) : t.set(a, i);
+  };
+  c.edges.forEach((a, i) => {
+    if (a.from === a.to)
+      for (const s of ["1", "mid", "2"]) o(`${a.from}-cyclic-special-${s}`, i);
+    else {
+      const s = `${a.from}_${a.to}`, r = e.get(s) ?? 0;
+      o(`L_${s}_${r === 0 ? 0 : r + 1}`, i), e.set(s, r + 1);
+    }
+  });
+  for (const a of n) t.delete(a);
+  return t;
+}
+const it = "%% mermaid-bp:manual-layout";
+function G(c) {
+  var t;
+  return ((t = c.replace(/^\uFEFF/, "").split(/\r?\n/).find((e) => e.trim())) == null ? void 0 : t.trim()) === it;
+}
+const L = "%% graph:positions ";
+function st(c) {
+  const t = /* @__PURE__ */ Object.create(null);
+  for (const e of c.split(/\r?\n/))
+    if (e.trimStart().startsWith(L))
+      try {
+        const n = JSON.parse(e.trimStart().slice(L.length));
+        if (!n || typeof n != "object" || Array.isArray(n)) continue;
+        for (const [o, a] of Object.entries(n)) {
+          const i = a;
+          i && Number.isFinite(i.x) && Number.isFinite(i.y) && Math.abs(i.x) < 1e7 && Math.abs(i.y) < 1e7 && (t[o] = { x: i.x, y: i.y });
+        }
+      } catch {
+      }
+  return t;
+}
+const j = "%% graph:groups ";
+function ot(c) {
+  const t = /* @__PURE__ */ Object.create(null);
+  for (const e of c.split(/\r?\n/))
+    if (e.trimStart().startsWith(j))
+      try {
+        const n = JSON.parse(e.trimStart().slice(j.length));
+        if (!n || typeof n != "object" || Array.isArray(n)) continue;
+        for (const [o, a] of Object.entries(n)) {
+          const i = a;
+          i && [i.x, i.y, i.width, i.height].every((s) => Number.isFinite(s) && Math.abs(s) < 1e7) && i.width >= 40 && i.height >= 40 && (t[o] = { x: i.x, y: i.y, width: i.width, height: i.height });
+        }
+      } catch {
+      }
+  return t;
+}
+const F = "%% graph:connections ";
+function rt(c) {
+  const t = /* @__PURE__ */ Object.create(null);
+  for (const e of c.split(/\r?\n/))
+    if (e.trimStart().startsWith(F))
+      try {
+        const n = JSON.parse(e.trimStart().slice(F.length));
+        if (!n || typeof n != "object" || Array.isArray(n)) continue;
+        for (const [o, a] of Object.entries(n)) {
+          if (!a || typeof a != "object") continue;
+          const i = {};
+          for (const s of ["from", "to"]) {
+            const r = a[s];
+            typeof r == "number" && Number.isFinite(r) && (i[s] = (r % 360 + 360) % 360);
+          }
+          for (const s of ["bendFrom", "bendTo"]) {
+            const r = a[s];
+            r && Number.isFinite(r.x) && Number.isFinite(r.y) && Math.abs(r.x) < 1e7 && Math.abs(r.y) < 1e7 && (i[s] = { x: r.x, y: r.y });
+          }
+          Object.keys(i).length && (t[o] = i);
+        }
+      } catch {
+      }
+  return t;
+}
+function P(c, t) {
+  const e = c[t], n = c.slice(0, t).filter((o) => o.from === e.from && o.to === e.to).length;
+  return e.from + ">" + e.to + "#" + n;
+}
+const W = (c, t) => Math.hypot(t.x - c.x, t.y - c.y);
+function at(c, t = 18) {
+  if (!c.length) return "";
+  let e = `M${c[0].x},${c[0].y}`;
+  for (let o = 1; o < c.length - 1; o++) {
+    const a = c[o - 1], i = c[o], s = c[o + 1], r = W(a, i), u = W(i, s), y = Math.min(t, r / 2, u / 2);
+    if (y < 0.01) {
+      e += ` L${i.x},${i.y}`;
+      continue;
+    }
+    const l = { x: i.x + (a.x - i.x) * y / r, y: i.y + (a.y - i.y) * y / r }, d = { x: i.x + (s.x - i.x) * y / u, y: i.y + (s.y - i.y) * y / u };
+    e += ` L${l.x},${l.y} Q${i.x},${i.y} ${d.x},${d.y}`;
+  }
+  const n = c.at(-1);
+  return e + ` L${n.x},${n.y}`;
+}
+function ct(c, t, e, n, o) {
+  const a = o * Math.PI / 180, i = Math.cos(a), s = Math.sin(a), r = Math.max(1, t / 2), u = Math.max(1, e / 2);
+  let y = 1 / Math.max(Math.abs(i) / r, Math.abs(s) / u);
+  if (n === "stadium" || n === "round") {
+    const l = n === "stadium" ? Math.min(r, u) : Math.min(5, r, u), d = i * y, f = s * y;
+    if (Math.abs(d) > r - l && Math.abs(f) > u - l) {
+      const p = Math.sign(i) * (r - l), g = Math.sign(s) * (u - l), m = i * p + s * g;
+      y = m + Math.sqrt(Math.max(0, m * m - p * p - g * g + l * l));
+    }
+  }
+  return n === "circle" ? y = 1 / Math.sqrt(i * i / (r * r) + s * s / (u * u)) : n === "diamond" && (y = 1 / (Math.abs(i) / r + Math.abs(s) / u)), { x: c.x + i * y, y: c.y + s * y };
+}
+const _ = { x: 0, y: 0 }, J = (c, t) => ({ x: Math.abs(c) < 1e-3 ? 0 : c, y: Math.abs(t) < 1e-3 ? 0 : t }), N = (c) => [c.a, c.b, c.c, c.d, c.e, c.f];
+function D(c, t) {
+  return { x: c.a * t.x + c.c * t.y, y: c.b * t.x + c.d * t.y };
+}
+function V(c, t) {
+  return c.getCTM().inverse().multiply(t.parentElement.getCTM()).inverse();
+}
+class lt {
+  constructor(t, e, n, o = {}, a = {}) {
+    k(this, "nodes", /* @__PURE__ */ new Map());
+    k(this, "edges", /* @__PURE__ */ new Set());
+    k(this, "edgesByIndex", /* @__PURE__ */ new Map());
+    k(this, "adjacent", /* @__PURE__ */ new Map());
+    k(this, "deltas", /* @__PURE__ */ new Map());
+    var u, y, l, d, f, p, g;
+    this.root = t, this.flow = e, this.geometry = n, this.connections = o, this.groups = a, (u = t.dataset).layoutBox ?? (u.layoutBox = JSON.stringify([t.viewBox.baseVal.x, t.viewBox.baseVal.y, t.viewBox.baseVal.width, t.viewBox.baseVal.height]));
+    for (const m of t.querySelectorAll("g.node")) {
+      const h = e.nodes.find((b) => m.id.startsWith(`flowchart-${b.id}-`));
+      if (!h || !n.nodes[h.id]) continue;
+      const w = m.dataset.layoutBase ? JSON.parse(m.dataset.layoutBase) : {
+        center: { ...n.nodes[h.id] },
+        matrix: N(((y = m.transform.baseVal.consolidate()) == null ? void 0 : y.matrix) ?? new DOMMatrix())
+      };
+      m.dataset.layoutBase = JSON.stringify(w);
+      const $ = m.querySelector(".label-container, rect, polygon, circle, path") ?? m, S = $.getBBox(), x = t.getCTM().inverse().multiply(m.getCTM());
+      this.nodes.set(h.id, {
+        shapeElement: $,
+        element: m,
+        center: w.center,
+        matrix: new DOMMatrix(w.matrix),
+        inverse: V(t, m),
+        width: Math.abs(x.a) * S.width + Math.abs(x.c) * S.height,
+        height: Math.abs(x.b) * S.width + Math.abs(x.d) * S.height,
+        shape: h.shape
+      }), this.deltas.set(h.id, J(n.nodes[h.id].x - w.center.x, n.nodes[h.id].y - w.center.y));
+    }
+    const i = nt(e), s = [...t.querySelectorAll(".edgeLabels > g.edgeLabel")], r = /* @__PURE__ */ new Set();
+    for (const m of t.querySelectorAll(".edgePaths path.flowchart-link")) {
+      const h = i.get(m.id);
+      if (h === void 0) continue;
+      const w = e.edges[h], $ = m.getTotalLength(), S = Math.max(2, Math.min(64, Math.ceil($ / 12))), x = m.dataset.layoutPoints ? JSON.parse(m.dataset.layoutPoints) : Array.from({ length: S + 1 }, (O, A) => {
+        const B = m.getPointAtLength($ * A / S);
+        return { x: B.x, y: B.y };
+      });
+      m.dataset.layoutPoints = JSON.stringify(x), (l = m.dataset).layoutPath ?? (l.layoutPath = m.getAttribute("d") ?? "");
+      const b = s.find((O) => {
+        var A;
+        return ((A = O.querySelector("[data-id]")) == null ? void 0 : A.getAttribute("data-id")) === m.id;
+      }) ?? (w.label ? s.find((O) => {
+        var A;
+        return !r.has(O) && ((A = O.textContent) == null ? void 0 : A.trim()) === w.label.trim();
+      }) : void 0);
+      b && (r.add(b), (f = b.dataset).layoutMatrix ?? (f.layoutMatrix = JSON.stringify(N(((d = b.transform.baseVal.consolidate()) == null ? void 0 : d.matrix) ?? new DOMMatrix()))));
+      let M, v;
+      if (b) {
+        (p = b.dataset).layoutCenter ?? (p.layoutCenter = JSON.stringify(new DOMPoint(0, 0).matrixTransform(t.getCTM().inverse().multiply(b.getCTM()))));
+        const O = JSON.parse(b.dataset.layoutCenter);
+        M = { x: O.x, y: O.y };
+        const A = b.getBBox(), B = t.getCTM().inverse().multiply(b.getCTM());
+        v = { x: Math.abs(B.a) * A.width + Math.abs(B.c) * A.height, y: Math.abs(B.b) * A.width + Math.abs(B.d) * A.height };
+      }
+      const T = [...t.querySelectorAll(".edge-hit")].find((O) => O.dataset.hitFor === m.id);
+      (g = m.dataset).layoutMarkers ?? (g.layoutMarkers = JSON.stringify([m.getAttribute("marker-start"), m.getAttribute("marker-end")]));
+      const C = JSON.parse(m.dataset.layoutMarkers), E = {
+        markerStart: C[0],
+        markerEnd: C[1],
+        index: h,
+        key: P(e.edges, h),
+        hit: T,
+        labelCenter: M,
+        labelSize: v,
+        element: m,
+        from: w.from,
+        to: w.to,
+        points: x,
+        original: m.dataset.layoutPath,
+        inverse: t.getCTM().inverse().multiply(m.getCTM()).inverse(),
+        label: b,
+        labelMatrix: b ? new DOMMatrix(JSON.parse(b.dataset.layoutMatrix)) : void 0,
+        labelInverse: b ? V(t, b) : void 0
+      };
+      this.edges.add(E), this.edgesByIndex.has(h) || this.edgesByIndex.set(h, []), this.edgesByIndex.get(h).push(E);
+      for (const O of /* @__PURE__ */ new Set([w.from, w.to]))
+        this.adjacent.has(O) || this.adjacent.set(O, /* @__PURE__ */ new Set()), this.adjacent.get(O).add(E);
+    }
+  }
+  position(t, e) {
+    const n = this.nodes.get(t);
+    if (!n) return;
+    const o = J(e.x - n.center.x, e.y - n.center.y);
+    this.deltas.set(t, o);
+    const a = D(n.inverse, o), i = n.matrix;
+    n.element.setAttribute("transform", `matrix(${i.a} ${i.b} ${i.c} ${i.d} ${i.e + a.x} ${i.f + a.y})`), this.geometry.nodes[t] = { x: n.center.x + o.x, y: n.center.y + o.y };
+  }
+  route(t) {
+    var l, d, f;
+    const e = this.deltas.get(t.from) ?? _, n = this.deltas.get(t.to) ?? _, o = D(t.inverse, e), a = D(t.inverse, n), i = t.points.length - 1, s = t.points.map((p, g) => {
+      const m = g / i, h = m * m * (3 - 2 * m);
+      return { x: p.x + o.x * (1 - h) + a.x * h, y: p.y + o.y * (1 - h) + a.y * h };
+    });
+    let r = { x: (e.x + n.x) / 2, y: (e.y + n.y) / 2 };
+    const u = this.connections[t.key];
+    let y = at(s);
+    if (u) {
+      const p = this.edgesByIndex.get(t.index);
+      if (t !== p[0] && t.from === t.to) {
+        t.element.style.display = "none", t.hit && (t.hit.style.display = "none");
+        return;
+      }
+      t.element.style.removeProperty("display"), (l = t.hit) == null || l.style.removeProperty("display");
+      const g = this.curve(t.index), m = new DOMPoint(g.start.x, g.start.y).matrixTransform(t.inverse), h = new DOMPoint(g.end.x, g.end.y).matrixTransform(t.inverse), w = new DOMPoint(g.c1.x, g.c1.y).matrixTransform(t.inverse), $ = new DOMPoint(g.c2.x, g.c2.y).matrixTransform(t.inverse);
+      if (t.from === t.to) {
+        const S = p.at(-1).markerEnd;
+        S && t.element.setAttribute("marker-end", S);
+      }
+      if (y = `M${m.x},${m.y} C${w.x},${w.y} ${$.x},${$.y} ${h.x},${h.y}`, t.labelCenter) {
+        const S = (M) => {
+          const v = 1 - M;
+          return new DOMPoint(v * v * v * m.x + 3 * v * v * M * w.x + 3 * v * M * M * $.x + M * M * M * h.x, v * v * v * m.y + 3 * v * v * M * w.y + 3 * v * M * M * $.y + M * M * M * h.y).matrixTransform(t.inverse.inverse());
+        }, x = [0.5, 0.4, 0.6, 0.3, 0.7, 0.2, 0.8].map(S), b = x.find((M) => [t.from, t.to].every((v) => {
+          const T = this.nodes.get(v), C = this.geometry.nodes[v], E = t.labelSize ?? { x: 0, y: 0 };
+          return Math.abs(M.x - C.x) > (T.width + E.x) / 2 + 6 || Math.abs(M.y - C.y) > (T.height + E.y) / 2 + 6;
+        })) ?? x[0];
+        r = { x: b.x - t.labelCenter.x, y: b.y - t.labelCenter.y };
+      }
+    } else
+      t.element.style.removeProperty("display"), (d = t.hit) == null || d.style.removeProperty("display"), t.markerStart ? t.element.setAttribute("marker-start", t.markerStart) : t.element.removeAttribute("marker-start"), t.markerEnd ? t.element.setAttribute("marker-end", t.markerEnd) : t.element.removeAttribute("marker-end");
+    if (t.element.setAttribute("d", y), (f = t.hit) == null || f.setAttribute("d", y), t.label && t.labelMatrix && t.labelInverse) {
+      const p = D(t.labelInverse, r), g = t.labelMatrix;
+      t.label.setAttribute("transform", `matrix(${g.a} ${g.b} ${g.c} ${g.d} ${g.e + p.x} ${g.f + p.y})`);
+    }
+  }
+  endpoint(t, e) {
+    var h;
+    const n = this.flow.edges[t];
+    if (!n) return null;
+    const o = this.nodes.get(n[e]);
+    if (!o) return null;
+    const a = o.shapeElement.getBBox(), i = this.root.getCTM().inverse().multiply(o.shapeElement.getCTM()), s = new DOMPoint(a.x + a.width / 2, a.y + a.height / 2).matrixTransform(i), r = { x: s.x, y: s.y }, u = Math.abs(i.a) * a.width + Math.abs(i.c) * a.height, y = Math.abs(i.b) * a.width + Math.abs(i.d) * a.height, l = this.edgesByIndex.get(t) ?? [], d = e === "from" ? l[0] : l.at(-1);
+    if (!d) return null;
+    const f = e === "from" ? d.points[0] : d.points.at(-1), p = new DOMPoint(f.x, f.y).matrixTransform(d.inverse.inverse()), g = ((h = this.connections[d.key]) == null ? void 0 : h[e]) ?? Math.atan2(p.y - o.center.y, p.x - o.center.x) * 180 / Math.PI, m = ct(r, u, y, o.shape, g);
+    return { center: r, angle: g, point: m };
+  }
+  curve(t) {
+    const e = this.endpoint(t, "from"), n = this.endpoint(t, "to");
+    if (!e || !n) return null;
+    const o = this.flow.edges[t], a = this.connections[P(this.flow.edges, t)], i = o.from === o.to ? Math.max(90, this.nodes.get(o.from).width * 0.8) : Math.max(35, Math.min(300, Math.hypot(n.point.x - e.point.x, n.point.y - e.point.y) * 0.4)), s = (a == null ? void 0 : a.bendFrom) ?? { x: Math.cos(e.angle * Math.PI / 180) * i, y: Math.sin(e.angle * Math.PI / 180) * i }, r = (a == null ? void 0 : a.bendTo) ?? { x: Math.cos(n.angle * Math.PI / 180) * i, y: Math.sin(n.angle * Math.PI / 180) * i };
+    return { start: e.point, end: n.point, c1: { x: e.point.x + s.x, y: e.point.y + s.y }, c2: { x: n.point.x + r.x, y: n.point.y + r.y } };
+  }
+  setBend(t, e, n) {
+    var s;
+    const o = this.endpoint(t, e);
+    if (!o) return;
+    const a = P(this.flow.edges, t), i = (s = this.connections)[a] ?? (s[a] = {});
+    i[e === "from" ? "bendFrom" : "bendTo"] = { x: n.x - o.point.x, y: n.y - o.point.y };
+    for (const r of this.edgesByIndex.get(t) ?? []) this.route(r);
+  }
+  resetConnection(t) {
+    delete this.connections[P(this.flow.edges, t)];
+    for (const e of this.edgesByIndex.get(t) ?? []) this.route(e);
+  }
+  setPort(t, e, n) {
+    var y, l, d;
+    const o = (y = this.endpoint(t, e)) == null ? void 0 : y.angle, a = P(this.flow.edges, t), i = (l = this.connections)[a] ?? (l[a] = {});
+    n === void 0 ? delete i[e] : i[e] = (n % 360 + 360) % 360;
+    const s = (d = this.endpoint(t, e)) == null ? void 0 : d.angle, r = e === "from" ? "bendFrom" : "bendTo", u = i[r];
+    if (u && o !== void 0 && s !== void 0) {
+      const f = (s - o) * Math.PI / 180, p = Math.cos(f), g = Math.sin(f);
+      i[r] = { x: u.x * p - u.y * g, y: u.x * g + u.y * p };
+    }
+    Object.keys(i).length || delete this.connections[a];
+    for (const f of this.edgesByIndex.get(t) ?? []) this.route(f);
+  }
+  move(t, e) {
+    this.moveMany({ [t]: e });
+  }
+  moveMany(t) {
+    const e = /* @__PURE__ */ new Set();
+    for (const [n, o] of Object.entries(t)) {
+      this.position(n, o);
+      for (const a of this.adjacent.get(n) ?? []) e.add(a);
+    }
+    for (const n of e) this.route(n);
+  }
+  apply(t) {
+    for (const [e, n] of Object.entries(t)) this.position(e, n);
+    for (const e of this.edges) (this.deltas.has(e.from) || this.deltas.has(e.to)) && this.route(e);
+    this.resizeGroups();
+  }
+  groupBox(t) {
+    const e = [...this.root.querySelectorAll("g.cluster")].find((u) => u.id === t), n = e == null ? void 0 : e.querySelector(":scope > rect");
+    if (!n) return null;
+    const o = n.getBBox(), a = this.root.getScreenCTM().inverse().multiply(n.getScreenCTM()), i = [[o.x, o.y], [o.x + o.width, o.y], [o.x, o.y + o.height], [o.x + o.width, o.y + o.height]].map(([u, y]) => new DOMPoint(u, y).matrixTransform(a)), s = Math.min(...i.map((u) => u.x)), r = Math.min(...i.map((u) => u.y));
+    return { x: s, y: r, width: Math.max(...i.map((u) => u.x)) - s, height: Math.max(...i.map((u) => u.y)) - r };
+  }
+  setGroupBox(t, e) {
+    this.groups[t] = { ...e, width: Math.max(40, e.width), height: Math.max(40, e.height) }, this.resizeGroups(t);
+  }
+  fitGroup(t) {
+    delete this.groups[t], this.resizeGroups();
+    const e = this.groupBox(t);
+    e && (this.groups[t] = e);
+  }
+  resizeGroups(t) {
+    var n, o, a, i;
+    const e = this.root.getCTM().inverse();
+    for (const s of this.root.querySelectorAll("g.cluster")) {
+      if (t && s.id !== t) continue;
+      const r = s.querySelector(":scope > rect");
+      if (!r) continue;
+      const u = e.multiply(s.getCTM()).inverse(), y = s.querySelector(":scope > .cluster-label");
+      let l;
+      y && ((o = y.dataset).layoutGroupTitle ?? (o.layoutGroupTitle = JSON.stringify(N(((n = y.transform.baseVal.consolidate()) == null ? void 0 : n.matrix) ?? new DOMMatrix()))), y.setAttribute("transform", new DOMMatrix(JSON.parse(y.dataset.layoutGroupTitle)).toString()), l = y.getBBox());
+      let d = 1 / 0, f = 1 / 0, p = -1 / 0, g = -1 / 0;
+      const m = this.groups[s.id];
+      if (m) {
+        const h = new DOMPoint(m.x, m.y).matrixTransform(u), w = new DOMPoint(m.x + m.width, m.y + m.height).matrixTransform(u);
+        d = h.x, f = h.y, p = w.x, g = w.y;
+      } else {
+        for (const $ of this.flow.nodes) {
+          if (!((a = $.group) != null && a.split("/").includes(s.id))) continue;
+          const S = this.nodes.get($.id);
+          if (!S) continue;
+          const x = S.shapeElement.getBBox(), b = u.multiply(e.multiply(S.shapeElement.getCTM())), M = new DOMPoint(x.x, x.y).matrixTransform(b), v = new DOMPoint(x.x + x.width, x.y + x.height).matrixTransform(b);
+          d = Math.min(d, M.x - 20), f = Math.min(f, M.y - ((l == null ? void 0 : l.height) ?? 15) - 24), p = Math.max(p, v.x + 20), g = Math.max(g, v.y + 20);
+        }
+        Number.isFinite(d) || (d = r.x.baseVal.value, f = r.y.baseVal.value, p = d + r.width.baseVal.value, g = f + r.height.baseVal.value);
+        const h = Math.max(40, ((l == null ? void 0 : l.width) ?? 0) + 32, p - d), w = (d + p) / 2;
+        d = w - h / 2, p = w + h / 2, g = Math.max(g, f + 40);
+      }
+      if (r.setAttribute("x", String(d)), r.setAttribute("y", String(f)), r.setAttribute("width", String(p - d)), r.setAttribute("height", String(g - f)), y && l) {
+        const h = ((i = y.transform.baseVal.consolidate()) == null ? void 0 : i.matrix) ?? new DOMMatrix(), w = new DOMPoint(l.x + l.width / 2, l.y).matrixTransform(h);
+        y.setAttribute("transform", `matrix(${h.a} ${h.b} ${h.c} ${h.d} ${h.e + (d + p) / 2 - w.x} ${h.f + f + 8 - w.y})`);
+      }
+    }
+  }
+  bounds() {
+    const t = JSON.parse(this.root.dataset.layoutBox), e = { x: t[0], y: t[1], width: t[2], height: t[3] }, n = this.root.getBBox(), o = 16, a = n.x < e.x ? n.x - o : e.x, i = n.y < e.y ? n.y - o : e.y, s = Math.max(e.x + e.width, n.x + n.width > e.x + e.width ? n.x + n.width + o : 0) - a, r = Math.max(e.y + e.height, n.y + n.height > e.y + e.height ? n.y + n.height + o : 0) - i;
+    return this.root.setAttribute("viewBox", `${a} ${i} ${s} ${r}`), this.geometry.width = s, this.geometry.height = r, { x: a - e.x, y: i - e.y };
+  }
+}
+I.initialize({ startOnLoad: !1, suppressErrorRendering: !0 });
+let ht = 0, Z = Promise.resolve();
+function dt(c, t) {
+  const e = Z.then(async () => {
+    const n = document.createElement("div");
+    n.className = "render-host", n.style.cssText = "position:fixed;left:-20000px;top:0;width:1600px;height:1200px;visibility:hidden;pointer-events:none;", document.body.append(n);
+    try {
+      const { svg: o } = await I.render(`mbp_${++ht}`, c, n);
+      n.innerHTML = o;
+      const a = n.querySelector("svg"), i = a.viewBox.baseVal, s = { nodes: {}, width: i.width, height: i.height };
+      if (t)
+        for (const r of a.querySelectorAll("g.node")) {
+          const u = t.nodes.find((f) => r.id.startsWith(`flowchart-${f.id}-`));
+          if (!u) continue;
+          const y = r.getBBox(), l = a.getCTM().inverse().multiply(r.getCTM()), d = new DOMPoint(y.x + y.width / 2, y.y + y.height / 2).matrixTransform(l);
+          s.nodes[u.id] = { x: d.x, y: d.y };
+        }
+      if (t && G(c)) {
+        const r = new lt(a, t, s, rt(c), ot(c));
+        r.apply(st(c)), r.bounds();
+      }
+      return { svg: a.outerHTML, geometry: s };
+    } finally {
+      n.remove();
+    }
+  });
+  return Z = e.catch(() => {
+  }), e;
+}
+function ut(c = document) {
+  const t = /* @__PURE__ */ new Map();
+  for (const e of c.querySelectorAll('.language-mermaid, pre[data-language="mermaid"]')) {
+    const n = e.closest("pre") ?? e;
+    n.isConnected && t.set(n, e.textContent ?? "");
+  }
+  for (const [e, n] of t) {
+    const o = document.createElement("div");
+    o.className = "mbp-pending", o.style.whiteSpace = "pre-wrap", o.textContent = n, e.id && (o.id = e.id), e.replaceWith(o);
+  }
+}
+const z = /* @__PURE__ */ new WeakSet();
+async function mt(c = document) {
+  var e, n;
+  ut(c);
+  const t = { rendered: 0, failed: 0 };
+  for (const o of c.querySelectorAll(".mbp-pending")) {
+    if (z.has(o)) continue;
+    z.add(o);
+    const a = o.textContent ?? "", i = o;
+    let s = null;
+    try {
+      const r = G(a) ? et(a) : null, u = !!(r != null && r.ok);
+      if (s = document.createElement("div"), s.className = u ? "mermaid mbp-diagram" : "mermaid", i.id && (s.id = i.id), u) {
+        const y = await dt(a, r.ok ? r.flow : void 0);
+        if (!i.isConnected || o.textContent !== a) continue;
+        s.setAttribute("role", "img"), s.setAttribute("aria-label", "Diagrama Mermaid"), s.style.cssText = "max-width:100%;overflow:auto;", s.innerHTML = y.svg;
+        const l = s.querySelector("svg");
+        l.style.maxWidth = "100%", l.style.height = "auto", l.setAttribute("width", String(y.geometry.width)), l.setAttribute("height", String(y.geometry.height)), i.replaceWith(s);
+      } else
+        s.textContent = a, i.replaceWith(s), await I.run({ nodes: [s], suppressErrors: !1 });
+      (e = s.nextElementSibling) != null && e.classList.contains("mbp-diagram-error") && s.nextElementSibling.remove(), t.rendered++;
+    } catch {
+      if (t.failed++, s != null && s.isConnected && s.replaceWith(i), !((n = i.nextElementSibling) != null && n.classList.contains("mbp-diagram-error"))) {
+        const r = document.createElement("p");
+        r.className = "mbp-diagram-error", r.setAttribute("role", "status"), r.textContent = "No se ha podido dibujar este Mermaid. Revisa su código.", i.after(r);
+      }
+    } finally {
+      z.delete(o);
+    }
+  }
+  return t;
+}
+function ft() {
+  const c = () => {
+    mt();
+  };
+  document.readyState === "loading" ? document.addEventListener("DOMContentLoaded", c, { once: !0 }) : c();
+}
+ft();
+
+</script>

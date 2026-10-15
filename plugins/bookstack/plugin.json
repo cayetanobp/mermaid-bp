@@ -1,0 +1,13 @@
+{
+  "id": "bookstack",
+  "name": "BookStack",
+  "description": "Vista previa y visor para publicar diagramas en BookStack con sus posiciones y estilos.",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "enabledByDefault": true,
+  "build": {
+    "entries": { "bookstack": "../../bookstack.html", "bookstack-viewer": "viewer.ts" },
+    "outputs": { "bookstack-viewer": "bookstack-viewer.js" },
+    "script": "build.mjs"
+  }
+}

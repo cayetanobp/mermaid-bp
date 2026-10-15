@@ -1,5 +1,6 @@
 export type Shape = 'rect' | 'round' | 'diamond' | 'circle' | 'stadium';
 export type Direction = 'TD' | 'TB' | 'BT' | 'LR' | 'RL';
+export interface FlowGroup { id:string; label:string; parent?:string }
 export interface FlowNode { id: string; label: string; shape: Shape; group?: string }
 export interface FlowEdge { from: string; to: string; label: string; arrow: string; key?: string }
 interface Ref { id: string; start: number; end: number; explicit: boolean }
@@ -16,6 +17,7 @@ interface Snapshot {
   nodes: FlowNode[];
   edges: FlowEdge[];
   comments: string[];
+  groups?: FlowGroup[];
   constraints: Array<{ from: string; to: string }>;
 }
 interface FlowSource { text: string; newline: string; lines: SourceLine[]; original: Snapshot }
@@ -26,7 +28,7 @@ const begin = '%% mbp-layout:start';
 const end = '%% mbp-layout:end';
 const pairs: Array<[string, string, Shape]> = [['((', '))', 'circle'], ['([', '])', 'stadium'], ['[', ']', 'rect'], ['(', ')', 'round'], ['{', '}', 'diamond']];
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
-const snapshot = (flow: Flow): Snapshot => ({ direction: flow.direction, nodes: flow.nodes, edges: flow.edges, comments: flow.comments, constraints: flow.constraints });
+const snapshot = (flow: Flow): Snapshot => ({ direction: flow.direction, nodes: flow.nodes, edges: flow.edges, comments: flow.comments, constraints: flow.constraints, groups:flow.groups ?? [] });
 
 export function encodeLabel(label: string): string {
   return label.replace(/[&#"<>]/g, char => ({ '&': '#38;', '#': '#35;', '"': '#quot;', '<': '#60;', '>': '#62;' })[char]!).replace(/\r?\n/g, '<br/>');
@@ -65,7 +67,7 @@ function readRef(text: string): { node: FlowNode; length: number; explicit: bool
 export function parseFlow(source: string): Parsed {
   try {
     const rawLines = source.split(/\r?\n/);
-    const flow: Flow = { direction: 'TD', nodes: [], edges: [], comments: [], constraints: [] };
+    const flow: Flow = { direction: 'TD', nodes: [], edges: [], comments: [], constraints: [], groups:[] };
     const records: SourceLine[] = [];
     const nodes = new Map<string, FlowNode>(), explicit = new Set<string>(), groups = new Set<string>();
     const stack: string[] = [];
@@ -108,6 +110,8 @@ export function parseFlow(source: string): Parsed {
       if (line.startsWith('subgraph ')) {
         const match = line.match(/^subgraph\s+([A-Za-z_][\w]*)(?:\s*\[\s*(?:"[^"\r\n]*"|[^\[\]"\r\n]+)\s*\])?\s*$/);
         if (!match || groups.has(match[1])) throw new Error('Subgráfico avanzado o identificador duplicado.');
+        const title=line.slice(line.indexOf(match[1])+match[1].length).trim();
+        flow.groups!.push({id:match[1],label:decodeLabel(title.startsWith('[')?title.slice(1,-1).trim().replace(/^"|"$/g,''):match[1]),...(stack.length?{parent:stack.at(-1)}:{})});
         groups.add(match[1]); stack.push(match[1]); continue;
       }
       if (line === 'end' || line === 'end;') { if (!stack.length) throw new Error('Cierre de subgráfico sin apertura.'); stack.pop(); continue; }
@@ -169,8 +173,34 @@ function edgeText(edge: FlowEdge): string {
 function constraintLines(flow: Flow): string[] {
   return flow.constraints.length ? [begin, ...flow.constraints.map(c => `${c.from} ~~~ ${c.to}`), end] : [];
 }
+function serializeGroups(flow:Flow):string {
+  const source=flow.source,groups=flow.groups ?? [],byScope=new Map<string,string[]>();
+  const alive=new Set(groups.map(g=>g.id));
+  for(const line of source?.lines ?? []) {
+    if(line.kind==='content'||line.kind==='layout'||/^\s*(?:subgraph\b|end\s*;?\s*$)/.test(line.raw))continue;
+    if(line.kind==='style'&&line.classIds?.some(id=>source!.original.groups?.some(g=>g.id===id)&&!alive.has(id)))continue;
+    const ids=line.scope.split('/').filter(Boolean);
+    while(ids.length&&!alive.has(ids.at(-1)!))ids.pop();
+    const scope=ids.at(-1) ?? '',lines=byScope.get(scope) ?? [];
+    lines.push(line.kind==='header'?line.raw.replace(/((?:flowchart|graph)\s+)(TD|TB|BT|LR|RL)/,'$1'+flow.direction):line.raw);byScope.set(scope,lines);
+  }
+  const out=byScope.get('') ?? [...flow.comments,'flowchart '+flow.direction];
+  const emit=(id:string)=>{
+    const group=groups.find(g=>g.id===id)!;
+    out.push('subgraph '+group.id+'["'+encodeLabel(group.label)+'"]',...(byScope.get(id) ?? []));
+    for(const n of flow.nodes.filter(n=>n.group?.split('/').at(-1)===id))out.push('    '+nodeText(n));
+    for(const child of groups.filter(g=>g.parent===id))emit(child.id);
+    out.push('end');
+  };
+  for(const n of flow.nodes.filter(n=>!n.group))out.push('    '+nodeText(n));
+  for(const group of groups.filter(g=>!g.parent))emit(group.id);
+  out.push(...flow.edges.map(edgeText),...constraintLines(flow),'');
+  return out.join(source?.newline ?? '\n');
+}
+
 export function serializeFlow(flow: Flow): string {
   const source = flow.source;
+  if ((!source && flow.groups?.length) || (source && (!same(flow.groups ?? [],source.original.groups ?? []) || flow.nodes.some(n=>(n.group ?? '')!==(source.original.nodes.find(old=>old.id===n.id)?.group ?? '')))))return serializeGroups(flow);
   if (!source) {
     return [...flow.comments, `flowchart ${flow.direction}`, ...flow.nodes.map(n => `    ${nodeText(n)}`), ...flow.edges.map(e => `    ${edgeText(e)}`), ...constraintLines(flow), ''].join('\n');
   }
@@ -263,7 +293,7 @@ export function edgePathMap(flow: Flow): Map<string, number> {
       for (const suffix of ['1', 'mid', '2']) add(`${edge.from}-cyclic-special-${suffix}`, index);
     } else {
       const pair = `${edge.from}_${edge.to}`, count = counts.get(pair) ?? 0;
-      add(`L_${pair}_${count}`, index); counts.set(pair, count + 1);
+      add(`L_${pair}_${count === 0 ? 0 : count + 1}`, index); counts.set(pair, count + 1);
     }
   });
   for (const id of ambiguous) paths.delete(id);
@@ -273,7 +303,7 @@ export const example = `flowchart TD
     Inicio(["Inicio"])
     Editar["Editar el diagrama"]
     Revisar{"¿Está listo?"}
-    Guardar(["Guardar en BookStack"])
+    Guardar(["Guardar archivo"])
     Inicio --> Editar
     Editar --> Revisar
     Revisar -->|"Sí"| Guardar

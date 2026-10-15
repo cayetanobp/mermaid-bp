@@ -1,0 +1,11 @@
+export function setupInspectorResize(measure:()=>void){
+ const panel=document.getElementById('inspector')!,handle=document.createElement('div');handle.id='inspector-resizer';handle.tabIndex=0;handle.setAttribute('role','separator');handle.setAttribute('aria-label','Altura de la información');handle.setAttribute('aria-orientation','horizontal');panel.prepend(handle);
+ let ratio=.45;try{const stored=Number(localStorage.getItem('mermaid-bp:inspector-ratio'));if(stored>.1&&stored<.9)ratio=stored;}catch{}
+ function limits(){const parent=panel.parentElement!;const fixed=[...parent.children].filter(el=>el!==panel&&!['editor','cascade','diagram-viewport'].includes(el.id)&&getComputedStyle(el).display!=='none').reduce((n,el)=>n+el.getBoundingClientRect().height,0);const available=Math.max(160,parent.clientHeight-fixed);return{available,min:Math.min(120,available/2),max:Math.max(80,available-120)};}
+ function apply(height?:number){if(panel.hidden)return;const {available,min,max}=limits();const h=Math.max(min,Math.min(max,height??available*ratio));panel.style.setProperty('--inspector-height',h+'px');handle.setAttribute('aria-valuemin',String(Math.round(min)));handle.setAttribute('aria-valuemax',String(Math.round(max)));handle.setAttribute('aria-valuenow',String(Math.round(h)));measure();}
+ function save(height:number){ratio=height/limits().available;try{localStorage.setItem('mermaid-bp:inspector-ratio',String(ratio));}catch{}}
+ handle.onpointerdown=e=>{if(e.button!==0)return;e.preventDefault();handle.setPointerCapture(e.pointerId);const y=e.clientY,h=panel.getBoundingClientRect().height;handle.onpointermove=event=>apply(h+y-event.clientY);handle.onpointerup=()=>{handle.onpointermove=null;save(panel.getBoundingClientRect().height);};};
+ handle.onkeydown=e=>{if(!['ArrowUp','ArrowDown','Home','End'].includes(e.key))return;e.preventDefault();const {min,max}=limits();apply(e.key==='Home'?min:e.key==='End'?max:panel.getBoundingClientRect().height+(e.key==='ArrowUp'?24:-24));save(panel.getBoundingClientRect().height);};
+ new ResizeObserver(()=>apply()).observe(document.querySelector('#workspace')!);
+ new MutationObserver(()=>apply()).observe(panel,{attributes:true,attributeFilter:['hidden']});
+}

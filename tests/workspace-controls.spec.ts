@@ -7,11 +7,12 @@ test('plegar herramientas gana espacio, conserva el documento y recuerda la pref
   const original = await page.locator('.cm-content').innerText();
   const before = (await page.locator('#diagram-viewport').boundingBox())!;
   const originalCamera = await camera(page);
+  const toolbarHeight=(await page.locator('#file-toolbar').boundingBox())!.height;
   await page.getByRole('button', {name:'Ocultar herramientas',exact:true}).click();
   await expect(page.locator('#file-toolbar')).toBeHidden();
   await expect(page.locator('#toolbar-toggle')).toHaveAttribute('aria-expanded','false');
   const after = (await page.locator('#diagram-viewport').boundingBox())!;
-  expect(after.height-before.height).toBeGreaterThanOrEqual(50);
+  expect(after.height-before.height).toBeCloseTo(toolbarHeight,0);
   expect(await camera(page)).toBe(originalCamera);
   expect(await page.locator('.cm-content').innerText()).toBe(original);
   const pending = page.waitForEvent('download'); await page.keyboard.press('ControlOrMeta+s');

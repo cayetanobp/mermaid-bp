@@ -1,4 +1,8 @@
 import mermaid from 'mermaid';
+import { readGroups } from './groups';
+import { readConnections } from './connections';
+import { readPositions, hasManualLayout } from './positions';
+import { ManualLayout } from './manual-layout';
 import type { Flow } from './flow';
 import type { Geometry } from './layout';
 
@@ -10,6 +14,7 @@ export function renderDiagram(source: string, flow?: Flow): Promise<Rendered> {
   const task = chain.then(async () => {
     const host = document.createElement('div');
     host.className = 'render-host';
+    host.style.cssText = 'position:fixed;left:-20000px;top:0;width:1600px;height:1200px;visibility:hidden;pointer-events:none;';
     document.body.append(host);
     try {
       const { svg } = await mermaid.render(`mbp_${++counter}`, source, host);
@@ -27,7 +32,11 @@ export function renderDiagram(source: string, flow?: Flow): Promise<Rendered> {
           geometry.nodes[node.id] = { x: center.x, y: center.y };
         }
       }
-      return { svg, geometry };
+      if (flow && hasManualLayout(source)) {
+        const manual = new ManualLayout(root, flow, geometry, readConnections(source), readGroups(source));
+        manual.apply(readPositions(source)); manual.bounds();
+      }
+      return { svg: root.outerHTML, geometry };
     } finally { host.remove(); }
   });
   chain = task.catch(() => undefined);
@@ -36,7 +45,9 @@ export function renderDiagram(source: string, flow?: Flow): Promise<Rendered> {
 
 export function svgDocument(svg: SVGSVGElement): string {
   const copy = svg.cloneNode(true) as SVGSVGElement;
-  copy.querySelectorAll('.selection-ring').forEach(el => el.remove());
+  copy.querySelectorAll('[data-editor-overlay], .selection-ring, .edge-hit, .port-handle, .bend-handle, .port-guide, .group-handle, .group-selection').forEach(el => el.remove());
+  copy.querySelectorAll('*').forEach(el => { for(const attribute of [...el.attributes]) if(attribute.name.startsWith('data-layout-')) el.removeAttribute(attribute.name); });
+  copy.removeAttribute('data-layout-box');
   copy.querySelectorAll('[data-node-id]').forEach(el => {
     el.removeAttribute('data-node-id'); el.classList.remove('editable-node');
   });
