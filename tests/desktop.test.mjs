@@ -25,6 +25,7 @@ test('el paquete estático permite descubrir las extensiones y resolver sus entr
   const root='desktop-app/dist/';
   assert.match(await readFile(root+'LICENSE','utf8'),/GNU AFFERO GENERAL PUBLIC LICENSE/);
   assert.match(await readFile(root+'NOTICE.md','utf8'),/AGPL-3\.0-only/);
+  assert.match(await readFile(root+'THIRD_PARTY_NOTICES.md','utf8'),/@fontsource\/ibm-plex-sans/);
   assert.match(await readFile(root+'index.html','utf8'),/name="mermaid-bp-desktop"/);
   const entries=JSON.parse(await readFile(root+'plugins/index.json','utf8'));
   assert.ok(entries.some(entry=>entry.name==='bookstack'));
