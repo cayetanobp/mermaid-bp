@@ -32,7 +32,7 @@ En Nginx para Windows adapta las rutas y utiliza `nginx.exe -t` y `nginx.exe -s 
 
 ## Plugins y comprobación
 
-La carpeta pública `site/` incluye `LICENSE` y `NOTICE.md`; mantenlos accesibles al publicar el paquete. Si ofreces una versión modificada con interacción por red, informa a sus usuarios de cómo obtener gratuitamente el código fuente correspondiente de esa versión conforme a la sección 13 de AGPL-3.0. Un enlace a la fuente original no sustituye la fuente de tus modificaciones.
+La carpeta pública `site/` incluye `LICENSE`, `NOTICE.md` y `THIRD_PARTY_NOTICES.md`; mantenlos accesibles al publicar el paquete. Si ofreces una versión modificada con interacción por red, informa a sus usuarios de cómo obtener gratuitamente el código fuente correspondiente de esa versión conforme a la sección 13 de AGPL-3.0. Un enlace a la fuente original no sustituye la fuente de tus modificaciones.
 
 Abre la URL del sitio y comprueba que el ejemplo se renderiza y aparece "BS preview". Abre un `.mmd`, edítalo y descarga la copia con "Guardar .mmd". Recargar descarta el documento.
 

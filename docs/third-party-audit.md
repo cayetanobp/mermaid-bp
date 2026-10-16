@@ -10,10 +10,10 @@ La compilación genera `THIRD_PARTY_NOTICES.md` con la versión, licencia declar
 
 El encabezado BookStack hace que el navegador descargue Mermaid 11.17.2 desde jsDelivr. Esa carga remota no está incrustada en el encabezado distribuido; Mermaid también figura entre las dependencias del editor y en los avisos generados.
 
-## Pendiente antes de la beta
+## Instalador Windows
 
-- Compilar el instalador NSIS y revisar su contenido real. En este entorno falta `cargo`, por lo que todavía no se ha obtenido el árbol de dependencias Rust ni comprobado los avisos de los componentes nativos de Tauri.
-- Comprobar en ese instalador el texto AGPL, los avisos JavaScript y los avisos exigidos por las dependencias Rust.
-- Verificar la procedencia de imágenes e iconos de la aplicación que no proceden de los paquetes JavaScript inventariados.
+Cargo resolvió 248 crates de terceros para `x86_64-pc-windows-msvc` con el lockfile del proyecto; todos declaran licencia. `THIRD_PARTY_RUST_NOTICES.md` recoge nombre, versión, origen, licencia declarada y textos originales. Cinco crates publicados omiten un archivo de licencia separado: `alloc-stdlib`, `selectors`, `webview2-com`, `webview2-com-macros` y `webview2-com-sys`. Para ellos se añadió el texto de licencia de sus repositorios originales o, en el caso de MPL-2.0, de Mozilla. El inventario es conservador: también puede contener crates de compilación que no forman parte del ejecutable final.
 
-No se considera completa la revisión de licencias del instalador hasta resolver esos puntos.
+El ejecutable Windows se compiló en Docker con `cargo-xwin` y el instalador NSIS se generó con Tauri CLI. Al extraer el instalador se comprobó que contiene `LICENSE`, `NOTICE.md`, `THIRD_PARTY_NOTICES.md` y `THIRD_PARTY_RUST_NOTICES.md`, y que los cuatro coinciden byte por byte con los archivos fuente correspondientes. La compilación cruzada es experimental según Tauri; esta comprobación cubre el contenido del instalador, no una instalación interactiva en Windows. El instalador de auditoría no está firmado.
+
+La persona titular del proyecto indicó que el código y los recursos propios, incluidos los iconos, son suyos y que todavía no hay contribuciones externas. Las bibliotecas, tipografías y crates identificados arriba se documentan por separado.
