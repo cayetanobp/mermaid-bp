@@ -23,6 +23,8 @@ test('el puente conserva bytes UTF-8 y comunica la cancelación sin descargar un
 
 test('el paquete estático permite descubrir las extensiones y resolver sus entradas sin servidor',async()=>{
   const root='desktop-app/dist/';
+  assert.match(await readFile(root+'LICENSE','utf8'),/GNU AFFERO GENERAL PUBLIC LICENSE/);
+  assert.match(await readFile(root+'NOTICE.md','utf8'),/AGPL-3\.0-only/);
   assert.match(await readFile(root+'index.html','utf8'),/name="mermaid-bp-desktop"/);
   const entries=JSON.parse(await readFile(root+'plugins/index.json','utf8'));
   assert.ok(entries.some(entry=>entry.name==='bookstack'));

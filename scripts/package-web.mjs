@@ -17,6 +17,8 @@ export async function packageWeb(root=process.cwd(),out=resolve(root,'artifacts/
   };
   await readFile(resolve(root,'dist/index.html'));
   await collect(resolve(root,'dist'),'site');
+  entries['site/LICENSE']=new Uint8Array(await readFile(resolve(root,'LICENSE')));
+  entries['site/NOTICE.md']=new Uint8Array(await readFile(resolve(root,'NOTICE.md')));
   for(const file of ['mermaid-bp.conf','mermaid-bp-static.conf'])entries['nginx/'+file]=new Uint8Array(await readFile(resolve(root,'deploy/nginx',file)));
   entries['LEEME.md']=new Uint8Array(await readFile(resolve(root,'docs/nginx.md')));
   const archive=zipSync(entries,{level:6,mtime:new Date(1980,0,1)}),name='mermaid-bp-web.zip';

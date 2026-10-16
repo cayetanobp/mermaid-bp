@@ -1,10 +1,12 @@
 import {installedPlugins} from './plugin-config.ts';
 import {resolve,relative,isAbsolute} from 'node:path';
 import {pathToFileURL} from 'node:url';
-import {cp,mkdir,writeFile} from 'node:fs/promises';
+import {cp,copyFile,mkdir,writeFile} from 'node:fs/promises';
 import {existsSync} from 'node:fs';
 const out=resolve(process.env.MERMAID_BP_OUT_DIR||'dist');
 await mkdir(resolve(out,'plugins'),{recursive:true});
+await copyFile(resolve('LICENSE'),resolve(out,'LICENSE'));
+await copyFile(resolve('NOTICE.md'),resolve(out,'NOTICE.md'));
 for(const plugin of installedPlugins()){
  const destination=resolve(out,'plugins',plugin.manifest.id);await mkdir(destination,{recursive:true});
  await cp(plugin.directory,destination,{recursive:true,filter:source=>!source.endsWith('.ts')&&!source.endsWith('build.mjs')&&!source.includes('node_modules')});

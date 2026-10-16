@@ -2,6 +2,10 @@
 
 Editor web local de archivos `.mmd`, con Mermaid **11.17.2**, vista previa y edición visual de flujos básicos. No requiere cuentas ni servicios externos durante el uso.
 
+## Licencia
+
+El código original de Mermaid BP está bajo [GNU AGPL-3.0-only](LICENSE). Copyright (C) 2026 cayetanobp. Consulta [los avisos de alcance y distribución](NOTICE.md); las dependencias y recursos de terceros conservan sus propias licencias. Si distribuyes una versión modificada o la ofreces por red, revisa las obligaciones de entrega del código fuente correspondiente, incluida la sección 13 de AGPL-3.0 para versiones modificadas con interacción remota.
+
 ## Desplegar con Nginx sin npm ni Docker
 
 Para un servidor con Nginx, usa el paquete web compilado. Solo hay que subir los archivos estáticos e instalar el snippet del sitio, incluido el descubrimiento de plugins. Consulta [la guía de Nginx](docs/nginx.md). El paquete se genera con `npm run package:web` en el equipo de desarrollo o con el flujo manual "Paquete web para Nginx" en GitHub Actions; el servidor no compila nada.

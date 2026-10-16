@@ -3,6 +3,7 @@
   "name": "BookStack",
   "description": "Vista previa y visor para publicar diagramas en BookStack con sus posiciones y estilos.",
   "version": "1.0.0",
+  "license": "AGPL-3.0-only",
   "apiVersion": 1,
   "enabledByDefault": true,
   "build": {

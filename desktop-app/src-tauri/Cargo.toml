@@ -2,6 +2,7 @@
 name = "mermaid-bp-desktop"
 version = "1.0.0-alpha.2"
 description = "Editor local de diagramas Mermaid"
+license = "AGPL-3.0-only"
 edition = "2021"
 
 [build-dependencies]

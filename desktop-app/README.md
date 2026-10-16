@@ -2,6 +2,8 @@
 
 Aplicación Tauri 2 para Windows x64. Incluye la web compilada y sus extensiones, sin levantar un servidor local.
 
+El código original de Mermaid BP se distribuye bajo GNU AGPL-3.0-only. El texto completo y los avisos están en la raíz del proyecto y se incluyen en la distribución.
+
 ## Desarrollo
 
 Requisitos para compilar: Node.js >=22.18, Rust estable con el target MSVC, Visual Studio Build Tools con desarrollo de escritorio C++ y WebView2.
