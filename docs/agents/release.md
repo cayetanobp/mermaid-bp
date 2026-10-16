@@ -2,7 +2,7 @@
 
 ## Antes de integrar cambios
 
-El flujo `Comprobaciones` se ejecuta en cada PR y en `main`. Comprueba web, seguridad, escritorio y contenido legal del instalador NSIS. Una actualización de `Cargo.lock` debe actualizar también `THIRD_PARTY_RUST_NOTICES.md`; `node scripts/check-rust-third-party-notices.mjs` detecta diferencias.
+El flujo `Comprobaciones` se ejecuta en cada PR y en `main`. Comprueba web, seguridad, escritorio y contenido legal del instalador NSIS. Una actualización de `Cargo.lock` debe actualizar también `THIRD_PARTY_RUST_NOTICES.md`; `node scripts/check-rust-third-party-notices.mjs` detecta diferencias en Linux. La comprobación corre en Ubuntu porque el inventario incluye dependencias de compilación que Cargo resuelve según el sistema anfitrión; el trabajo Windows comprueba los archivos realmente empaquetados.
 
 ## Auditoría local de Windows con Docker
 

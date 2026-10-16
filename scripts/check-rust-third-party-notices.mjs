@@ -5,6 +5,7 @@ import {join,resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
 const root=fileURLToPath(new URL('../',import.meta.url));
+if(process.platform!=='linux')throw Error('La comprobación reproducible de avisos Rust se ejecuta en Linux. En Windows usa scripts/audit-windows-docker.ps1.');
 const temporary=await mkdtemp(join(tmpdir(),'mermaid-bp-rust-notices-'));
 try{
   const metadata=spawnSync('cargo',['metadata','--locked','--format-version','1','--filter-platform','x86_64-pc-windows-msvc','--manifest-path',join(root,'desktop-app/src-tauri/Cargo.toml')],

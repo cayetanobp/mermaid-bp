@@ -4,7 +4,20 @@ on:
 permissions:
   contents: read
 jobs:
+  rust-notices:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: desktop-app/src-tauri -> target
+      - run: node scripts/check-rust-third-party-notices.mjs
   windows:
+    needs: rust-notices
     runs-on: windows-2025
     steps:
       - uses: actions/checkout@v4
@@ -23,7 +36,6 @@ jobs:
       - run: npm ci --prefix desktop-app
       - run: npm test
       - run: npm run test:security
-      - run: node scripts/check-rust-third-party-notices.mjs
       - run: npm run desktop:build
       - run: node --test tests/desktop.test.mjs
       - name: Verificar contenido del instalador
