@@ -158,6 +158,15 @@ LICENSE-APACHE: [texto 8](#texto-8).
 
 LICENSE-MIT: [texto 3](#texto-3).
 
+## cargo-platform 0.1.9 — MIT OR Apache-2.0
+
+Origen: https://github.com/rust-lang/cargo.
+Autores declarados: no indicados en los metadatos del crate.
+
+LICENSE-APACHE: [texto 2](#texto-2).
+
+LICENSE-MIT: [texto 3](#texto-3).
+
 ## cargo_metadata 0.19.2 — MIT
 
 Origen: https://github.com/oli-obk/cargo_metadata.
@@ -171,15 +180,6 @@ Origen: https://gitlab.com/lib.rs/cargo_toml.
 Autores declarados: Kornel <kornel@geekhood.net>.
 
 LICENSE: [texto 19](#texto-19).
-
-## cargo-platform 0.1.9 — MIT OR Apache-2.0
-
-Origen: https://github.com/rust-lang/cargo.
-Autores declarados: no indicados en los metadatos del crate.
-
-LICENSE-APACHE: [texto 2](#texto-2).
-
-LICENSE-MIT: [texto 3](#texto-3).
 
 ## cc 1.8.0 — MIT OR Apache-2.0
 
@@ -1152,15 +1152,6 @@ Autores declarados: Poly <marynczak.bartlomiej@gmail.com>.
 
 LICENSE: [texto 94](#texto-94).
 
-## rustc_version 0.4.1 — MIT OR Apache-2.0
-
-Origen: https://github.com/djc/rustc-version-rs.
-Autores declarados: no indicados en los metadatos del crate.
-
-LICENSE-APACHE: [texto 8](#texto-8).
-
-LICENSE-MIT: [texto 74](#texto-74).
-
 ## rustc-hash 2.1.3 — Apache-2.0 OR MIT
 
 Origen: https://github.com/rust-lang/rustc-hash.
@@ -1169,6 +1160,15 @@ Autores declarados: The Rust Project Developers.
 LICENSE-APACHE: [texto 7](#texto-7).
 
 LICENSE-MIT: [texto 3](#texto-3).
+
+## rustc_version 0.4.1 — MIT OR Apache-2.0
+
+Origen: https://github.com/djc/rustc-version-rs.
+Autores declarados: no indicados en los metadatos del crate.
+
+LICENSE-APACHE: [texto 8](#texto-8).
+
+LICENSE-MIT: [texto 74](#texto-74).
 
 ## same-file 1.0.6 — Unlicense/MIT
 
@@ -1236,6 +1236,15 @@ LICENSE-MIT: [texto 3](#texto-3).
 
 Origen: https://github.com/serde-rs/serde.
 Autores declarados: Erick Tryzelaar <erick.tryzelaar@gmail.com>; David Tolnay <dtolnay@gmail.com>.
+
+LICENSE-APACHE: [texto 7](#texto-7).
+
+LICENSE-MIT: [texto 3](#texto-3).
+
+## serde-untagged 0.1.9 — MIT OR Apache-2.0
+
+Origen: https://github.com/dtolnay/serde-untagged.
+Autores declarados: David Tolnay <dtolnay@gmail.com>.
 
 LICENSE-APACHE: [texto 7](#texto-7).
 
@@ -1312,15 +1321,6 @@ Autores declarados: Jonas Bushart.
 LICENSE-APACHE: [texto 8](#texto-8).
 
 LICENSE-MIT: [texto 100](#texto-100).
-
-## serde-untagged 0.1.9 — MIT OR Apache-2.0
-
-Origen: https://github.com/dtolnay/serde-untagged.
-Autores declarados: David Tolnay <dtolnay@gmail.com>.
-
-LICENSE-APACHE: [texto 7](#texto-7).
-
-LICENSE-MIT: [texto 3](#texto-3).
 
 ## serialize-to-javascript 0.1.2 — MIT OR Apache-2.0
 
@@ -1816,15 +1816,6 @@ COPYING: [texto 4](#texto-4).
 
 LICENSE-MIT: [texto 5](#texto-5).
 
-## web_atoms 0.2.6 — MIT OR Apache-2.0
-
-Origen: https://github.com/servo/html5ever.
-Autores declarados: The html5ever Project Developers.
-
-LICENSE-APACHE: [texto 8](#texto-8).
-
-LICENSE-MIT: [texto 59](#texto-59).
-
 ## web-time 1.1.0 — MIT OR Apache-2.0
 
 Origen: https://github.com/daxpedda/web-time.
@@ -1833,6 +1824,15 @@ Autores declarados: no indicados en los metadatos del crate.
 LICENSE-APACHE: [texto 138](#texto-138).
 
 LICENSE-MIT: [texto 139](#texto-139).
+
+## web_atoms 0.2.6 — MIT OR Apache-2.0
+
+Origen: https://github.com/servo/html5ever.
+Autores declarados: The html5ever Project Developers.
+
+LICENSE-APACHE: [texto 8](#texto-8).
+
+LICENSE-MIT: [texto 59](#texto-59).
 
 ## webview2-com 0.39.1 — MIT
 
@@ -1879,15 +1879,6 @@ LICENSE.spdx: [texto 142](#texto-142).
 
 Origen: https://github.com/microsoft/windows-rs.
 Autores declarados: no indicados en los metadatos del crate.
-
-license-apache-2.0: [texto 143](#texto-143).
-
-license-mit: [texto 144](#texto-144).
-
-## windows_x86_64_msvc 0.52.6 — MIT OR Apache-2.0
-
-Origen: https://github.com/microsoft/windows-rs.
-Autores declarados: Microsoft.
 
 license-apache-2.0: [texto 143](#texto-143).
 
@@ -2014,6 +2005,15 @@ license-mit: [texto 144](#texto-144).
 
 Origen: https://github.com/microsoft/windows-rs.
 Autores declarados: no indicados en los metadatos del crate.
+
+license-apache-2.0: [texto 143](#texto-143).
+
+license-mit: [texto 144](#texto-144).
+
+## windows_x86_64_msvc 0.52.6 — MIT OR Apache-2.0
+
+Origen: https://github.com/microsoft/windows-rs.
+Autores declarados: Microsoft.
 
 license-apache-2.0: [texto 143](#texto-143).
 

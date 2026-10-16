@@ -1,0 +1,46 @@
+name: Comprobaciones
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run test:security
+      - run: npm run package:web
+  windows:
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            desktop-app/package-lock.json
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: desktop-app/src-tauri -> target
+      - run: npm ci
+      - run: npm ci --prefix desktop-app
+      - run: node scripts/check-rust-third-party-notices.mjs
+      - run: npm run desktop:build
+      - run: node --test tests/desktop.test.mjs
+      - name: Verificar contenido del instalador
+        shell: pwsh
+        run: |
+          $installer = @(Get-ChildItem desktop-app/src-tauri/target/release/bundle/nsis/*-setup.exe)
+          if ($installer.Count -ne 1) { throw 'Se esperaba un instalador NSIS.' }
+          ./scripts/verify-nsis-license.ps1 -Installer $installer[0].FullName

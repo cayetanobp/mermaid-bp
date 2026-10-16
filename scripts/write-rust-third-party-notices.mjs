@@ -14,7 +14,7 @@ const fallback={
   'webview2-com-sys':['webview2-rs-MIT.txt','https://github.com/wravery/webview2-rs/blob/main/LICENSE']
 };
 const packages=metadata.packages.filter(pkg=>included.has(pkg.id)&&pkg.source)
-  .sort((a,b)=>a.name.localeCompare(b.name)||a.version.localeCompare(b.version));
+  .sort((a,b)=>a.name<b.name?-1:a.name>b.name?1:a.version<b.version?-1:a.version>b.version?1:0);
 const lines=['# Avisos de dependencias Rust para Windows','',
   'Inventario de crates resuelto por Cargo para `x86_64-pc-windows-msvc`. Cada crate conserva su licencia; AGPL-3.0-only se aplica al código original de Mermaid BP.',''];
 const missing=[];
