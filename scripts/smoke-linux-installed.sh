@@ -220,6 +220,15 @@ def choose_plugin_folder(folder):
     )
     time.sleep(0.4)
     capture_desktop("native-plugin-folder-selected-path.png")
+    chooser_text = subprocess.run(
+        ["tesseract", str(out / "native-plugin-folder-selected-path.png"), "stdout", "--psm", "6"],
+        check=True, capture_output=True, text=True,
+    ).stdout.lower()
+    if "plugin.json" not in chooser_text or "index.js" not in chooser_text:
+        raise AssertionError(
+            "The native chooser did not visibly reach the plugin folder; "
+            f"expected plugin.json and index.js in OCR output, got {chooser_text!r}"
+        )
     # Activate GTK's actual Select button after reaching the selected folder.
     subprocess.run(
         ["xdotool", "mousemove", str(left + width - 50), str(top + height - 28), "click", "1"],
