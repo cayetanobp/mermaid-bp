@@ -58,13 +58,30 @@ jobs:
           set -euo pipefail
           test -n "$SOURCE_RUN_ID"
           test -n "$SOURCE_DEB_SHA256"
+          expected_sha="${SOURCE_DEB_SHA256,,}"
+          if [[ ! "$expected_sha" =~ ^[[:xdigit:]]{64}$ ]]; then
+            echo "Expected a 64-character hexadecimal SHA256; received length ${#SOURCE_DEB_SHA256}." >&2
+            exit 1
+          fi
           run_json="$(gh run view "$SOURCE_RUN_ID" --repo "$GITHUB_REPOSITORY" --json workflowName,headBranch,headSha,status,conclusion)"
-          test "$(jq -r .workflowName <<<"$run_json")" = "Aplicación de escritorio Linux"
-          test "$(jq -r .status <<<"$run_json")" = completed
-          test "$(jq -r .headBranch <<<"$run_json")" = "$GITHUB_REF_NAME"
+          source_workflow="$(jq -r .workflowName <<<"$run_json")"
+          source_branch="$(jq -r .headBranch <<<"$run_json")"
+          source_status="$(jq -r .status <<<"$run_json")"
+          if [[ "$source_workflow" != "Aplicación de escritorio Linux" || "$source_status" != completed ]]; then
+            echo "Source run $SOURCE_RUN_ID is not a completed Linux build (workflow=$source_workflow, status=$source_status)." >&2
+            exit 1
+          fi
+          if [[ "$source_branch" != "$GITHUB_REF_NAME" ]]; then
+            echo "Source run branch $source_branch does not match requested branch $GITHUB_REF_NAME." >&2
+            exit 1
+          fi
           source_sha="$(jq -r .headSha <<<"$run_json")"
-          git merge-base --is-ancestor "$source_sha" "$GITHUB_SHA"
+          if ! git merge-base --is-ancestor "$source_sha" "$GITHUB_SHA"; then
+            echo "Source SHA $source_sha is not an ancestor of current SHA $GITHUB_SHA." >&2
+            exit 1
+          fi
           changed_files="$(git diff --name-only "$source_sha" "$GITHUB_SHA")"
+          printf 'Files changed since source package build:\n%s\n' "${changed_files:-<none>}"
           while IFS= read -r file; do
             [ -z "$file" ] && continue
             case "$file" in
@@ -76,9 +93,16 @@ jobs:
           gh run download "$SOURCE_RUN_ID" --repo "$GITHUB_REPOSITORY" --name mermaid-bp-linux-deb --dir "$RUNNER_TEMP/reused-deb"
           shopt -s nullglob
           packages=("$RUNNER_TEMP/reused-deb"/*.deb)
-          test "${#packages[@]}" -eq 1
+          if [ "${#packages[@]}" -ne 1 ]; then
+            echo "Expected one .deb from run $SOURCE_RUN_ID, found ${#packages[@]}." >&2
+            exit 1
+          fi
           actual_sha="$(sha256sum "${packages[0]}" | cut -d' ' -f1)"
-          test "$actual_sha" = "$SOURCE_DEB_SHA256"
+          if [[ "$actual_sha" != "$expected_sha" ]]; then
+            echo "Downloaded .deb SHA256 mismatch: expected $expected_sha, got $actual_sha." >&2
+            exit 1
+          fi
+          echo "Verified .deb SHA256 $actual_sha from source run $SOURCE_RUN_ID ($source_sha)."
           cp "${packages[0]}" desktop-app/src-tauri/target/release/bundle/deb/
       - name: Verificar nombre, versión y arquitectura del paquete
         run: |
