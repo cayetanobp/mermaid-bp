@@ -11,9 +11,10 @@ async function mountHarness(page:import('@playwright/test').Page){
 
 test('el updater muestra que no hay novedades y los errores conservan el borrador',async({page})=>{
  await mountHarness(page);
- await page.evaluate(()=>window.UpdaterView.mountUpdaterView(document.querySelector('#general')!,{check:async()=>null,relaunch:async()=>{throw new Error('unexpected relaunch');}}));
+ await page.evaluate(()=>window.UpdaterView.mountUpdaterView(document.querySelector('#general')!,{getCurrentVersion:async()=>'1.0.0-beta.1',check:async()=>null,relaunch:async()=>{throw new Error('unexpected relaunch');}}));
  await page.getByRole('button',{name:'Buscar actualizaciones'}).click();
  await expect(page.getByRole('status')).toHaveText('No hay actualizaciones disponibles.');
+ await expect(page.getByText('Versión instalada: 1.0.0-beta.1',{exact:true})).toBeVisible();
  expect(await page.locator('#document').inputValue()).toBe('flowchart LR\nA --> B');
  expect(await page.evaluate(()=>localStorage.getItem('mermaid-bp:draft:v1'))).toBe('flowchart LR\nA --> B');
 });
@@ -44,4 +45,4 @@ test('si el relanzamiento falla después de completar el flujo, pide abrir de nu
  expect(await page.evaluate(()=>localStorage.getItem('mermaid-bp:draft:v1'))).toBe('flowchart LR\nA --> B');
 });
 
-declare global{interface Window{UpdaterView:{mountUpdaterView:(general:HTMLElement,dependencies:{check:()=>Promise<{currentVersion:string;version:string;body?:string;downloadAndInstall:()=>Promise<void>}|null>;relaunch:()=>Promise<void>})=>void}}}
+declare global{interface Window{UpdaterView:{mountUpdaterView:(general:HTMLElement,dependencies:{getCurrentVersion?:()=>Promise<string>;check:()=>Promise<{currentVersion:string;version:string;body?:string;downloadAndInstall:()=>Promise<void>}|null>;relaunch:()=>Promise<void>})=>void}}}

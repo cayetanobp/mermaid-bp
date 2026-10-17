@@ -6,7 +6,7 @@ export interface UpdaterRelease {
  close?:()=>Promise<void>;
 }
 
-export function mountUpdaterView(general:HTMLElement,dependencies:{check:()=>Promise<UpdaterRelease|null>;relaunch:()=>Promise<void>}):void{
+export function mountUpdaterView(general:HTMLElement,dependencies:{getCurrentVersion?:()=>Promise<string>;check:()=>Promise<UpdaterRelease|null>;relaunch:()=>Promise<void>}):void{
  const updates=document.createElement('section');
  updates.id='desktop-updates';
  updates.innerHTML='<h3>Actualizaciones</h3><p id="update-current-version"></p><div id="update-details" hidden><p id="update-version"></p><p id="update-notes"></p></div><p id="update-status" role="status" aria-live="polite"></p><button id="check-updates" type="button">Buscar actualizaciones</button><button id="install-update" type="button" hidden>Descargar e instalar</button>';
@@ -14,16 +14,18 @@ export function mountUpdaterView(general:HTMLElement,dependencies:{check:()=>Pro
  const status=updates.querySelector<HTMLElement>('#update-status')!;
  const checkButton=updates.querySelector<HTMLButtonElement>('#check-updates')!;
  const installButton=updates.querySelector<HTMLButtonElement>('#install-update')!;
+ const currentVersion=updates.querySelector<HTMLElement>('#update-current-version')!;
  let pending:UpdaterRelease|null=null;
+ void dependencies.getCurrentVersion?.().then(version=>{currentVersion.textContent='Versión instalada: '+version;}).catch(()=>{});
  const release=()=>{pending?.close?.().catch(()=>{});pending=null;};
  general.closest('dialog')?.addEventListener('close',release);
  const detail=(error:unknown)=>error instanceof Error?error.message:String(error);
  checkButton.onclick=async()=>{
-  checkButton.disabled=true;installButton.hidden=true;updates.querySelector('#update-details')!.setAttribute('hidden','');updates.querySelector('#update-current-version')!.textContent='';status.textContent='Buscando actualizaciones…';release();
+  checkButton.disabled=true;installButton.hidden=true;updates.querySelector('#update-details')!.setAttribute('hidden','');status.textContent='Buscando actualizaciones…';release();
   try{
    pending=await dependencies.check();
    if(!pending){status.textContent='No hay actualizaciones disponibles.';return;}
-   updates.querySelector('#update-current-version')!.textContent='Versión instalada: '+pending.currentVersion;
+   currentVersion.textContent='Versión instalada: '+pending.currentVersion;
    updates.querySelector('#update-version')!.textContent='Nueva versión: '+pending.version;
    updates.querySelector('#update-notes')!.textContent=pending.body||'Esta versión no incluye notas.';
    updates.querySelector('#update-details')!.removeAttribute('hidden');installButton.hidden=false;status.textContent='Hay una actualización disponible.';
