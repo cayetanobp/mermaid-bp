@@ -75,7 +75,7 @@ fn collect_plugin_files(
     entry_count: &mut usize,
     total_bytes: &mut usize,
     paths: &mut Vec<String>,
-    contents: &mut Vec<Vec<u8>>,
+    contents: &mut Vec<String>,
 ) -> Result<(), String> {
     if depth > MAX_DIRECTORY_DEPTH {
         return Err("La carpeta del plugin supera la profundidad permitida.".into());
