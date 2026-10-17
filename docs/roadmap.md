@@ -27,5 +27,5 @@ La guía básica está implementada. Ampliarla con recorridos específicos por t
 - Ficha redimensionable y navegación al nodo sin cambiar zoom.
 - Guía de uso contextual según las extensiones activas.
 - Plugins instalables por carpeta y recarga, sin registro ni recompilación.
-- BookStack como paquete opcional y autónomo, con distribución sin extensiones.
+- Núcleo distribuido sin plugins incluidos.
 - Guía visual institucional en `style.md`.

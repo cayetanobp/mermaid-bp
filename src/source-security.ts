@@ -1,4 +1,4 @@
-/** Política común para archivos, código pegado y el visor BookStack. */
+/** Política común para archivos y código Mermaid proporcionado por el usuario. */
 export const MAX_SOURCE_BYTES=200_000;
 const TYPES=/^(?:flowchart|graph|sequenceDiagram|classDiagram(?:-v2)?|stateDiagram(?:-v2)?|erDiagram|gantt|pie|journey|gitGraph|mindmap|timeline|quadrantChart|requirementDiagram|sankey-beta|xychart-beta|kanban|architecture-beta|block-beta|packet-beta|radar-beta|treemap-beta)\b/;
 const FORBIDDEN_CONFIG=new Set(['secure','securityLevel','startOnLoad','maxTextSize','maxEdges','themeCSS','fontFamily','altFontFamily','themeVariables','dompurifyConfig']);

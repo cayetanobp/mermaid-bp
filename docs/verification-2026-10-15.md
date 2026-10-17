@@ -1,5 +1,7 @@
 # Verificación de cascada, navegación y extensiones
 
+> **Registro histórico.** Esta verificación describe el estado anterior a la extracción de BookStack del núcleo. La compilación y las pruebas del plugin se mantienen hoy en el repositorio de plugins; las referencias a BookStack que siguen corresponden a las comprobaciones realizadas entonces.
+
 Comprobación del 15 de octubre de 2026 en Windows, con Node.js 24.15 y Chromium. Se probaron las compilaciones de producción, además de comprobar el arranque del servidor local.
 
 - `npm.cmd test`, 40 pruebas unitarias aprobadas.

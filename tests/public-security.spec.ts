@@ -23,10 +23,6 @@ test('código pegado no ejecuta scripts ni permite configurar HTML o CSS activo'
   await paste(page,source);await expect(page.locator('#render-state')).toHaveText('No se puede renderizar');expect(await page.evaluate(()=>(window as any).pwned)).toBe(false);await expect(page.locator('#diagram script,#diagram img,#diagram iframe,#diagram a')).toHaveCount(0);await expect(page.locator('#svg')).toBeDisabled();
  }
 });
-test('BookStack recibe el documento solo en memoria',async({page,context})=>{
- await ready(page);await paste(page,'flowchart TD\nA["Privado en memoria"]-->B["Fin"]');await expect(page.locator('#render-state')).toHaveText('Actualizado');const popup=context.waitForEvent('page');await action(page,'plugin-bookstack-preview');const check=await popup;await expect(check.locator('#check-source')).toHaveValue('flowchart TD\nA["Privado en memoria"]-->B["Fin"]');await expect(check.locator('#check-output svg')).toHaveCount(1);expect(await check.evaluate(()=>JSON.stringify(localStorage))).not.toContain('Privado');
-});
-
 test('sanitización del SVG retira scripts, eventos, enlaces e imágenes',async({page})=>{
  const {build}=await import('vite');const result=await build({configFile:false,logLevel:'silent',build:{write:false,lib:{entry:'src/svg-security.ts',formats:['es'],fileName:'sanitize.js'}}});
  const code=(Array.isArray(result)?result:[result]).flatMap(r=>'output'in r?r.output:[]).filter(c=>c.type==='chunk').map(c=>c.code).join('\n');

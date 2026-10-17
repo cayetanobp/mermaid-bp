@@ -1,4 +1,4 @@
-import {reopenSavedDocument,openBookStack} from './document-helpers';
+import {reopenSavedDocument} from './document-helpers';
 import {test,expect,type Page} from '@playwright/test';
 import {readFile} from 'node:fs/promises';
 import {command} from './menu-helpers';
@@ -26,11 +26,10 @@ test('la relación recursiva se selecciona con clic real en su etiqueta y permit
  await expect(page.locator('.cm-content')).toContainText('"bendFrom"');await expect(page.locator('.cm-content')).toContainText('"bendTo"');await page.screenshot({path:'test-results/bucle-editable.png'});
  const saved=await page.locator('.cm-content').innerText(),curve=normalize(await path(page,1));await reopenSavedDocument(page);await ready(page);expect(await page.locator('.cm-content').innerText()).toBe(saved);expect(normalize(await path(page,1))).toBe(curve);await attached(page,1,'retry');
 });
-test('el bucle del diagrama sintético sigue anclado al nodo al abrirlo, moverlo y comprobar BookStack',async({page,context})=>{
+test('el bucle del diagrama sintético sigue anclado al nodo al abrirlo y moverlo',async({page,context})=>{
  const source=await readFile(new URL('./fixtures/large-workflow-positioned.mmd',import.meta.url),'utf8');await command(page,'save');await page.locator('#file').setInputFiles({name:'bucle-sintetico.mmd',mimeType:'text/plain',buffer:Buffer.from(source)});await ready(page);
  await expect(page.locator('path.flowchart-link[data-edge-index="9"]')).toHaveCount(1);await attached(page,9,'retry');await selectLoop(page,9);await bend(page,'to',40,30);await attached(page,9,'retry');
- const curve=normalize(await path(page,9)),check=await openBookStack(page);await expect(check.locator('#check-state')).toContainText('posiciones del editor');
- const other=await check.locator('path.flowchart-link[id$="L_retry_retry_0"]').getAttribute('d');expect(normalize(other)).toBe(curve);await check.close();
+ const curve=normalize(await path(page,9));
  await reopenSavedDocument(page);await ready(page);await attached(page,9,'retry');expect(normalize(await path(page,9))).toBe(curve);
 });
 test('la edición del bucle permite deshacer, rehacer y restablecer sin perder su conexión',async({page})=>{

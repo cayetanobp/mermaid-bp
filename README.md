@@ -26,7 +26,7 @@ No abras `index.html` directamente mediante `file://`. La aplicación utiliza m�
 ## Organización del repositorio
 
 - `src/`, código y estilos de la aplicación.
-- `plugins/`, extensiones instalables y la integración de BookStack, incluida su página fuente.
+- `plugins/`, carpeta opcional para extensiones instalables.
 - `config/`, configuración de Vite y Playwright. Los comandos de npm ya usan estas rutas.
 - `deploy/nginx/`, configuración para servir el ZIP estático; `deploy/docker/`, alternativa con contenedor.
 - `scripts/`, compilación, empaquetado y utilidades de desarrollo y despliegue.
@@ -72,13 +72,13 @@ Abre "Configuración > Preferencias". El panel contiene un lateral con cuatro se
 
 Los cambios se aplican al momento y se guardan en este navegador. No se escriben en los archivos `.mmd` ni modifican sus estilos o posiciones. "Restablecer sección" recupera sus valores predeterminados y conserva las otras secciones, los documentos y las extensiones. Si el navegador no permite guardar preferencias, los ajustes funcionan durante la sesión y el panel lo indica.
 
-## Arrastre y compatibilidad con BookStack
+## Arrastre y compatibilidad de posiciones
 
-El editor utiliza la versión exacta de tu integración y sus valores predeterminados de renderizado. El botón de copia produce un bloque Markdown delimitado con `mermaid` para el editor Markdown de BookStack.
+El botón de copia produce un bloque Markdown delimitado con `mermaid`. Las posiciones manuales forman parte del archivo `.mmd` y se aplican cuando otra herramienta admite el contrato de comentarios de Mermaid BP.
 
 El arrastre fija posiciones libres. El nodo sigue al puntero mediante requestAnimationFrame y solo se actualizan sus conexiones incidentes. No se invoca Mermaid durante el movimiento ni al soltar. Se conserva el zoom; Escape cancela y deshacer/rehacer recuperan la colocación.
 
-Al mover un nodo se añade la etiqueta superior `%% mermaid-bp:manual-layout`. Solo los bloques con esa etiqueta activan la extensión de posiciones; los demás quedan intactos para que los dibuje el visor habitual de BookStack. Las coordenadas se guardan en `%% graph:positions` dentro del archivo .mmd. Los agentes deben conservar los identificadores de los nodos y ese comentario. "Recolocar todo" recupera la distribución automática y permite deshacer.
+Al mover un nodo se añade la etiqueta superior `%% mermaid-bp:manual-layout`. Solo los bloques con esa etiqueta aplican posiciones manuales. Las coordenadas se guardan en `%% graph:positions` dentro del archivo .mmd. Los agentes deben conservar los identificadores de los nodos y ese comentario. "Recolocar todo" recupera la distribución automática y permite deshacer.
 
 Se conservan las formas y los estilos generados por Mermaid. Las conexiones se redondean, pero no esquivan automáticamente los obstáculos y los nodos pueden solaparse al colocarlos manualmente. Al seleccionar una relación puedes arrastrar los puntos de origen y destino alrededor de sus nodos o restaurarlos. Los dos círculos azules son manejadores Bézier independientes. "Restablecer conexión" restaura los anclajes y la curva automática. Los ángulos y los vectores se guardan en `%% graph:connections`, con claves por conexión y número entre conexiones paralelas.
 
@@ -88,7 +88,7 @@ La edición visual admite `flowchart` y `graph`, las direcciones habituales, rec
 
 Los demás tipos de diagramas y las construcciones que no se puedan modificar con seguridad, como `linkStyle` por índice, enlaces a subgráficos o frontmatter, siguen disponibles por código. El editor no realiza una conversión parcial que pueda borrar información.
 
-`bookstack.html` reproduce localmente tu transformación de `.language-mermaid` a `.mermaid` y llama a `mermaid.run()`. Recibe el documento actual mediante un canal temporal al abrirse desde el editor. El visor interpreta las posiciones manuales mediante el mismo módulo del editor. El encabezado instalable y los pasos de instalación están en [docs/bookstack.md](docs/bookstack.md). La distribución se verifica con la misma versión, pero las fuentes, el tema y el ancho de tu BookStack real pueden producir diferencias. No se promete una posición absoluta ni identidad de píxeles.
+Los plugins opcionales pueden distribuir herramientas de vista previa propias. Se instalan como carpetas independientes y no forman parte del núcleo.
 
 ## Compilación y pruebas
 
@@ -99,7 +99,7 @@ npm.cmd exec playwright install chromium
 npm.cmd run test:browser
 ```
 
-Las pruebas unitarias usan el ejecutor de Node. Las pruebas de navegador sirven `dist` mediante el servidor de vista previa en el puerto 4177 y comprueban archivos, guardado y reapertura, historial, edición, errores, exportaciones, arrastre y equivalencia con la integración de BookStack en tres flujos.
+Las pruebas unitarias usan el ejecutor de Node. Las pruebas de navegador sirven `dist` mediante el servidor de vista previa en el puerto 4177 y comprueban archivos, guardado y reapertura, historial, edición, errores, exportaciones y arrastre.
 
 Si Chromium ya está instalado en otra ruta, puedes indicar el ejecutable con `PLAYWRIGHT_CHROMIUM_EXECUTABLE`. Las capturas se escriben en `test-results` y no se guardan en Git.
 
@@ -120,7 +120,7 @@ Se elige una aplicación estática con TypeScript, Vite y CodeMirror por su senc
 
 El perfil público utiliza Mermaid 11.17.2, DOMPurify 3.4.17 y KaTeX 0.18.2 por seguridad. Las diferencias respecto al renderizado anterior y las comprobaciones se describen en [docs/security.md](docs/security.md).
 
-La instalación no incluye KaTeX como hoja de estilos global para fórmulas; el objetivo de compatibilidad es el script de BookStack facilitado, que tampoco la añade. Los diagramas especialmente grandes o una sintaxis patológica pueden bloquear temporalmente el hilo del navegador. No se incluye aislamiento en un proceso separado.
+La instalación no incluye KaTeX como hoja de estilos global para fórmulas. Los diagramas especialmente grandes o una sintaxis patológica pueden bloquear temporalmente el hilo del navegador. No se incluye aislamiento en un proceso separado.
 
 El repositorio está publicado en GitHub. Docker es una alternativa de despliegue; el paquete estático para Nginx no lo necesita.
 
@@ -130,8 +130,7 @@ Verificado el 15 de octubre de 2026 en Windows con Chromium y Node.js 24.15, y c
 
 - 12 pruebas unitarias aprobadas.
 - 12 pruebas de navegador aprobadas sobre la compilación de producción.
-- Coincidencia de posiciones y dimensiones con la simulación de BookStack en tres flujos.
-- Imagen `mermaid-bp:local` construida y arrancada; editor y comprobación BookStack accesibles, con el ejemplo renderizado en el navegador.
+- Imagen `mermaid-bp:local` construida y arrancada; editor accesible con el ejemplo renderizado en el navegador.
 - Dos avisos de auditoría pendientes, uno bajo y otro moderado, asociados a la cadena Mermaid y KaTeX fijada por compatibilidad.
 
 El contenedor de comprobación se ha detenido. La imagen queda disponible localmente.
@@ -141,9 +140,9 @@ El contenedor de comprobación se ha detenido. La imagen queda disponible localm
 
 Pulsa el fondo o el título de un subgraph para seleccionarlo. Arrastra el fondo para desplazarlo o sus cuatro esquinas para cambiar el tamaño. Los nodos y conexiones permanecen en su sitio. Al mover nodos, los fondos conservan sus límites. "Ajustar al contenido" encaja el fondo alrededor de sus nodos.
 
-Los límites se guardan con el comentario `%% graph:groups` y se reproducen en "BS preview". El encabezado actualizado se genera en `dist/bookstack-header.html` y `plugins/bookstack/public/bookstack-header.html`.
+Los límites se guardan con el comentario `%% graph:groups`.
 
-"Subgrupos" permite crear, renombrar, anidar y eliminar grupos. La ficha de un nodo permite cambiar su pertenencia. Eliminar un grupo conserva sus nodos y conexiones. Los cambios se pueden deshacer y se conservan en la comprobación de BookStack.
+"Subgrupos" permite crear, renombrar, anidar y eliminar grupos. La ficha de un nodo permite cambiar su pertenencia. Eliminar un grupo conserva sus nodos y conexiones. Los cambios se pueden deshacer.
 
 ## Cascada, información y guía
 
@@ -151,15 +150,15 @@ Los límites se guardan con el comentario `%% graph:groups` y se reproducen en "
 
 El separador sobre "Información" cambia la altura del panel y deja el resto para código o cascada. Admite arrastre, flechas arriba/abajo e Inicio/Fin; conserva su proporción en el navegador. Seleccionar un nodo en cascada lo resalta sin mover la cámara. El resaltado se mantiene hasta cambiar o quitar la selección. "Ir a" solo centra el nodo y mantiene el zoom y el resaltado existente. Con movimiento reducido, la señal permanece estática.
 
-"Guía de uso" inicia un recorrido por código, cascada, información, diagrama y extensiones. Incluye la vista previa de BookStack cuando está activa y recupera la pestaña anterior al terminar o pulsar Esc.
+"Guía de uso" inicia un recorrido por código, cascada, información, diagrama y extensiones, y recupera la pestaña anterior al terminar o pulsar Esc.
 
 ## Extensiones
 
-BookStack es una extensión incluida y activa por defecto. Desde "Extensiones" puedes desactivarla o volver a activarla; la preferencia es local. Copiar Mermaid, editar, guardar y exportar no dependen de ella. La arquitectura y un ejemplo de contribución están en [docs/plugins.md](docs/plugins.md).
+El núcleo no incluye plugins. Desde "Extensiones" puedes activar o desactivar los que estén instalados; la preferencia es local. Editar, guardar y exportar funcionan sin plugins. La arquitectura y un ejemplo de contribución están en [docs/plugins.md](docs/plugins.md).
 
 Instala un plugin copiando su carpeta dentro de `plugins/` y recargando la web con F5. Aparecerá automáticamente en "Extensiones". Para quitarlo, retira su carpeta y recarga. No requiere registro, reinicio del servidor ni recompilación.
 
-En una web publicada directamente desde `dist`, utiliza `dist/plugins/`. BookStack se entrega como paquete autónomo en `dist/plugins/bookstack/`. La guía de creación está en [docs/plugins.md](docs/plugins.md).
+En una web publicada directamente desde `dist`, coloca los paquetes opcionales en `dist/plugins/`. La guía de creación está en [docs/plugins.md](docs/plugins.md).
 
 La dirección visual está en [style.md](style.md). Las siguientes mejoras se mantienen en [docs/roadmap.md](docs/roadmap.md).
 
