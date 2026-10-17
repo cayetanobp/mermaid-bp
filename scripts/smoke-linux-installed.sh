@@ -177,10 +177,9 @@ def choose_plugin_folder(folder):
         )
 
     capture_desktop("native-plugin-folder-dialog.png")
-    # The GTK portal's Ctrl+L location entry remained in edit mode on CI and
-    # never changed folders. Navigate through the real chooser list instead:
-    # the smoke output directory is already shown in Recent after the export
-    # check, then `fixture/installed-smoke` are activated by GTK type search.
+    # Focus the chooser's file list, then use GTK's native location entry to
+    # navigate to the requested directory. The name-search field can highlight
+    # a match without changing the selected folder.
     dialog_ids = subprocess.check_output(
         ["xdotool", "search", "--name", "Elegir carpeta de plugin"], text=True
     ).splitlines()
@@ -196,29 +195,34 @@ def choose_plugin_folder(folder):
     if not origin:
         raise AssertionError(f"Could not read folder chooser geometry:\n{geometry}")
     left, top, width, height = map(int, origin.groups())
-    # The runner uses 1440x1000 and GTK's Recent view places its only recent
-    # directory at the screenshot-measured screen location (460, 132).
-    subprocess.run(["xdotool", "mousemove", "460", "132", "click", "--repeat", "2", "--delay", "100", "1"], check=True)
-    time.sleep(0.3)
-    capture_desktop("native-plugin-folder-recent-opened.png")
-    # GTK type-to-select highlights a row but Return only leaves the selection
-    # in place in this portal. Double-click the measured list row to open it.
-    subprocess.run(["xdotool", "type", "--clearmodifiers", "--delay", "100", "fixture"], check=True)
-    time.sleep(0.3)
-    capture_desktop("native-plugin-folder-fixture-match.png")
     subprocess.run(
-        ["xdotool", "mousemove", str(left + 220), str(top + 104), "click", "--repeat", "2", "--delay", "100", "1"],
+        ["xdotool", "mousemove", str(left + width - 160), str(top + height - 130), "click", "1"],
         check=True,
     )
-    time.sleep(0.4)
-    capture_desktop("native-plugin-folder-fixture-opened.png")
-    # The fixture contains only the requested plugin folder, on the first list
-    # row at the same measured location.
+    subprocess.run(["xdotool", "key", "ctrl+l"], check=True)
+    time.sleep(0.3)
+    capture_desktop("native-plugin-folder-location-entry.png")
     subprocess.run(
-        ["xdotool", "mousemove", str(left + 220), str(top + 104), "click", "--repeat", "2", "--delay", "100", "1"],
+        ["xdotool", "key", "ctrl+a"],
         check=True,
     )
-    time.sleep(0.4)
+    subprocess.run(
+        ["xdotool", "type", "--clearmodifiers", "--delay", "1", str(folder.resolve())],
+        check=True,
+    )
+    time.sleep(0.3)
+    capture_desktop("native-plugin-folder-location-path.png")
+    location_text = subprocess.run(
+        ["tesseract", str(out / "native-plugin-folder-location-path.png"), "stdout", "--psm", "6"],
+        check=True, capture_output=True, text=True,
+    ).stdout.lower()
+    if "installed" not in location_text or "smoke" not in location_text:
+        raise AssertionError(
+            "The native chooser location entry does not visibly contain the requested folder; "
+            f"OCR output was {location_text!r}"
+        )
+    subprocess.run(["xdotool", "key", "Return"], check=True)
+    time.sleep(0.6)
     capture_desktop("native-plugin-folder-selected-path.png")
     chooser_text = subprocess.run(
         ["tesseract", str(out / "native-plugin-folder-selected-path.png"), "stdout", "--psm", "6"],
