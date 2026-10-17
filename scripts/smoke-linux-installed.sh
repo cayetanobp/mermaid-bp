@@ -225,68 +225,64 @@ def choose_plugin_folder(folder):
         ]
         (out / filename).write_text("\n".join(lines), encoding="utf-8")
 
-    # GTK's folder-only chooser hides regular files. Navigate through the
-    # accessible location entry, verify it accepts the target, then activate
-    # the native Select button through its accessible action.
-    subprocess.run(["xdotool", "key", "ctrl+l"], check=True)
-    time.sleep(0.3)
-    capture_desktop("native-plugin-folder-location-entry.png")
+    # GTK's folder-only chooser hides regular files. Navigate through its
+    # actual Files table and activate the native Select button through AT-SPI.
+    capture_desktop("native-plugin-folder-dialog.png")
     nodes = accessible_tree()
-    save_accessible_tree("native-plugin-folder-location-entry.accessibility.txt", nodes)
+    save_accessible_tree("native-plugin-folder-dialog.accessibility.txt", nodes)
     dialog_nodes = [item for item in nodes if "Elegir carpeta de plugin" in " ".join(item["ancestry"])]
     if not dialog_nodes:
         raise AssertionError("AT-SPI cannot find the native GTK folder chooser in the accessibility tree")
-    entries = []
-    for item in dialog_nodes:
-        try:
-            editable = item["node"].queryEditableText()
-            entries.append((item, editable))
-        except Exception:
-            continue
-    if not entries:
-        raise AssertionError(
-            "GTK location prompt has no accessible editable text control; "
-            f"active window={active_window_title()!r}"
-        )
-    # GTK labels its accessible location entry with the Location Layer
-    # container; other editable controls belong to hidden create/rename panes.
-    location_entries = [
-        pair for pair in entries
-        if pair[0]["role"].lower() == "text"
-        and any("Location Layer" in ancestor for ancestor in pair[0]["ancestry"])
-    ]
-    selected_entry = location_entries[0] if len(location_entries) == 1 else None
-    if selected_entry is None:
-        raise AssertionError(
-            "Could not identify a unique GTK location entry; "
-            f"accessible controls={[item['name'] for item, _ in entries]!r}"
-        )
-    location_node, editable = selected_entry
-    if not editable.setTextContents(str(folder.resolve())):
-        raise AssertionError("GTK rejected setting the requested folder in its accessible location entry")
-    location_node["node"].queryComponent().grabFocus()
-    location_text = location_node["node"].queryText().getText(0, 4096)
-    (out / "native-plugin-folder-location-path.txt").write_text(location_text, encoding="utf-8")
-    capture_desktop("native-plugin-folder-location-path.png")
-    if str(folder.resolve()) not in location_text:
-        raise AssertionError(f"GTK location entry contains {location_text!r}, expected {str(folder.resolve())!r}")
-    location_node["node"].queryComponent().grabFocus()
-    location_action = location_node["node"].queryAction()
-    location_actions = [location_action.getName(index).lower() for index in range(location_action.nActions)]
-    activate_index = next((index for index, name in enumerate(location_actions) if name == "activate"), None)
-    if activate_index is None or not location_action.doAction(activate_index):
-        raise AssertionError(f"GTK location entry has no usable activate action: {location_actions!r}")
+    def file_cells(tree):
+        return [
+            item for item in tree
+            if item["role"].lower() == "table cell"
+            and any("table name='Files'" in ancestor for ancestor in item["ancestry"])
+            and item["name"].strip()
+        ]
 
-    deadline = time.time() + 10
+    def wait_for_folder_row(name, timeout=8):
+        deadline = time.time() + timeout
+        latest = nodes
+        while time.time() < deadline:
+            latest = accessible_tree()
+            matches = [item for item in file_cells(latest) if item["name"].strip() == name]
+            if len(matches) == 1:
+                return latest, matches[0]
+            time.sleep(0.2)
+        save_accessible_tree(f"native-plugin-folder-missing-{name}.accessibility.txt", latest)
+        raise AssertionError(
+            f"GTK folder list did not show the expected directory {name!r}; "
+            f"visible directory rows={[item['name'] for item in file_cells(latest)]!r}"
+        )
+
+    def activate_folder_row(name, screenshot):
+        tree, item = wait_for_folder_row(name)
+        action = item["node"].queryAction()
+        actions = [action.getName(index).lower() for index in range(action.nActions)]
+        activate_index = next((index for index, label in enumerate(actions) if label == "activate"), None)
+        if activate_index is None or not action.doAction(activate_index):
+            raise AssertionError(f"GTK folder row {name!r} has no usable activate action: {actions!r}")
+        (out / "native-plugin-folder-navigation.txt").open("a", encoding="utf-8").write(name + "\n")
+        time.sleep(0.4)
+        capture_desktop(screenshot)
+
+    # Recent exposes the fixture's parent folder. These row activations enter
+    # each folder using the GTK view; the folder-only list correctly hides the
+    # plugin's regular files.
+    activate_folder_row("mermaid-bp-linux-smoke", "native-plugin-folder-parent.png")
+    activate_folder_row("fixture", "native-plugin-folder-fixture.png")
+    activate_folder_row("installed-smoke", "native-plugin-folder-target.png")
+
+    deadline = time.time() + 8
     selected_button = None
+    latest = []
     while time.time() < deadline:
-        time.sleep(0.2)
-        nodes = accessible_tree()
-        save_accessible_tree("native-plugin-folder-after-navigation.accessibility.txt", nodes)
+        latest = accessible_tree()
         buttons = [
-            item for item in nodes
+            item for item in latest
             if "Elegir carpeta de plugin" in " ".join(item["ancestry"])
-            and item["role"].lower() == "push button" and item["name"].strip().lower() in {"select", "open", "seleccionar"}
+            and item["role"].lower() == "push button" and item["name"].strip().lower() == "select"
         ]
         enabled = []
         for item in buttons:
@@ -298,13 +294,16 @@ def choose_plugin_folder(folder):
         if len(enabled) == 1:
             selected_button = enabled[0]
             break
+        time.sleep(0.2)
     if selected_button is None:
-        capture_desktop("native-plugin-folder-selected-path.png")
+        save_accessible_tree("native-plugin-folder-select-disabled.accessibility.txt", latest)
+        capture_desktop("native-plugin-folder-select-disabled.png")
         raise AssertionError(
-            "GTK did not enable its native Select button after entering the requested folder; "
-            f"active window={active_window_title()!r}"
+            "GTK did not enable its native Select button after activating the requested folder; "
+            f"active window={active_window_title()!r}; "
+            f"visible directory rows={[item['name'] for item in file_cells(latest)]!r}"
         )
-    capture_desktop("native-plugin-folder-selected-path.png")
+    capture_desktop("native-plugin-folder-target-selected.png")
     action = selected_button["node"].queryAction()
     action_names = [action.getName(index).lower() for index in range(action.nActions)]
     activate_index = next(
