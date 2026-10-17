@@ -12,6 +12,17 @@ test('configuración con lateral aplica preferencias de editor sin modificar doc
  await command(page,'save');await page.locator('#file').setInputFiles({name:'preferencias.mmd',mimeType:'text/plain',buffer:Buffer.from('flowchart LR\nA["Archivo nuevo"] --> B["Mismos ajustes"]')});await expect(page.locator('#filename')).toHaveText('preferencias.mmd');await expect(page.locator('#render-state')).toHaveText('Actualizado');expect(await size(page)).toBe('18px');await expect(page.locator('.cm-lineNumbers')).toHaveCount(0);
  const editor=page.getByRole('textbox',{name:'Código Mermaid'});await editor.click();await editor.press('ControlOrMeta+End');await page.keyboard.insertText('\nC["Prueba de historial"]');await expect(page.locator('#render-state')).toHaveText('Actualizado');await command(page,'undo');await expect(page.locator('#render-state')).toHaveText('Actualizado');await expect(editor).not.toContainText('Prueba de historial');
 });
+test('importar un documento con cambios pendientes permite seguir usando la configuración abierta',async({page})=>{
+ await ready(page);await page.getByRole('textbox',{name:'Código Mermaid'}).click();await page.keyboard.press('ControlOrMeta+End');await page.keyboard.insertText('\nA["Cambio pendiente"]');await expect(page.locator('#render-state')).toHaveText('Actualizado');
+ await command(page,'settings-button');await expect(page.locator('#settings-dialog')).toBeVisible();
+ const imported='flowchart LR\nA["Documento importado"] --> B["Sigue disponible"]\n';
+ await page.locator('#file').setInputFiles({name:'importado.mmd',mimeType:'text/plain',buffer:Buffer.from(imported)});
+ await expect(page.locator('#confirm-dialog')).toBeVisible();await page.getByRole('button',{name:'Continuar sin descargar',exact:true}).click();
+ await expect(page.locator('#message')).toHaveText('Abierto importado.mmd.');await expect(page.locator('.cm-content')).toContainText('Documento importado');
+ await expect(page.locator('#settings-dialog')).toBeVisible();await page.getByRole('tab',{name:'Editor',exact:true}).click();await page.getByLabel('Tamaño del texto',{exact:true}).selectOption('18');
+ await page.getByRole('tab',{name:'Extensiones',exact:true}).click();await expect(page.locator('#plugin-list')).toBeVisible();await page.locator('#plugins-close').click();
+ await expect(page.locator('#settings-dialog')).toBeHidden();await expect(page.locator('.cm-content')).toContainText('Documento importado');expect(await size(page)).toBe('18px');
+});
 test('general recuerda vista preferida y reduce movimiento sin alterar zoom ni el archivo',async({page})=>{
  await ready(page);const before=await snapshot(page);await command(page,'settings-button');await page.getByLabel('Vista al abrir',{exact:true}).selectOption('cascade');await page.getByLabel('Animaciones',{exact:true}).selectOption('reduce');await page.getByLabel('Mostrar ayuda bajo el diagrama',{exact:true}).uncheck();await page.locator('#plugins-close').click();await expect(page.locator('#visual-note')).toBeHidden();expect(await snapshot(page)).toEqual(before);
  await page.reload();await expect(page.locator('#render-state')).toHaveText('Actualizado');await expect(page.locator('#tab-cascade')).toHaveAttribute('aria-selected','true');await page.locator('[data-cascade-node]').first().click();await page.locator('#locate-node').click();expect(await page.locator('.node-location').evaluate(el=>getComputedStyle(el).animationName)).toBe('none');

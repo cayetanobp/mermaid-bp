@@ -97,6 +97,11 @@ test('el artefacto Linux declara el paquete Debian y la versión beta publicada'
   assert.ok(config.bundle.linux.deb.depends.includes('libayatana-appindicator3-1'));
   await access('desktop-app/src-tauri/icons/icon.png');
 });
+test('el updater Windows conserva idiomas y usa selección automática compatible con instalación pasiva',async()=>{
+  const config=JSON.parse(await readFile('desktop-app/src-tauri/tauri.conf.json','utf8'));
+  assert.deepEqual(Array.from(config.bundle.windows.nsis.languages),['Spanish','English']);
+  assert.equal(config.bundle.windows.nsis.displayLanguageSelector,false);
+});
 test('el flujo Linux instala el paquete y automatiza una sesión gráfica real',async()=>{
   const workflow=await readFile('.github/workflows/desktop-linux.yml','utf8');
   const smoke=await readFile('scripts/smoke-linux-installed.sh','utf8');
