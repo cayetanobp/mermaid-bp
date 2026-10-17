@@ -75,9 +75,11 @@ function installBase(installer){
 }
 
 async function findInstalledExecutable(){
-  const possible=[join(process.env.LOCALAPPDATA??'','Programs','Mermaid BP','Mermaid BP.exe'),join(process.env.LOCALAPPDATA??'','Mermaid BP','Mermaid BP.exe')];
+  const localAppData=process.env.LOCALAPPDATA??'';
+  const possible=['Programs/Mermaid BP','Mermaid BP','Programs/mermaid-bp-desktop','mermaid-bp-desktop']
+    .flatMap(folder=>['mermaid-bp-desktop.exe','Mermaid BP.exe'].map(name=>join(localAppData,folder,name)));
   for(const candidate of possible)try{await stat(candidate);return candidate;}catch{}
-  throw Error('No se encontró Mermaid BP.exe bajo la carpeta de instalación del usuario después de ejecutar el instalador NSIS.');
+  throw Error('No se encontró mermaid-bp-desktop.exe bajo la carpeta de instalación del usuario después de ejecutar el instalador NSIS.');
 }
 
 function startApp(executable){

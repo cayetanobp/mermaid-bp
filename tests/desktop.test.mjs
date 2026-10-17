@@ -102,6 +102,9 @@ test('el flujo Linux instala el paquete y automatiza una sesión gráfica real',
   const workflow=await readFile('.github/workflows/desktop-linux.yml','utf8');
   const smoke=await readFile('scripts/smoke-linux-installed.sh','utf8');
   const docker=await readFile('scripts/build-linux-deb-docker.ps1','utf8');
+  assert.ok(workflow.includes('createUpdaterArtifacts":false'));
+  assert.ok(workflow.includes('npm exec -- tauri build'));
+  assert.ok(workflow.includes('-- --locked'));
   assert.match(workflow,/ubuntu-24\.04/);
   assert.match(workflow,/packages=\(desktop-app\/src-tauri\/target\/release\/bundle\/deb\/\*\.deb\)/);
   assert.match(workflow,/dpkg-deb -f "\$package" Package\)" = mermaid-bp/);
