@@ -1,5 +1,5 @@
 import {spawnSync} from 'node:child_process';
-import {readFile,writeFile,mkdir} from 'node:fs/promises';
+import {access,readFile,writeFile,mkdir} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 import {resolve} from 'node:path';
 const root=fileURLToPath(new URL('../',import.meta.url));
@@ -9,6 +9,10 @@ const npm=process.env.npm_execpath;
 if(!npm)throw Error('Ejecuta la compilación mediante npm run desktop:build.');
 const build=spawnSync(process.execPath,[npm,'run','build'],{cwd:root,stdio:'inherit',env:{...process.env,MERMAID_BP_OUT_DIR:out}});
 if(build.status!==0)process.exit(build.status??1);
+const tauriRoot=resolve(root,'desktop-app/src-tauri');
+const config=JSON.parse(await readFile(resolve(tauriRoot,'tauri.conf.json'),'utf8'));
+const resources=config.bundle?.resources??{};
+for(const source of Array.isArray(resources)?resources:Object.keys(resources))await access(resolve(tauriRoot,source));
 const {installedPlugins}=await import('../scripts/plugin-config.ts');
 const entries=installedPlugins(root).map(plugin=>({name:plugin.manifest.id,type:'directory'}));
 await mkdir(resolve(out,'plugins'),{recursive:true});

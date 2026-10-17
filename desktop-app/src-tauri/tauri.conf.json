@@ -21,7 +21,7 @@
     "resources": {
       "../../LICENSE": "LICENSE",
       "../../NOTICE.md": "NOTICE.md",
-      "../../dist/THIRD_PARTY_NOTICES.md": "THIRD_PARTY_NOTICES.md",
+      "../dist/THIRD_PARTY_NOTICES.md": "THIRD_PARTY_NOTICES.md",
       "../../THIRD_PARTY_RUST_NOTICES.md": "THIRD_PARTY_RUST_NOTICES.md"
     },
     "targets": ["nsis"],
