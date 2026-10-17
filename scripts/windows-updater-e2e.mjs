@@ -218,10 +218,13 @@ async function openSettings(page,section='General'){
 
 async function openUpdater(page){await openSettings(page,'General');await expect(page.locator('#desktop-updates')).toBeVisible();}
 async function importDocument(page,path,expectedText){
+  const fileName=basename(path).replace(/\.(?:mmd|mermaid)$/i,'')+'.mmd';
+  const loadedMessage=`Abierto ${fileName}.`;
   await page.locator('#file').setInputFiles(path);
   const dialog=page.locator('#confirm-dialog');
-  await expect.poll(async()=>await dialog.evaluate(element=>element.open)||((await page.locator('.cm-content').innerText()).includes(expectedText))).toBeTruthy();
+  await expect.poll(async()=>await dialog.evaluate(element=>element.open)||(await page.locator('#message').innerText())===loadedMessage,{timeout:30000}).toBeTruthy();
   if(await dialog.evaluate(element=>element.open))await dialog.getByRole('button',{name:'Continuar sin descargar',exact:true}).click();
+  await expect(page.locator('#message')).toHaveText(loadedMessage,{timeout:30000});
   await expect(page.locator('.cm-content')).toContainText(expectedText);
 }
 async function assertPluginAndPreference(page){
