@@ -208,8 +208,11 @@ async function waitForAppExit(child){
 }
 
 async function openSettings(page,section='General'){
-  await page.locator('#menu-configuracion').click();
-  await page.locator('#settings-button').click();
+  const dialog=page.locator('#settings-dialog');
+  if(!await dialog.evaluate(element=>element.open)){
+    await page.locator('#menu-configuracion').click();
+    await page.locator('#settings-button').click();
+  }
   await page.getByRole('tab',{name:section,exact:true}).click();
 }
 
