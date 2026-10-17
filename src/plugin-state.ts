@@ -20,6 +20,7 @@ export function discoverPlugins(base=new URL('./plugins/',document.baseURI)):Pro
      if(!parsed||typeof parsed!=='object'||Array.isArray(parsed))throw Error('El manifiesto no cumple el contrato público.');
      const manifest=parsed as PluginManifest;
      if(manifest.id!==id||typeof manifest.name!=='string'||!manifest.name.trim()||typeof manifest.description!=='string'||!manifest.description.trim()||typeof manifest.version!=='string'||!manifest.version.trim()||!Number.isInteger(manifest.apiVersion))throw Error('El manifiesto no cumple el contrato público.');
+     if(manifest.enabledByDefault!==undefined&&typeof manifest.enabledByDefault!=='boolean')throw Error('El campo enabledByDefault debe ser booleano.');
      const entry=manifest.entry===undefined?'index.js':manifest.entry;
      if(typeof entry!=='string'||!/^[a-zA-Z0-9_./-]+\.(?:m?js)$/.test(entry)||entry.split('/').includes('..')||entry.startsWith('/'))throw Error('La ruta de entrada no es válida.');
      const entryUrl=new URL(entry,folder);if(entryUrl.origin!==folder.origin||!entryUrl.pathname.startsWith(folder.pathname))throw Error('La ruta de entrada debe permanecer dentro de la carpeta del plugin.');
