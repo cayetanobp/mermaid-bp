@@ -6,6 +6,10 @@ on:
         description: ID de la ejecución Windows cuyo instalador has revisado
         required: true
         type: string
+      linux_build_run_id:
+        description: ID de la ejecución Linux cuyo paquete Debian firmado has revisado
+        required: true
+        type: string
       confirmation:
         description: Escribe PUBLICAR para autorizar la release beta
         required: true
@@ -24,6 +28,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           BUILD_RUN_ID: ${{ inputs.build_run_id }}
+          LINUX_BUILD_RUN_ID: ${{ inputs.linux_build_run_id }}
           CONFIRMATION: ${{ inputs.confirmation }}
         run: |
           if ($env:CONFIRMATION -cne 'PUBLICAR') { throw 'Falta la confirmación PUBLICAR.' }
@@ -39,6 +44,12 @@ jobs:
           if ($build.name -ne 'Aplicación de escritorio Windows' -or $build.conclusion -ne 'success' -or $build.head_branch -ne 'main' -or $build.head_sha -ne $env:GITHUB_SHA) {
             throw 'La compilación debe haber terminado correctamente sobre el HEAD actual de main.'
           }
+          if ($env:LINUX_BUILD_RUN_ID -notmatch '^\d+$') { throw 'El ID de ejecución Linux debe ser numérico.' }
+          $linuxBuild = gh api "repos/$env:GITHUB_REPOSITORY/actions/runs/$env:LINUX_BUILD_RUN_ID" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0) { throw 'No se pudo consultar la ejecución Linux.' }
+          if ($linuxBuild.name -ne 'Aplicación de escritorio Linux' -or $linuxBuild.conclusion -ne 'success' -or $linuxBuild.head_branch -ne 'main' -or $linuxBuild.head_sha -ne $env:GITHUB_SHA) {
+            throw 'La compilación Linux debe haber terminado correctamente sobre el HEAD actual de main.'
+          }
           gh api "repos/$env:GITHUB_REPOSITORY/git/ref/tags/$version" *> $null
           if ($LASTEXITCODE -eq 0) { throw 'Ya existe una etiqueta para esta versión.' }
       - name: Descargar instalador aprobado
@@ -46,9 +57,12 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           BUILD_RUN_ID: ${{ inputs.build_run_id }}
+          LINUX_BUILD_RUN_ID: ${{ inputs.linux_build_run_id }}
         run: |
           gh run download $env:BUILD_RUN_ID -n mermaid-bp-windows -D desktop-app/src-tauri/target/release/bundle/nsis
           if ($LASTEXITCODE -ne 0) { throw 'No se pudo descargar el instalador revisado.' }
+          gh run download $env:LINUX_BUILD_RUN_ID -n mermaid-bp-linux-updater -D desktop-app/src-tauri/target/release/bundle/deb
+          if ($LASTEXITCODE -ne 0) { throw 'No se pudo descargar el paquete Debian revisado.' }
       - name: Publicar instalador y artefactos updater firmados
         shell: pwsh
         env:
@@ -60,13 +74,21 @@ jobs:
           if ($installer.Count -ne 1) { throw 'Se esperaba un instalador NSIS.' }
           $signaturePath = "$($installer[0].FullName).sig"
           if (!(Test-Path -LiteralPath $signaturePath) -or (Get-Item -LiteralPath $signaturePath).Length -eq 0) { throw 'Falta la firma minisign del instalador updater.' }
+          $debFolder = 'desktop-app/src-tauri/target/release/bundle/deb'
+          $linuxPackage = @(Get-ChildItem "$debFolder/*.deb")
+          if ($linuxPackage.Count -ne 1 -or $linuxPackage[0].Name -notmatch "^mermaid-bp_$([regex]::Escape($tag))_amd64\.deb$") { throw 'El artefacto Linux debe ser el paquete Debian amd64 de esta versión.' }
+          $linuxSignaturePath = "$($linuxPackage[0].FullName).sig"
+          if (!(Test-Path -LiteralPath $linuxSignaturePath) -or (Get-Item -LiteralPath $linuxSignaturePath).Length -eq 0) { throw 'Falta la firma minisign del paquete Debian updater.' }
           $hash = (Get-FileHash $installer[0].FullName -Algorithm SHA256).Hash.ToLower()
           "$hash  $($installer[0].Name)" | Set-Content "$($installer[0].FullName).sha256" -Encoding utf8
+          $linuxHash = (Get-FileHash $linuxPackage[0].FullName -Algorithm SHA256).Hash.ToLower()
+          "$linuxHash  $($linuxPackage[0].Name)" | Set-Content "$($linuxPackage[0].FullName).sha256" -Encoding utf8
           $manifestPath = Join-Path $folder 'latest.json'
           $assetUrl = "https://github.com/$env:GITHUB_REPOSITORY/releases/download/$tag/$($installer[0].Name)"
-          node scripts/create-updater-manifest.mjs --version $tag --notes-file desktop-app/RELEASE.md --artifact-url $assetUrl --signature-file $signaturePath --output $manifestPath
+          $linuxAssetUrl = "https://github.com/$env:GITHUB_REPOSITORY/releases/download/$tag/$($linuxPackage[0].Name)"
+          node scripts/create-updater-manifest.mjs --version $tag --notes-file desktop-app/RELEASE.md --artifact-url $assetUrl --signature-file $signaturePath --linux-artifact-url $linuxAssetUrl --linux-signature-file $linuxSignaturePath --output $manifestPath
           if ($LASTEXITCODE -ne 0) { throw 'No se pudo crear el manifiesto firmado del canal beta.' }
-          gh release create $tag $installer[0].FullName "$($installer[0].FullName).sha256" $signaturePath $manifestPath --target $env:GITHUB_SHA --title $tag --prerelease --notes-file desktop-app/RELEASE.md
+          gh release create $tag $installer[0].FullName "$($installer[0].FullName).sha256" $signaturePath $linuxPackage[0].FullName "$($linuxPackage[0].FullName).sha256" $linuxSignaturePath $manifestPath --target $env:GITHUB_SHA --title $tag --prerelease --notes-file desktop-app/RELEASE.md
           if ($LASTEXITCODE -ne 0) { throw 'No se pudo publicar la beta.' }
           gh release view beta --repo $env:GITHUB_REPOSITORY *> $null
           if ($LASTEXITCODE -eq 0) {

@@ -40,15 +40,16 @@ test('el paquete estático permite descubrir las extensiones y resolver sus entr
   }
   await assert.rejects(access(root+'plugins/bookstack/bookstack.html'));
 });
-test('el manifiesto del canal beta publica el artefacto firmado de Windows y las notas de release',async()=>{
+test('el manifiesto del canal beta publica artefactos firmados de Windows y Debian con notas de release',async()=>{
   const folder=await mkdtemp(join(tmpdir(),'mermaid-bp-updater-'));
   try{
-    const notes=join(folder,'RELEASE.md'),signature=join(folder,'installer.exe.sig'),output=join(folder,'latest.json');
+    const notes=join(folder,'RELEASE.md'),signature=join(folder,'installer.exe.sig'),linuxSignature=join(folder,'package.deb.sig'),output=join(folder,'latest.json');
     const signedFixture=await readFile('tests/fixtures/updater-signature-sample.txt.sig','utf8');
     await writeFile(notes,'Mejoras de esta versión.\n');
     await writeFile(signature,signedFixture);
-    // The fixture checks signature serialization; production publishes the Tauri 2 NSIS executable.
-    const generated=spawnSync(process.execPath,['scripts/create-updater-manifest.mjs','--version','1.0.0-beta.1','--notes-file',notes,'--artifact-url','https://github.com/cayetanobp/mermaid-bp/releases/download/1.0.0-beta.1/Mermaid-BP-setup.exe','--signature-file',signature,'--output',output],{encoding:'utf8'});
+    await writeFile(linuxSignature,signedFixture);
+    // The fixture checks signature serialization; production publishes Tauri NSIS and Debian artifacts.
+    const generated=spawnSync(process.execPath,['scripts/create-updater-manifest.mjs','--version','1.0.0-beta.1','--notes-file',notes,'--artifact-url','https://github.com/cayetanobp/mermaid-bp/releases/download/1.0.0-beta.1/Mermaid-BP-setup.exe','--signature-file',signature,'--linux-artifact-url','https://github.com/cayetanobp/mermaid-bp/releases/download/1.0.0-beta.1/mermaid-bp_1.0.0-beta.1_amd64.deb','--linux-signature-file',linuxSignature,'--output',output],{encoding:'utf8'});
     assert.equal(generated.status,0,generated.stderr);
     const manifest=JSON.parse(await readFile(output,'utf8'));
     assert.match(Buffer.from(manifest.platforms['windows-x86_64'].signature,'base64').toString('utf8'),/trusted comment: timestamp:.*version:1\.0\.0-beta\.1/);
@@ -58,6 +59,10 @@ test('el manifiesto del canal beta publica el artefacto firmado de Windows y las
     assert.deepEqual(manifest.platforms['windows-x86_64'],{
       signature:signedFixture.trim(),
       url:'https://github.com/cayetanobp/mermaid-bp/releases/download/1.0.0-beta.1/Mermaid-BP-setup.exe',
+    });
+    assert.deepEqual(manifest.platforms['linux-x86_64-deb'],{
+      signature:signedFixture.trim(),
+      url:'https://github.com/cayetanobp/mermaid-bp/releases/download/1.0.0-beta.1/mermaid-bp_1.0.0-beta.1_amd64.deb',
     });
   }finally{await rm(folder,{recursive:true,force:true});}
 });
@@ -81,6 +86,11 @@ test('el manifiesto rechaza una URL HTTP o un artefacto sin firma',async()=>{
     const wrongArtifact=spawnSync(process.execPath,args,{encoding:'utf8'});
     assert.notEqual(wrongArtifact.status,0);
     assert.match(wrongArtifact.stderr,/NSIS \.exe/);
+    args[6]='https://github.com/cayetanobp/mermaid-bp/releases/download/beta/installer.exe';
+    const partialLinux=[...args.slice(0,-2),'--linux-artifact-url','https://github.com/cayetanobp/mermaid-bp/releases/download/beta/package.deb','--output',output];
+    const missingLinuxSignature=spawnSync(process.execPath,partialLinux,{encoding:'utf8'});
+    assert.notEqual(missingLinuxSignature.status,0);
+    assert.match(missingLinuxSignature.stderr,/deben especificarse juntos/);
   }finally{await rm(folder,{recursive:true,force:true});}
 });
 
@@ -92,6 +102,9 @@ test('el artefacto Linux declara el paquete Debian y la versión beta publicada'
   assert.equal(packageJson.version,'1.0.0-beta.1');
   assert.match(cargo,/version = "1\.0\.0-beta\.1"/);
   assert.ok(config.bundle.targets.includes('deb'));
+  assert.ok(config.bundle.createUpdaterArtifacts);
+  assert.ok(config.plugins.updater.pubkey.length>0);
+  assert.equal(config.plugins.updater.requireSignedVersion,true);
   assert.equal(config.productName,'Mermaid BP');
   assert.deepEqual(Array.from(config.bundle.targets),['nsis','deb']);
   assert.ok(config.bundle.linux.deb.depends.includes('libayatana-appindicator3-1'));
@@ -102,11 +115,12 @@ test('el updater Windows conserva idiomas y usa selección automática compatibl
   assert.deepEqual(Array.from(config.bundle.windows.nsis.languages),['Spanish','English']);
   assert.equal(config.bundle.windows.nsis.displayLanguageSelector,false);
 });
-test('el flujo Linux instala el paquete y automatiza una sesión gráfica real',async()=>{
+test('el flujo Linux publica el Debian firmado y prueba su actualización instalada',async()=>{
   const workflow=await readFile('.github/workflows/desktop-linux.yml','utf8');
   const smoke=await readFile('scripts/smoke-linux-installed.sh','utf8');
   const docker=await readFile('scripts/build-linux-deb-docker.ps1','utf8');
   assert.ok(workflow.includes('createUpdaterArtifacts":false'));
+  assert.ok(workflow.includes('createUpdaterArtifacts":true'));
   assert.ok(workflow.includes('npm exec -- tauri build'));
   assert.ok(workflow.includes('-- --locked'));
   assert.match(workflow,/ubuntu-24\.04/);
@@ -118,6 +132,9 @@ test('el flujo Linux instala el paquete y automatiza una sesión gráfica real',
   assert.match(workflow,/smoke-linux-installed\.sh/);
   assert.match(workflow,/xvfb-run[^\n]*dbus-run-session -- bash -c/);
   assert.match(workflow,/bash \.\/scripts\/smoke-linux-installed\.sh/);
+  assert.match(workflow,/scripts\/linux-updater-e2e\.sh/);
+  assert.match(workflow,/name: mermaid-bp-linux-updater/);
+  assert.match(workflow,/TAURI_SIGNING_PRIVATE_KEY/);
   assert.ok(!smoke.includes('\r'));
   assert.match(smoke,/tauri-driver/);
   assert.match(smoke,/xdotool/);
@@ -135,4 +152,13 @@ test('el flujo Linux instala el paquete y automatiza una sesión gráfica real',
   assert.match(docker,/-e CARGO_TARGET_DIR=\/cargo-target/);
   assert.match(docker,/target\/linux-bundle\/deb/);
   assert.match(docker,/Write-Output "Debian package output: \$target"/);
+});
+
+test('la publicación beta exige y adjunta el paquete Debian de la misma compilación',async()=>{
+  const workflow=await readFile('.github/workflows/publish-beta.yml','utf8');
+  assert.match(workflow,/linux_build_run_id:/);
+  assert.match(workflow,/LINUX_BUILD_RUN_ID/);
+  assert.match(workflow,/mermaid-bp-linux-updater/);
+  assert.match(workflow,/linux-artifact-url/);
+  assert.match(workflow,/linuxSignaturePath/);
 });

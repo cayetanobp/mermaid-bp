@@ -43,19 +43,34 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential curl wget file libssl-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev libwebkit2gtk-4.1-dev libxdo-dev webkit2gtk-driver xdotool xvfb scrot openbox x11-utils dbus-daemon dbus-x11 libglib2.0-bin xdg-desktop-portal xdg-desktop-portal-gtk python3-selenium
+      - name: Exigir la clave de firma para las compilaciones de confianza
+        if: (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && (github.event_name != 'workflow_dispatch' || inputs.reuse_build_run_id == '')
+        env:
+          SIGNING_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: test -n "$SIGNING_KEY" || { echo 'Missing TAURI_SIGNING_PRIVATE_KEY; the Linux updater package must be signed.' >&2; exit 1; }
       - name: Instalar tauri-driver
         run: cargo install tauri-driver --locked
       - run: npm ci
         if: inputs.reuse_build_run_id == ''
       - run: npm ci --prefix desktop-app
         if: inputs.reuse_build_run_id == ''
-      - name: Preparar configuración de build Debian sin artefactos de updater
+      - name: Preparar configuración Debian con artefactos updater cuando hay firma
         if: inputs.reuse_build_run_id == ''
-        run: printf '{"bundle":{"createUpdaterArtifacts":false}}' > "$RUNNER_TEMP/tauri-linux.json"
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          if [[ -n "$TAURI_SIGNING_PRIVATE_KEY" ]]; then
+            printf '{"bundle":{"createUpdaterArtifacts":true}}' > "$RUNNER_TEMP/tauri-linux.json"
+          else
+            printf '{"bundle":{"createUpdaterArtifacts":false}}' > "$RUNNER_TEMP/tauri-linux.json"
+          fi
       - name: Compilar el paquete Debian con Cargo bloqueado
         if: inputs.reuse_build_run_id == ''
         working-directory: desktop-app
         run: npm exec -- tauri build --config "$RUNNER_TEMP/tauri-linux.json" -- --locked
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
       - name: Reutilizar .deb de una compilación Linux verificada
         if: inputs.reuse_build_run_id != ''
         env:
@@ -150,12 +165,48 @@ jobs:
           '
         env:
           MERMAID_BP_SMOKE_DIR: ${{ runner.temp }}/mermaid-bp-linux-smoke
+      - name: Probar la actualización Debian firmada en una aplicación instalada
+        if: inputs.reuse_build_run_id == '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        run: |
+          mkdir -p "$RUNNER_TEMP/mermaid-bp-linux-updater-diagnostics" "$RUNNER_TEMP/xdg-runtime"
+          chmod 700 "$RUNNER_TEMP/xdg-runtime"
+          XDG_CURRENT_DESKTOP=GNOME XDG_RUNTIME_DIR="$RUNNER_TEMP/xdg-runtime" xvfb-run --auto-servernum --server-args='-screen 0 1440x1000x24' dbus-run-session -- bash -c '
+            set -euo pipefail
+            openbox --sm-disable >"$MERMAID_BP_LINUX_UPDATER_DIAGNOSTICS/openbox.log" 2>&1 &
+            wm_pid=$!
+            trap "kill $wm_pid 2>/dev/null || true" EXIT
+            for _ in $(seq 1 100); do
+              if xprop -root _NET_SUPPORTING_WM_CHECK | grep -q "window id"; then break; fi
+              sleep 0.1
+            done
+            xprop -root _NET_SUPPORTING_WM_CHECK | grep -q "window id"
+            bash ./scripts/linux-updater-e2e.sh
+          '
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
+          MERMAID_BP_LINUX_UPDATER_OUT: ${{ runner.temp }}/mermaid-bp-linux-updater
+          MERMAID_BP_LINUX_UPDATER_DIAGNOSTICS: ${{ runner.temp }}/mermaid-bp-linux-updater-diagnostics
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: mermaid-bp-linux-smoke
           path: ${{ runner.temp }}/mermaid-bp-linux-smoke
           if-no-files-found: ignore
+      - uses: actions/upload-artifact@v4
+        if: inputs.reuse_build_run_id == '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        with:
+          name: mermaid-bp-linux-updater
+          path: ${{ runner.temp }}/mermaid-bp-linux-updater/*
+          if-no-files-found: error
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: failure() && inputs.reuse_build_run_id == '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        with:
+          name: mermaid-bp-linux-updater-diagnostics
+          path: ${{ runner.temp }}/mermaid-bp-linux-updater-diagnostics/*
+          if-no-files-found: ignore
+          retention-days: 3
       - uses: actions/upload-artifact@v4
         if: always()
         with:
