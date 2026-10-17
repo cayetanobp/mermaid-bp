@@ -35,6 +35,9 @@ options.set_capability("tauri:options", {"application": app})
 driver = webdriver.Remote(command_executor="http://127.0.0.1:4444", options=options)
 wait = WebDriverWait(driver, 60)
 
+def start_driver():
+    return webdriver.Remote(command_executor="http://127.0.0.1:4444", options=options)
+
 def open_file_menu():
     driver.find_element(By.ID, "menu-archivo").click()
     wait.until(lambda d: d.find_element(By.ID, "menu-archivo-panel").is_displayed())
@@ -71,6 +74,36 @@ try:
     deadline = time.time() + 20
     while time.time() < deadline and not svg.exists(): time.sleep(.25)
     assert svg.exists() and "<svg" in svg.read_text(encoding="utf-8")[:500], "Exported SVG is missing or invalid"
+
+    # Use the real Tauri invoke bridge and app-data directory in the installed app.
+    # Restarting WebKit proves the plugin survives process lifetime and still loads
+    # its module through the scoped asset protocol.
+    plugin_manifest = '{"id":"installed-smoke","name":"Installed smoke plugin","description":"Installed app persistence check","version":"1.0.0","apiVersion":1}'
+    plugin_entry = "export default {setup(ctx){ctx.ui.addAction({id:'persisted',label:'Installed plugin action',run(){ctx.ui.notify('Installed plugin ran.');}});}};"
+    result = driver.execute_async_script("""
+      const done = arguments[2];
+      const encode = value => Array.from(new TextEncoder().encode(value));
+      window.__TAURI__.core.invoke('install_plugin', {
+        id: 'installed-smoke',
+        paths: ['plugin.json', 'index.js'],
+        contents: [encode(arguments[0]), encode(arguments[1])]
+      }).then(() => window.__TAURI__.core.invoke('list_plugins'))
+        .then(plugins => done(plugins.some(plugin => plugin.id === 'installed-smoke')))
+        .catch(error => done({error: String(error)}));
+    """, plugin_manifest, plugin_entry)
+    assert result is True, f"Tauri backend did not persist the plugin: {result}"
+    driver.quit()
+    driver = start_driver()
+    wait = WebDriverWait(driver, 60)
+    wait.until(EC.presence_of_element_located((By.ID, "plugin-installed-smoke-persisted")))
+    driver.find_element(By.ID, "plugin-installed-smoke-persisted").click()
+    wait.until(lambda d: d.find_element(By.ID, "message").text == "Installed plugin ran.")
+    removed = driver.execute_async_script("""
+      const done = arguments[0];
+      window.__TAURI__.core.invoke('remove_plugin', {id: 'installed-smoke'})
+        .then(done).catch(error => done({error: String(error)}));
+    """)
+    assert removed is True, f"Tauri backend did not remove the plugin: {removed}"
 finally:
     driver.quit()
 PY
