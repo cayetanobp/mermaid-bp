@@ -62,7 +62,11 @@ test('el flujo Linux instala el paquete y automatiza una sesión gráfica real',
   assert.match(workflow,/dpkg-deb -f "\$package" Architecture\)" = amd64/);
   assert.match(workflow,/sudo apt-get install -y "\.\/\$\{packages\[0\]\}"/);
   assert.match(workflow,/smoke-linux-installed\.sh/);
-  assert.match(workflow,/xvfb-run[^\n]* bash \.\/scripts\/smoke-linux-installed\.sh/);
+  assert.match(workflow,/xvfb-run[^\n]* dbus-run-session -- bash -c/);
+  assert.match(workflow,/XDG_CURRENT_DESKTOP=GNOME XDG_RUNTIME_DIR=/);
+  assert.match(workflow,/openbox --sm-disable/);
+  assert.match(workflow,/gdbus introspect --session --dest org\.freedesktop\.portal\.Desktop/);
+  assert.match(workflow,/xdg-desktop-portal-gtk/);
   assert.ok(!smoke.includes('\r'));
   assert.match(smoke,/tauri-driver/);
   assert.match(smoke,/xdotool/);
@@ -72,8 +76,9 @@ test('el flujo Linux instala el paquete y automatiza una sesión gráfica real',
   assert.match(smoke,/menu-archivo-panel/);
   assert.match(smoke,/is_displayed\(\)/);
   assert.equal((smoke.match(/open_file_menu\(\)/g)??[]).length,3);
-  assert.match(smoke,/open_file_menu\(\)\n    driver\.find_element\(By\.ID, "save"\)/);
-  assert.match(smoke,/open_file_menu\(\)\n    driver\.find_element\(By\.ID, "svg"\)/);
+  assert.match(smoke,/open_file_menu\(\)\n    mmd = out \/ "installed-smoke\.mmd"\n    save_from_native_dialog\(driver\.find_element\(By\.ID, "save"\), mmd\)/);
+  assert.match(smoke,/open_file_menu\(\)\n    svg = out \/ "installed-smoke\.svg"\n    save_from_native_dialog\(driver\.find_element\(By\.ID, "svg"\), svg\)/);
+  assert.match(smoke,/def choose_plugin_folder\(folder\):/);
   assert.match(docker,/docker run/);
   assert.match(docker,/--mount/);
   assert.match(docker,/source=mermaid-bp-cargo-target,target=\/cargo-target/);
