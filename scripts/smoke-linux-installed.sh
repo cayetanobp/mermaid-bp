@@ -201,14 +201,25 @@ def choose_plugin_folder(folder):
     subprocess.run(["xdotool", "mousemove", "460", "132", "click", "--repeat", "2", "--delay", "100", "1"], check=True)
     time.sleep(0.3)
     capture_desktop("native-plugin-folder-recent-opened.png")
-    for folder_name, screenshot in [
-        ("fixture", "native-plugin-folder-fixture.png"),
-        (folder.name, "native-plugin-folder-selected-path.png"),
-    ]:
-        subprocess.run(["xdotool", "type", "--clearmodifiers", "--delay", "100", folder_name], check=True)
-        subprocess.run(["xdotool", "key", "Return"], check=True)
-        time.sleep(0.4)
-        capture_desktop(screenshot)
+    # GTK type-to-select highlights a row but Return only leaves the selection
+    # in place in this portal. Double-click the measured list row to open it.
+    subprocess.run(["xdotool", "type", "--clearmodifiers", "--delay", "100", "fixture"], check=True)
+    time.sleep(0.3)
+    capture_desktop("native-plugin-folder-fixture-match.png")
+    subprocess.run(
+        ["xdotool", "mousemove", str(left + 220), str(top + 104), "click", "--repeat", "2", "--delay", "100", "1"],
+        check=True,
+    )
+    time.sleep(0.4)
+    capture_desktop("native-plugin-folder-fixture-opened.png")
+    # The fixture contains only the requested plugin folder, on the first list
+    # row at the same measured location.
+    subprocess.run(
+        ["xdotool", "mousemove", str(left + 220), str(top + 104), "click", "--repeat", "2", "--delay", "100", "1"],
+        check=True,
+    )
+    time.sleep(0.4)
+    capture_desktop("native-plugin-folder-selected-path.png")
     # Activate GTK's actual Select button after reaching the selected folder.
     subprocess.run(
         ["xdotool", "mousemove", str(left + width - 50), str(top + height - 28), "click", "1"],
