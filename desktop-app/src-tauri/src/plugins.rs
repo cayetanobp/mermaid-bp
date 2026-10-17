@@ -52,7 +52,6 @@ fn read_plugin_folder(folder: &Path) -> Result<Value, String> {
     let mut total_bytes = 0usize;
     let mut entry_count = 0usize;
     collect_plugin_files(
-        &canonical_root,
         &root,
         Path::new(""),
         0,
@@ -70,7 +69,6 @@ fn read_plugin_folder(folder: &Path) -> Result<Value, String> {
 }
 
 fn collect_plugin_files(
-    root_path: &Path,
     current: &Dir,
     relative_dir: &Path,
     depth: usize,
@@ -99,19 +97,18 @@ fn collect_plugin_files(
         }
         let relative_path = relative_dir.join(name);
         // Windows junctions and other reparse points are not always reported
-        // as symbolic links by portable file-type APIs. Reject them explicitly;
-        // actual opens remain relative to cap-std directory handles, so a path
-        // swap cannot escape the selected root.
-        if is_reparse_point(&fs::symlink_metadata(root_path.join(&relative_path)).map_err(|error| error.to_string())?) {
+        // as symbolic links by portable file-type APIs. Check metadata fetched
+        // relative to the current capability handle, not an ambient path.
+        if is_reparse_point(&metadata) {
             return Err("La carpeta del plugin no puede contener enlaces simbólicos o puntos de reanálisis.".into());
         }
         if file_type.is_dir() {
             let child = current.open_dir(name).map_err(|error| error.to_string())?;
-            if !child.dir_metadata().map_err(|error| error.to_string())?.is_dir() {
+            let child_metadata = child.dir_metadata().map_err(|error| error.to_string())?;
+            if is_reparse_point(&child_metadata) || !child_metadata.is_dir() {
                 return Err("La carpeta del plugin contiene un tipo de archivo no admitido.".into());
             }
             collect_plugin_files(
-                root_path,
                 &child,
                 &relative_path,
                 depth + 1,
@@ -144,7 +141,7 @@ fn collect_plugin_files(
 
         let mut file = current.open(name).map_err(|error| error.to_string())?;
         let file_metadata = file.metadata().map_err(|error| error.to_string())?;
-        if !file_metadata.is_file() {
+        if is_reparse_point(&file_metadata) || !file_metadata.is_file() {
             return Err("La carpeta del plugin contiene un archivo no regular.".into());
         }
         let remaining = MAX_TOTAL_BYTES.saturating_sub(*total_bytes);
