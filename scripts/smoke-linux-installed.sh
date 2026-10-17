@@ -248,10 +248,14 @@ def choose_plugin_folder(folder):
             "GTK location prompt has no accessible editable text control; "
             f"active window={active_window_title()!r}"
         )
-    # GTK exposes one active editable control after Ctrl+L. Prefer the
-    # Location-named entry, falling back only when there is exactly one.
-    location_entries = [pair for pair in entries if "location" in (pair[0]["name"] + pair[0]["value"]).lower()]
-    selected_entry = location_entries[0] if len(location_entries) == 1 else (entries[0] if len(entries) == 1 else None)
+    # GTK labels its accessible location entry with the Location Layer
+    # container; other editable controls belong to hidden create/rename panes.
+    location_entries = [
+        pair for pair in entries
+        if pair[0]["role"].lower() == "text"
+        and any("Location Layer" in ancestor for ancestor in pair[0]["ancestry"])
+    ]
+    selected_entry = location_entries[0] if len(location_entries) == 1 else None
     if selected_entry is None:
         raise AssertionError(
             "Could not identify a unique GTK location entry; "
@@ -266,9 +270,12 @@ def choose_plugin_folder(folder):
     capture_desktop("native-plugin-folder-location-path.png")
     if str(folder.resolve()) not in location_text:
         raise AssertionError(f"GTK location entry contains {location_text!r}, expected {str(folder.resolve())!r}")
-    subprocess.run(["xdotool", "windowactivate", "--sync", dialog_id], check=True)
-    subprocess.run(["xdotool", "windowfocus", "--sync", dialog_id], check=True)
-    subprocess.run(["xdotool", "key", "--clearmodifiers", "Return"], check=True)
+    location_node["node"].queryComponent().grabFocus()
+    location_action = location_node["node"].queryAction()
+    location_actions = [location_action.getName(index).lower() for index in range(location_action.nActions)]
+    activate_index = next((index for index, name in enumerate(location_actions) if name == "activate"), None)
+    if activate_index is None or not location_action.doAction(activate_index):
+        raise AssertionError(f"GTK location entry has no usable activate action: {location_actions!r}")
 
     deadline = time.time() + 10
     selected_button = None
