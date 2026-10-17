@@ -97,7 +97,6 @@ test('el artefacto Linux declara el paquete Debian y la versión beta publicada'
   assert.ok(config.bundle.linux.deb.depends.includes('libayatana-appindicator3-1'));
   await access('desktop-app/src-tauri/icons/icon.png');
 });
-
 test('el flujo Linux instala el paquete y automatiza una sesión gráfica real',async()=>{
   const workflow=await readFile('.github/workflows/desktop-linux.yml','utf8');
   const smoke=await readFile('scripts/smoke-linux-installed.sh','utf8');
