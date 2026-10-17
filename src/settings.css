@@ -26,6 +26,20 @@
 #settings-dialog .plugin-row label{display:flex;flex-direction:row;gap:12px;margin:0;color:#16181d;font-weight:500}
 #settings-dialog .plugin-row p{font-size:13px;color:#5b606b;line-height:1.6;margin:10px 0}
 #settings-dialog .plugin-row small{color:#5b606b;font-size:11px}
+#plugin-import-controls{border:1px solid #dad8d2;background:#f8f7f4;padding:16px;margin:0 0 20px}
+#plugin-import-controls>p{font-size:12px;line-height:1.6;color:#5b606b;margin:0 0 12px}
+#plugin-folder-input{display:block;max-width:100%;font-size:12px;margin-bottom:12px}
+.plugin-folder-label{display:block;color:#16181d;font-size:12px;font-weight:500;margin-bottom:6px}
+#plugin-install,.plugin-remove{border:1px solid #8c929c;border-radius:3px;background:#fff;color:#1f3a5f;padding:8px 12px;font:inherit;font-size:12px;font-weight:500;cursor:pointer}
+#plugin-import-preview{padding:10px 12px;background:#fff;border-left:3px solid #47735a;color:#16181d;font-size:13px;margin:12px 0}
+#plugin-import-error{color:#9b2e27!important}
+#plugin-trust-warning{font-weight:500;color:#7b2c22!important;margin:12px 0}
+#plugin-trust-label{display:flex;align-items:flex-start;gap:9px;color:#16181d;font-size:12px;line-height:1.5;margin:10px 0 14px}
+#plugin-trust-label input{flex:none;margin-top:2px}
+#plugin-install:disabled{opacity:.5;cursor:not-allowed}
+#plugin-local-status{margin:10px 0 0!important;color:#1f3a5f!important}
+#settings-dialog .plugin-row{position:relative;border-bottom:1px solid #e5e3de;padding:14px 0}
+#settings-dialog .plugin-remove{float:right;margin-top:8px}
 .cm-editor{font-size:var(--editor-font-size,12px)!important}
 html[data-diagram-grid=false] #diagram-viewport{background-image:none}
 html[data-diagram-hints=false] #visual-note:not([data-note=notice]){display:none}

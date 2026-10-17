@@ -957,7 +957,7 @@ const initialPane=getPreferences().defaultPane;
 try{setPaneMode(initialPane==='remember'?(localStorage.getItem('mermaid-bp:pane-mode')==='cascade'?'cascade':'code'):initialPane);}catch{setPaneMode(initialPane==='cascade'?'cascade':'code');}
 persist();
 setupInspectorResize(()=>editor.requestMeasure());
-setupSettings(()=>{editor.dispatch({effects:codeAppearance.reconfigure(codeAppearanceExtensions())});editor.requestMeasure();});
+setupSettings(()=>{editor.dispatch({effects:codeAppearance.reconfigure(codeAppearanceExtensions())});editor.requestMeasure();},async()=>{await pluginHost?.reloadInstalled();});
 pluginHost=new PluginHost(()=>({source:source(),fileName:filename}),message);
 void pluginHost.start();
 setupTour(()=>pluginHost!.guideSteps(),()=>paneMode,setPaneMode);

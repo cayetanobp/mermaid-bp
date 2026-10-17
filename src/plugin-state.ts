@@ -1,4 +1,5 @@
 import type {PluginDescriptor,PluginManifest} from './plugin-api';
+import {desktopPluginBridge,localPluginUrl,listLocalPlugins} from './desktop-plugin-bridge';
 export const descriptors:PluginDescriptor[]=[];
 export const discoveryErrors:string[]=[];
 let discovery:Promise<void>|undefined;
@@ -7,14 +8,16 @@ const key='mermaid-bp:plugins:v1';
 export function discoverPlugins(base=new URL('./plugins/',document.baseURI)):Promise<void>{
  return discovery??=(async()=>{
   try{
-   const desktop=document.querySelector('meta[name="mermaid-bp-desktop"]')||Object.hasOwn(window,'__TAURI__');
+   const desktop=document.querySelector('meta[name="mermaid-bp-desktop"]')||!!desktopPluginBridge();
    const index=desktop?new URL('index.json',base):base;
-   const response=await fetch(index,{cache:'no-store'});if(response.status===404)return;if(!response.ok)throw Error('No se pudo consultar la carpeta de extensiones.');
-   const entries:unknown=await response.json();if(!Array.isArray(entries))throw Error('El listado de extensiones no es válido.');
+   const response=await fetch(index,{cache:'no-store'});if(response.status!==404&&!response.ok)throw Error('No se pudo consultar la carpeta de extensiones.');
+   const entries:unknown=response.status===404?[]:await response.json();if(!Array.isArray(entries))throw Error('El listado de extensiones no es válido.');
    const names=[...new Set(entries.filter(e=>e?.type==='directory'&&typeof e.name==='string').map(e=>e.name.replace(/\/$/,'')))].filter(name=>/^[a-z][a-z0-9-]*$/.test(name)).sort();
-   const found=await Promise.all(names.map(async id=>{
+   const folders=new Map(names.map(id=>[id,{url:new URL(id+'/',base),managed:false}]));
+   if(desktop&&desktopPluginBridge())try{for(const id of await listLocalPlugins())if(/^[a-z][a-z0-9-]*$/.test(id))folders.set(id,{url:new URL(await localPluginUrl(id,'plugin.json')),managed:true});}catch(error){discoveryErrors.push(error instanceof Error?error.message:'No se pudieron consultar los plugins instalados.');}
+   const found=await Promise.all([...folders].map(async([id,source])=>{
     try{
-     const folder=new URL(id+'/',base),response=await fetch(new URL('plugin.json',folder),{cache:'no-store'});if(!response.ok)throw Error('No se pudo leer plugin.json.');
+     const manifestUrl=source.managed?source.url:new URL('plugin.json',source.url),folder=source.managed?new URL('./',source.url):source.url,response=await fetch(manifestUrl,{cache:'no-store'});if(!response.ok)throw Error('No se pudo leer plugin.json.');
      let parsed:unknown;
      try{parsed=await response.json();}catch{throw Error('El manifiesto no contiene JSON válido.');}
      if(!parsed||typeof parsed!=='object'||Array.isArray(parsed))throw Error('El manifiesto no cumple el contrato público.');
@@ -23,16 +26,17 @@ export function discoverPlugins(base=new URL('./plugins/',document.baseURI)):Pro
      if(manifest.enabledByDefault!==undefined&&typeof manifest.enabledByDefault!=='boolean')throw Error('El campo enabledByDefault debe ser booleano.');
      const entry=manifest.entry===undefined?'index.js':manifest.entry;
      if(typeof entry!=='string'||!/^[a-zA-Z0-9_./-]+\.(?:m?js)$/.test(entry)||entry.split('/').includes('..')||entry.startsWith('/'))throw Error('La ruta de entrada no es válida.');
-     const entryUrl=new URL(entry,folder);if(entryUrl.origin!==folder.origin||!entryUrl.pathname.startsWith(folder.pathname))throw Error('La ruta de entrada debe permanecer dentro de la carpeta del plugin.');
+     const entryUrl=source.managed?new URL(await localPluginUrl(id,entry)):new URL(entry,folder);if(entryUrl.origin!==folder.origin||!entryUrl.pathname.startsWith(folder.pathname))throw Error('La ruta de entrada debe permanecer dentro de la carpeta del plugin.');
      const entryResponse=await fetch(entryUrl,{method:'HEAD',cache:'no-store'});if(!entryResponse.ok)throw Error('No se pudo leer el archivo de entrada.');
-     const url=entryUrl.href;
-     return{manifest,load:()=>import(/* @vite-ignore */ url)} satisfies PluginDescriptor;
+     const versionedUrl=new URL(entryUrl.href);versionedUrl.searchParams.set('v',manifest.version);const url=versionedUrl.href;
+     return{manifest,managed:source.managed,load:()=>import(/* @vite-ignore */ url)} satisfies PluginDescriptor;
     }catch(error){const reason=error instanceof Error&&error.message?error.message:'Error de manifiesto o entrada.';discoveryErrors.push('No se ha podido cargar la extensión '+id+': '+reason);return null;}
    }));
    descriptors.push(...found.filter((p):p is NonNullable<typeof p>=>p!==null));
   }catch(error){discoveryErrors.push(error instanceof Error&&error.message?error.message:'No se ha podido consultar la carpeta de extensiones.');}
  })();
 }
+export function resetPluginDiscovery(){discovery=undefined;descriptors.splice(0);discoveryErrors.splice(0);}
 export function enabledPreference(id:string,fallback:boolean):boolean{
  try{const value=JSON.parse(localStorage.getItem(key)||'{}')[id];return typeof value==='boolean'?value:fallback;}catch{return fallback;}
 }
