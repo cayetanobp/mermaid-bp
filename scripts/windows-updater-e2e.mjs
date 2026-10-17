@@ -2,7 +2,7 @@ import {createServer} from 'node:http';
 import {spawn,spawnSync} from 'node:child_process';
 import {mkdtemp,readFile,writeFile,mkdir,readdir,rm,stat} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
-import {join,basename} from 'node:path';
+import {join,basename,dirname} from 'node:path';
 import {once} from 'node:events';
 import {setTimeout as delay} from 'node:timers/promises';
 import {chromium,expect} from '@playwright/test';
@@ -57,8 +57,9 @@ function run(command,args,options={}){
 async function build(version,tag){
   const overlay=join(scratch,`${tag}.json`);
   await writeFile(overlay,JSON.stringify({version,plugins:{updater:{endpoints:[endpoint],dangerousInsecureTransportProtocol:true}}}));
-  const tauriCli=join(desktop,'node_modules','@tauri-apps','cli','tauri.js');
-  run(process.execPath,[tauriCli,'build','--config',overlay],{cwd:desktop,env:{...process.env,TAURI_SIGNING_PRIVATE_KEY:key,TAURI_SIGNING_PRIVATE_KEY_PASSWORD:''}});
+  const npmCli=process.env.npm_execpath??join(dirname(process.execPath),'node_modules','npm','bin','npm-cli.js');
+  await stat(npmCli);
+  run(process.execPath,[npmCli,'exec','--','tauri','build','--config',overlay],{cwd:desktop,env:{...process.env,npm_execpath:npmCli,TAURI_SIGNING_PRIVATE_KEY:key,TAURI_SIGNING_PRIVATE_KEY_PASSWORD:''}});
   const files=await readdir(bundle);
   const installers=files.filter(name=>name.endsWith('-setup.exe'));
   const zips=files.filter(name=>name.endsWith('-setup.nsis.zip'));
