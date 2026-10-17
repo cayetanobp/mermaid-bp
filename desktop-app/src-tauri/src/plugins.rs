@@ -3,7 +3,8 @@
 use serde_json::Value;
 use std::{
     collections::HashSet,
-    fs,
+    fs::{self, File},
+    io::Read,
     path::{Component, Path, PathBuf},
     sync::atomic::{AtomicU64, Ordering},
 };
@@ -11,7 +12,139 @@ use tauri::{AppHandle, Manager};
 
 const MAX_FILES: usize = 256;
 const MAX_TOTAL_BYTES: usize = 32 * 1024 * 1024;
+const MAX_DIRECTORY_ENTRIES: usize = 1024;
+const MAX_DIRECTORY_DEPTH: usize = 16;
 static STAGING_ID: AtomicU64 = AtomicU64::new(1);
+
+#[tauri::command]
+pub async fn choose_plugin_folder() -> Result<Option<Value>, String> {
+    tauri::async_runtime::spawn_blocking(|| {
+        let Some(folder) = rfd::FileDialog::new()
+            .set_title("Elegir carpeta de plugin")
+            .pick_folder()
+        else {
+            return Ok(None);
+        };
+        read_plugin_folder(&folder).map(Some)
+    })
+    .await
+    .map_err(|error| error.to_string())?
+}
+
+fn read_plugin_folder(folder: &Path) -> Result<Value, String> {
+    let folder_metadata = fs::symlink_metadata(folder).map_err(|error| error.to_string())?;
+    if folder_metadata.file_type().is_symlink() || !folder_metadata.is_dir() {
+        return Err("La carpeta seleccionada no es un directorio válido.".into());
+    }
+    let folder_name = folder
+        .file_name()
+        .and_then(|name| name.to_str())
+        .filter(|name| !name.is_empty())
+        .ok_or_else(|| "No se pudo leer el nombre de la carpeta seleccionada.".to_string())?;
+
+    let mut paths = Vec::new();
+    let mut contents = Vec::new();
+    let mut total_bytes = 0usize;
+    let mut entry_count = 0usize;
+    collect_plugin_files(
+        folder,
+        folder,
+        0,
+        &mut entry_count,
+        &mut total_bytes,
+        &mut paths,
+        &mut contents,
+    )?;
+
+    Ok(serde_json::json!({
+        "folderName": folder_name,
+        "paths": paths,
+        "contents": contents,
+    }))
+}
+
+fn collect_plugin_files(
+    root: &Path,
+    current: &Path,
+    depth: usize,
+    entry_count: &mut usize,
+    total_bytes: &mut usize,
+    paths: &mut Vec<String>,
+    contents: &mut Vec<Vec<u8>>,
+) -> Result<(), String> {
+    if depth > MAX_DIRECTORY_DEPTH {
+        return Err("La carpeta del plugin supera la profundidad permitida.".into());
+    }
+    let mut entries = fs::read_dir(current)
+        .map_err(|error| error.to_string())?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|error| error.to_string())?;
+    entries.sort_by_key(|entry| entry.file_name());
+
+    for entry in entries {
+        *entry_count += 1;
+        if *entry_count > MAX_DIRECTORY_ENTRIES {
+            return Err("La carpeta del plugin contiene demasiadas entradas.".into());
+        }
+        let path = entry.path();
+        let file_type = entry.file_type().map_err(|error| error.to_string())?;
+        if file_type.is_symlink() {
+            return Err("La carpeta del plugin no puede contener enlaces simbólicos.".into());
+        }
+        if file_type.is_dir() {
+            collect_plugin_files(
+                root,
+                &path,
+                depth + 1,
+                entry_count,
+                total_bytes,
+                paths,
+                contents,
+            )?;
+            continue;
+        }
+        if !file_type.is_file() {
+            return Err("La carpeta del plugin contiene un tipo de archivo no admitido.".into());
+        }
+        if paths.len() >= MAX_FILES {
+            return Err("La carpeta supera el límite de 256 archivos.".into());
+        }
+
+        let relative = path
+            .strip_prefix(root)
+            .map_err(|_| "La carpeta contiene una ruta fuera del directorio seleccionado.".to_string())?;
+        let mut parts = Vec::new();
+        for component in relative.components() {
+            match component {
+                Component::Normal(part) => parts.push(
+                    part.to_str()
+                        .ok_or_else(|| "La carpeta contiene un nombre de archivo no compatible.".to_string())?,
+                ),
+                _ => return Err("La carpeta contiene una ruta de archivo no válida.".into()),
+            }
+        }
+        let relative_path = parts.join("/");
+        relative_file_path(&relative_path)?;
+
+        let mut file = File::open(&path).map_err(|error| error.to_string())?;
+        if !file.metadata().map_err(|error| error.to_string())?.is_file() {
+            return Err("La carpeta del plugin contiene un archivo no regular.".into());
+        }
+        let remaining = MAX_TOTAL_BYTES.saturating_sub(*total_bytes);
+        let mut bytes = Vec::new();
+        file.by_ref()
+            .take(remaining as u64 + 1)
+            .read_to_end(&mut bytes)
+            .map_err(|error| error.to_string())?;
+        if bytes.len() > remaining {
+            return Err("El plugin supera el límite de 32 MB.".into());
+        }
+        *total_bytes += bytes.len();
+        paths.push(relative_path);
+        contents.push(bytes);
+    }
+    Ok(())
+}
 
 fn valid_id(id: &str) -> bool {
     !id.is_empty()

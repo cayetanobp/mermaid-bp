@@ -1,6 +1,6 @@
 import {getPreferences,preferenceDefaults,subscribePreferences,updatePreferences,type Preferences} from './preferences';
 import {closeAppMenus} from './app-menus';
-import {desktopPluginBridge,installLocalPlugin} from './desktop-plugin-bridge';
+import {chooseLocalPluginFolder,desktopPluginBridge,installLocalPlugin} from './desktop-plugin-bridge';
 import './settings.css';
 type Section='general'|'editor'|'diagram'|'extensions';
 const sections:Record<Section,string>={general:'General',editor:'Editor',diagram:'Diagrama',extensions:'Extensiones'};
@@ -53,35 +53,36 @@ export function setupSettings(onEditorChange:()=>void,reloadPlugins:()=>Promise<
   for(const input of dialog.querySelectorAll<HTMLInputElement|HTMLSelectElement>('[data-preference]')){const value=preferences[input.dataset.preference as keyof Preferences];if(input instanceof HTMLInputElement)input.checked=Boolean(value);else input.value=String(value);}
   onEditorChange();
  }
- if(desktopPluginBridge())get('plugins-dialog').insertAdjacentHTML('beforeend',`<div id="plugin-import-controls"><p>Instala una carpeta de plugin en el almacenamiento privado de esta aplicación.</p><label class="plugin-folder-label" for="plugin-folder-input">Elegir carpeta de plugin</label><input id="plugin-folder-input" type="file" webkitdirectory multiple aria-label="Elegir carpeta de plugin"><p id="plugin-import-error" role="alert" hidden></p><div id="plugin-import-preview" hidden></div><p id="plugin-trust-warning" hidden>El plugin ejecuta código local con los permisos de la aplicación. La API de plugins organiza sus funciones, pero no aísla ni limita ese código.</p><label id="plugin-trust-label" hidden><input id="plugin-trust-confirm" type="checkbox"> Entiendo que el plugin ejecutará código local con los permisos de la aplicación</label><button id="plugin-install" type="button" hidden disabled>Instalar plugin</button><p id="plugin-local-status" role="status" aria-live="polite"></p></div>`);
+ if(desktopPluginBridge())get('plugins-dialog').insertAdjacentHTML('beforeend',`<div id="plugin-import-controls"><p>Instala una carpeta de plugin en el almacenamiento privado de esta aplicación.</p><label class="plugin-folder-label" for="plugin-folder-select">Elegir carpeta de plugin</label><button id="plugin-folder-select" type="button">Seleccionar carpeta</button><p id="plugin-import-error" role="alert" hidden></p><div id="plugin-import-preview" hidden></div><p id="plugin-trust-warning" hidden>El plugin ejecuta código local con los permisos de la aplicación. La API de plugins organiza sus funciones, pero no aísla ni limita ese código.</p><label id="plugin-trust-label" hidden><input id="plugin-trust-confirm" type="checkbox"> Entiendo que el plugin ejecutará código local con los permisos de la aplicación</label><button id="plugin-install" type="button" hidden disabled>Instalar plugin</button><p id="plugin-local-status" role="status" aria-live="polite"></p></div>`);
  const importControls=dialog.querySelector<HTMLElement>('#plugin-import-controls');
  if(importControls){
- const input=dialog.querySelector<HTMLInputElement>('#plugin-folder-input')!,preview=get('plugin-import-preview'),error=get('plugin-import-error'),warning=get('plugin-trust-warning'),trustLabel=get('plugin-trust-label') as HTMLElement,trust=get('plugin-trust-confirm') as HTMLInputElement,install=get('plugin-install') as HTMLButtonElement,status=get('plugin-local-status');
+ const choose=dialog.querySelector<HTMLButtonElement>('#plugin-folder-select')!,preview=get('plugin-import-preview'),error=get('plugin-import-error'),warning=get('plugin-trust-warning'),trustLabel=get('plugin-trust-label') as HTMLElement,trust=get('plugin-trust-confirm') as HTMLInputElement,install=get('plugin-install') as HTMLButtonElement,status=get('plugin-local-status');
  let pending:{id:string;paths:string[];contents:Uint8Array[];name:string}|null=null;
  const showImportError=(message:string)=>{error.textContent=message;error.hidden=false;pending=null;preview.hidden=true;warning.hidden=true;trustLabel.hidden=true;install.hidden=true;};
- input.onchange=async()=>{
+ choose.onclick=async()=>{
   error.hidden=true;preview.hidden=true;warning.hidden=true;trustLabel.hidden=true;install.hidden=true;trust.checked=false;pending=null;status.textContent='';
-  const files=[...(input.files??[])];if(!files.length)return;
+  choose.disabled=true;
   try{
-   const max=32*1024*1024;if(files.length>256||files.reduce((sum,file)=>sum+file.size,0)>max)throw Error('La carpeta supera los límites de archivos o tamaño (256 archivos y 32 MB).');
-   const first=(files[0] as File&{webkitRelativePath?:string}).webkitRelativePath??'',root=first.includes('/')?first.split('/')[0]+'/':'';if(!root)throw Error('Selecciona la carpeta completa del plugin.');
+   const selection=await chooseLocalPluginFolder();if(!selection)return;
+   const max=32*1024*1024;if(!selection.folderName||selection.paths.length===0||selection.paths.length!==selection.contents.length||selection.paths.length>256||selection.contents.reduce((sum,bytes)=>sum+bytes.length,0)>max)throw Error('La carpeta supera los límites de archivos o tamaño (256 archivos y 32 MB), o no contiene archivos.');
    const paths:string[]=[],contents:Uint8Array[]=[];let manifest:Record<string,unknown>|null=null;
-   for(const file of files){const relative=(file as File&{webkitRelativePath?:string}).webkitRelativePath||file.name;if(root&&!relative.startsWith(root))throw Error('Selecciona una sola carpeta de plugin.');const path=root?relative.slice(root.length):relative;if(!path||path.startsWith('/')||path.split('/').some(part=>!part||part==='.'||part==='..')||path.includes('\\'))throw Error('La carpeta contiene una ruta de archivo no válida.');const bytes=new Uint8Array(await file.arrayBuffer());paths.push(path);contents.push(bytes);if(path==='plugin.json'){try{manifest=JSON.parse(new TextDecoder().decode(bytes));}catch{throw Error('plugin.json no contiene JSON válido.');}}}
+   for(let i=0;i<selection.paths.length;i++){const path=selection.paths[i],raw=selection.contents[i];if(typeof path!=='string'||!path||path.startsWith('/')||path.split('/').some(part=>!part||part==='.'||part==='..')||path.includes('\\'))throw Error('La carpeta contiene una ruta de archivo no válida.');const bytes=Uint8Array.from(raw);paths.push(path);contents.push(bytes);if(path==='plugin.json'){try{manifest=JSON.parse(new TextDecoder().decode(bytes));}catch{throw Error('plugin.json no contiene JSON válido.');}}}
    if(!manifest||typeof manifest!=='object'||Array.isArray(manifest))throw Error('La carpeta debe incluir plugin.json en su raíz.');
    const id=manifest.id,name=manifest.name,description=manifest.description,version=manifest.version,apiVersion=manifest.apiVersion,entry=manifest.entry??'index.js';
    if(typeof id!=='string'||!/^[a-z][a-z0-9-]*$/.test(id)||typeof name!=='string'||!name.trim()||typeof description!=='string'||!description.trim()||typeof version!=='string'||!version.trim()||!Number.isInteger(apiVersion))throw Error('plugin.json debe incluir id, name, description, version y apiVersion válidos.');
-   if(root.slice(0,-1)!==id)throw Error('El nombre de la carpeta debe coincidir con el id de plugin.json.');
+   if(selection.folderName!==id)throw Error('El nombre de la carpeta debe coincidir con el id de plugin.json.');
    if(manifest.enabledByDefault!==undefined&&typeof manifest.enabledByDefault!=='boolean')throw Error('El campo enabledByDefault debe ser booleano.');
    if(apiVersion!==1)throw Error(`La API ${apiVersion} no es compatible; esta aplicación admite la API 1.`);
    if(typeof entry!=='string'||!/^[a-zA-Z0-9_./-]+\.(?:m?js)$/.test(entry)||entry.startsWith('/')||entry.split('/').some(part=>part==='..'||part===''))throw Error('La ruta de entrada no es válida.');
    if(!paths.includes(entry))throw Error(`No se encontró el archivo de entrada ${entry}.`);
    pending={id,paths,contents,name};preview.textContent=`${name} · versión ${version} · API 1 compatible`;preview.hidden=false;warning.hidden=false;trustLabel.hidden=false;install.textContent='Instalar o actualizar plugin';install.hidden=false;install.disabled=true;
   }catch(reason){showImportError(reason instanceof Error?reason.message:'No se pudo validar la carpeta del plugin.');}
+  finally{choose.disabled=false;}
  };
  trust.onchange=()=>{install.disabled=!trust.checked;};
  install.onclick=async()=>{
   if(!pending||!trust.checked)return;install.disabled=true;status.textContent='Instalando plugin…';
-  try{const current=pending;const message=await installLocalPlugin(current.id,current.paths,current.contents);await reloadPlugins();status.textContent=message;input.value='';pending=null;preview.hidden=true;warning.hidden=true;trustLabel.hidden=true;install.hidden=true;trust.checked=false;}
+  try{const current=pending;const message=await installLocalPlugin(current.id,current.paths,current.contents);await reloadPlugins();status.textContent=message;pending=null;preview.hidden=true;warning.hidden=true;trustLabel.hidden=true;install.hidden=true;trust.checked=false;}
   catch(reason){status.textContent='No se pudo instalar: '+(reason instanceof Error?reason.message:String(reason));install.disabled=false;}
  };
  }

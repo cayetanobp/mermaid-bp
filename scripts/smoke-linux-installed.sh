@@ -22,7 +22,7 @@ done
 curl --silent --fail http://127.0.0.1:4444/status >/dev/null || { cat "$output_dir/tauri-driver.log"; exit 1; }
 
 python3 - "$app_bin" "$output_dir" <<'PY'
-import json, pathlib, re, shutil, subprocess, sys, time
+import json, pathlib, shutil, subprocess, sys, time
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
@@ -161,31 +161,7 @@ def save_from_native_dialog(button, path):
 def choose_plugin_folder(folder):
     before = active_window_title()
     before_windows = set(visible_window_titles())
-    file_input = driver.find_element(By.ID, "plugin-folder-input")
-    bounds = driver.execute_script(
-        "const r=arguments[0].getBoundingClientRect(); return {x:r.x,y:r.y,width:r.width,height:r.height,screenX:window.screenX,screenY:window.screenY,devicePixelRatio:window.devicePixelRatio};",
-        file_input,
-    )
-    app_window = subprocess.run(
-        ["xdotool", "getactivewindow"], check=True, capture_output=True, text=True,
-    ).stdout.strip()
-    window_info = subprocess.run(
-        ["xwininfo", "-id", app_window], check=True, capture_output=True, text=True,
-    ).stdout
-    origin_match = re.search(
-        r"Absolute upper-left X:\s*(-?\d+)\s+Absolute upper-left Y:\s*(-?\d+)",
-        window_info,
-    )
-    if not origin_match:
-        raise AssertionError(f"Could not determine X11 client origin: {window_info!r}")
-    client_x, client_y = map(int, origin_match.groups())
-    # The native file input renders its Open button at the left edge. Use a real
-    # X11 pointer click there; WebDriver's file-input click is unsupported.
-    # xwininfo's absolute client origin maps WebView viewport coordinates to
-    # X11 root coordinates; screenX/screenY and xdotool geometry omit frame offsets.
-    x = round(client_x + bounds["x"] + min(55, bounds["width"] / 2))
-    y = round(client_y + bounds["y"] + bounds["height"] / 2)
-    subprocess.run(["xdotool", "mousemove", "--sync", str(x), str(y), "click", "1"], check=True)
+    driver.find_element(By.ID, "plugin-folder-select").click()
     deadline = time.time() + 15
     while time.time() < deadline:
         current = active_window_title()
@@ -195,23 +171,24 @@ def choose_plugin_folder(folder):
         time.sleep(0.1)
     else:
         capture_desktop("native-plugin-folder-dialog-missing.png")
-        frame_extents = subprocess.run(
-            ["xprop", "-id", app_window, "_NET_FRAME_EXTENTS"],
-            check=False, capture_output=True, text=True,
-        ).stdout.strip()
-        window_info = window_info.strip()
         raise AssertionError(
             f"Native folder chooser did not take focus; active window={active_window_title()!r}; "
-            f"visible windows={visible_window_titles()!r}; click=({x},{y}); "
-            f"client_origin=({client_x},{client_y}); frame_extents={frame_extents!r}; "
-            f"window_info={window_info!r}; element_bounds={bounds!r}"
+            f"visible windows={visible_window_titles()!r}"
         )
 
     capture_desktop("native-plugin-folder-dialog.png")
+    # GTK may keep focus on a hidden location control. Focus the file list
+    # before using the native Ctrl+L location shortcut.
+    subprocess.run(["xdotool", "mousemove", "1100", "800", "click", "1"], check=True)
     subprocess.run(["xdotool", "key", "ctrl+l"], check=True)
+    time.sleep(0.3)
+    capture_desktop("native-plugin-folder-location-entry.png")
+    subprocess.run(["xdotool", "key", "ctrl+a"], check=True)
     subprocess.run(["xdotool", "type", "--clearmodifiers", "--delay", "1", str(folder)], check=True)
+    capture_desktop("native-plugin-folder-location-path.png")
     subprocess.run(["xdotool", "key", "Return"], check=True)
-    time.sleep(1)
+    time.sleep(0.5)
+    capture_desktop("native-plugin-folder-selected-path.png")
     if active_window_title() != before:
         # In GTK, the first Return may navigate to the typed folder; the second
         # activates the chooser's Select Folder action for that directory.

@@ -3,6 +3,7 @@ interface DesktopCore {
   convertFileSrc(path:string,protocol?:string):string;
 }
 interface DesktopWindow extends Window { __TAURI__?: { core:DesktopCore } }
+export interface PluginFolderSelection { folderName:string; paths:string[]; contents:number[][] }
 
 export function desktopPluginBridge():DesktopCore|null {
   return (window as DesktopWindow).__TAURI__?.core??null;
@@ -27,6 +28,12 @@ export async function installLocalPlugin(id:string,paths:string[],contents:Uint8
   if(!bridge)throw Error('La gestión local solo está disponible en la aplicación de escritorio.');
   await bridge.invoke<void>('install_plugin',{id,paths,contents:contents.map(bytes=>Array.from(bytes))});
   return `Plugin ${id} instalado o actualizado.`;
+}
+
+export async function chooseLocalPluginFolder():Promise<PluginFolderSelection|null> {
+  const bridge=desktopPluginBridge();
+  if(!bridge)throw Error('La gestión local solo está disponible en la aplicación de escritorio.');
+  return bridge.invoke<PluginFolderSelection|null>('choose_plugin_folder');
 }
 
 export async function removeLocalPlugin(id:string):Promise<boolean> {
