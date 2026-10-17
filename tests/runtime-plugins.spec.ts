@@ -86,3 +86,40 @@ test('la distribución web permite al administrador cambiar carpetas sin recompi
   await remove(plugin,join(folder,'plugins'));await page.reload();await ready(page);await expect(page.locator('#plugin-admin-plugin-hello')).toHaveCount(0);await command(page,'plugins-button');await expect(page.locator('#plugin-list')).toContainText('no incluye extensiones');
  }finally{await new Promise<void>((done,reject)=>server.close(error=>error?reject(error):done()));await remove(folder,tmpdir());}
 });
+
+test('la aplicación de escritorio instala, actualiza y retira plugins locales con consentimiento explícito',async({page})=>{
+ const importRoot=await mkdtemp(join(tmpdir(),'mermaid-desktop-plugin-')),pluginFolder=join(importRoot,'desktop-test');await mkdir(pluginFolder);await writeFile(join(pluginFolder,'plugin.json'),JSON.stringify({id:'desktop-test',name:'Plugin escritorio',description:'Comprueba gestión local',version:'1.0.0',apiVersion:1}));await writeFile(join(pluginFolder,'index.js'),'export default {setup(){throw Error("plugin defectuoso");}};');
+ await page.route('**/__local/**',route=>{const path=new URL(route.request().url()).pathname;if(path.endsWith('/plugin.json'))return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({id:'desktop-test',name:'Plugin escritorio',description:'Comprueba gestión local',version:'1.0.0',apiVersion:1})});if(path.endsWith('/index.js'))return route.fulfill({status:200,contentType:'text/javascript',body:'export default {setup(){throw Error("plugin defectuoso");}};'});return route.fulfill({status:404});});
+ await page.addInitScript(()=>{
+  const state={ids:[] as string[],calls:[] as any[]};
+  Object.defineProperty(window,'__TAURI__',{value:{core:{invoke:async(command:string,args:any={})=>{
+   state.calls.push({command,args});
+   if(command==='list_plugins')return state.ids.map(id=>({id,name:'Plugin escritorio',description:'Prueba',version:'1.0.0',apiVersion:1}));
+   if(command==='plugins_root')return 'C:\\fake\\plugins';
+   if(command==='install_plugin'){if(!state.ids.includes(args.id))state.ids.push(args.id);return;}
+   if(command==='remove_plugin'){state.ids=state.ids.filter(id=>id!==args.id);return true;}
+   return true;
+  },convertFileSrc:(path:string)=>{const relative=path.split(/[/\\]/).slice(-2).join('/');return new URL('/__local/'+relative,location.href).href;}}},configurable:true});
+  (window as any).__PLUGIN_TEST_STATE__=state;
+ });
+ try{
+  page.on('dialog',dialog=>dialog.accept());await page.goto('/');await ready(page);await command(page,'plugins-button');
+  const folderInput=page.locator('#plugin-folder-input');await folderInput.setInputFiles(pluginFolder);
+  await expect(page.locator('#plugin-import-preview')).toContainText('Plugin escritorio');
+  await expect(page.locator('#plugin-trust-warning')).toContainText('permisos de la aplicación');
+  const install=page.getByRole('button',{name:'Instalar o actualizar plugin'});await expect(install).toBeDisabled();
+  await page.getByRole('checkbox',{name:/Entiendo que el plugin ejecutará código local/}).check();await install.click();
+  await expect(page.locator('#plugin-local-status')).toContainText('instalado');
+  await expect.poll(()=>page.evaluate(()=>((window as any).__PLUGIN_TEST_STATE__.calls as any[]).some(c=>c.command==='install_plugin'))).toBe(true);
+  await expect(page.locator('#plugin-desktop-test-remove')).toBeVisible();
+  await writeFile(join(pluginFolder,'plugin.json'),JSON.stringify({id:'desktop-test',name:'Plugin escritorio',description:'Comprueba gestión local',version:'2.0.0',apiVersion:1}));await folderInput.setInputFiles(pluginFolder);
+  await page.getByRole('checkbox',{name:/Entiendo que el plugin ejecutará código local/}).check();await install.click();
+  await expect(page.locator('#plugin-local-status')).toContainText('actualizado');
+  await expect.poll(()=>page.evaluate(()=>((window as any).__PLUGIN_TEST_STATE__.calls as any[]).filter(c=>c.command==='install_plugin').length)).toBe(2);
+  await expect(page.locator('[data-plugin-status="desktop-test"]')).toContainText('No se pudo activar');
+  await page.locator('#plugin-desktop-test-remove').click();
+  await expect(page.locator('#plugin-local-status')).toContainText('retirado');
+  await expect.poll(()=>page.evaluate(()=>((window as any).__PLUGIN_TEST_STATE__.ids as string[]).length)).toBe(0);
+  await expect(page.locator('#render-state')).toHaveText('Actualizado');
+ }finally{await remove(importRoot,tmpdir());}
+});
