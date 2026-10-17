@@ -60,7 +60,7 @@ test('el flujo Linux instala el paquete y automatiza una sesión gráfica real',
   assert.match(workflow,/dpkg-deb -f "\$package" Package\)" = mermaid-bp/);
   assert.match(workflow,/dpkg-deb -f "\$package" Version\)" = 1\.0\.0-beta\.1/);
   assert.match(workflow,/dpkg-deb -f "\$package" Architecture\)" = amd64/);
-  assert.match(workflow,/sudo apt-get install -y "\$\{packages\[0\]\}"/);
+  assert.match(workflow,/sudo apt-get install -y "\.\/\$\{packages\[0\]\}"/);
   assert.match(workflow,/smoke-linux-installed\.sh/);
   assert.match(smoke,/tauri-driver/);
   assert.match(smoke,/xdotool/);
