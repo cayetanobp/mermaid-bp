@@ -44,6 +44,12 @@ def open_file_menu():
     driver.find_element(By.ID, "menu-archivo").click()
     wait.until(lambda d: d.find_element(By.ID, "menu-archivo-panel").is_displayed())
 
+def click_plugin_action():
+    driver.find_element(By.ID, "menu-ver").click()
+    wait.until(lambda d: d.find_element(By.ID, "menu-ver-panel").is_displayed())
+    action = wait.until(EC.element_to_be_clickable((By.ID, "plugin-installed-smoke-persisted")))
+    action.click()
+
 def open_plugins_settings():
     driver.find_element(By.ID, "menu-configuracion").click()
     wait.until(lambda d: d.find_element(By.ID, "menu-configuracion-panel").is_displayed())
@@ -422,8 +428,7 @@ try:
     driver = start_driver()
     wait = WebDriverWait(driver, 60)
     wait.until(lambda d: d.find_element(By.CSS_SELECTOR, "#editor .cm-content"))
-    action = wait.until(EC.element_to_be_clickable((By.ID, "plugin-installed-smoke-persisted")))
-    action.click()
+    click_plugin_action()
     wait.until(lambda d: d.find_element(By.ID, "message").text == "Installed plugin ran.")
 
     open_plugins_settings()
@@ -446,7 +451,7 @@ try:
 
     driver.find_element(By.ID, "plugins-close").click()
     wait.until(EC.invisibility_of_element_located((By.ID, "settings-dialog")))
-    wait.until(EC.element_to_be_clickable((By.ID, "plugin-installed-smoke-persisted"))).click()
+    click_plugin_action()
     wait.until(lambda d: d.find_element(By.ID, "message").text == "Installed plugin ran.")
     open_plugins_settings()
     wait.until(EC.element_to_be_clickable((By.ID, "plugin-installed-smoke-remove"))).click()
