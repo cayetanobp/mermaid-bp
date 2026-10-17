@@ -42,6 +42,9 @@ function Assert-BuildPathInRepository {
   if (-not $full.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase)) {
     throw "Refusing build-cache path outside repository: $full"
   }
+  if (((Get-Item -LiteralPath $root -Force).Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+    throw "Refusing build-cache path through a reparse-point repository root: $root"
+  }
   $cursor = $root
   $segments = @($full.Substring($prefix.Length) -split '[\\/]')
   foreach ($segment in $segments) {
@@ -52,6 +55,20 @@ function Assert-BuildPathInRepository {
         throw "Refusing build-cache path through a reparse point: $cursor"
       }
     }
+  }
+  $full
+}
+
+function Assert-RegenerableBuildOutputPath {
+  param([Parameter(Mandatory)][string]$RepositoryRoot, [Parameter(Mandatory)][string]$Path)
+  $full = Assert-BuildPathInRepository $RepositoryRoot $Path
+  $release = Join-Path $RepositoryRoot 'desktop-app/src-tauri/target/x86_64-pc-windows-msvc/release'
+  $allowed = @()
+  foreach ($leaf in @('build', 'deps', 'incremental', '.fingerprint')) {
+    $allowed += [IO.Path]::GetFullPath((Join-Path $release $leaf))
+  }
+  if (-not ($allowed | Where-Object { $_.Equals($full, [StringComparison]::OrdinalIgnoreCase) })) {
+    throw "Refusing unscoped regenerable build output path: $full"
   }
   $full
 }
@@ -82,8 +99,10 @@ function Ensure-BuildDockerVolume {
     if ($LASTEXITCODE -ne 0) { throw "Could not create Docker volume $Name" }
     $owned = $true
   } else {
-    $details = docker volume inspect $Name | ConvertFrom-Json -AsHashtable
-    $owned = $details[0].Labels['com.mermaid-bp.build-cache'] -eq 'true' -and $details[0].Labels['com.mermaid-bp.repository'] -eq $repoId
+    $details = @(docker volume inspect $Name | ConvertFrom-Json -AsHashtable)
+    $labels = @{}
+    if ($details[0].Contains('Labels') -and $null -ne $details[0]['Labels']) { $labels = $details[0]['Labels'] }
+    $owned = $labels['com.mermaid-bp.build-cache'] -eq 'true' -and $labels['com.mermaid-bp.repository'] -eq $repoId
   }
   $inventory = Get-BuildCacheInventory $RepositoryRoot
   $inventory.volumes = @($inventory.volumes | Where-Object { $_.name -ne $Name })
@@ -108,7 +127,7 @@ function Test-BuildPathHasDockerConsumer {
   if ($LASTEXITCODE -ne 0) { throw 'Could not check Docker bind-mount consumers; refusing cleanup.' }
   $candidate = [IO.Path]::GetFullPath($Path).TrimEnd([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar)
   foreach ($id in $containers) {
-    $details = docker inspect $id | ConvertFrom-Json -AsHashtable
+    $details = @(docker inspect $id | ConvertFrom-Json -AsHashtable)
     if ($LASTEXITCODE -ne 0) { throw "Could not inspect active Docker container $id; refusing cleanup." }
     foreach ($mount in $details[0].Mounts) {
       if ($mount.Type -ne 'bind') { continue }
@@ -129,8 +148,15 @@ function Invoke-BuildCacheCleanup {
   param([Parameter(Mandatory)][string]$RepositoryRoot, [switch]$DockerVolumes)
   $inventory = Get-BuildCacheInventory $RepositoryRoot
   $activeBuild = @(Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.ProcessName -match '^(cargo|rustc|node|npm|docker)$' })
+  $preserved = @($inventory.outputs | Where-Object { $_.retention -eq 'preserved' } | ForEach-Object { Assert-BuildPathInRepository $RepositoryRoot $_.path })
   foreach ($entry in @($inventory.outputs | Where-Object { $_.retention -eq 'regenerable' })) {
-    $path = Assert-BuildPathInRepository $RepositoryRoot $entry.path
+    $path = Assert-RegenerableBuildOutputPath $RepositoryRoot $entry.path
+    $pathPrefix = $path.TrimEnd([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar) + [IO.Path]::DirectorySeparatorChar
+    foreach ($keepPath in $preserved) {
+      if ($keepPath.Equals($path, [StringComparison]::OrdinalIgnoreCase) -or $keepPath.StartsWith($pathPrefix, [StringComparison]::OrdinalIgnoreCase)) {
+        throw "Refusing to remove $path because it contains preserved output $keepPath"
+      }
+    }
     if (-not $WhatIfPreference) {
       if ($activeBuild.Count) { throw "Refusing cleanup while build-related processes are active: $($activeBuild.ProcessName -join ', ')" }
       if (Test-BuildPathHasDockerConsumer $path) { throw "Refusing cleanup while a running Docker container bind-mounts $path" }
@@ -142,6 +168,14 @@ function Invoke-BuildCacheCleanup {
   if ($DockerVolumes) {
     foreach ($volume in @($inventory.volumes | Where-Object { $_.ownership -eq 'task-owned' })) {
       if (-not $WhatIfPreference) {
+        $details = @(docker volume inspect $volume.name | ConvertFrom-Json -AsHashtable)
+        if ($LASTEXITCODE -ne 0 -or -not $details) { throw "Could not verify current ownership of Docker volume $($volume.name); refusing cleanup." }
+        $repoId = Get-BuildCacheRepositoryId $RepositoryRoot
+        $labels = @{}
+        if ($details[0].Contains('Labels') -and $null -ne $details[0]['Labels']) { $labels = $details[0]['Labels'] }
+        if ($labels['com.mermaid-bp.build-cache'] -ne 'true' -or $labels['com.mermaid-bp.repository'] -ne $repoId) {
+          throw "Docker volume $($volume.name) no longer has this repository's ownership labels; refusing cleanup."
+        }
         $consumers = @(docker ps -aq --filter "volume=$($volume.name)")
         if ($LASTEXITCODE -ne 0) { throw 'Could not check Docker volume consumers; refusing cleanup.' }
         if ($consumers.Count) { throw "Refusing to remove Docker volume $($volume.name); containers still reference it: $($consumers -join ', ')" }
