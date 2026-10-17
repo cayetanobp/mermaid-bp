@@ -52,6 +52,7 @@ fn read_plugin_folder(folder: &Path) -> Result<Value, String> {
     let mut total_bytes = 0usize;
     let mut entry_count = 0usize;
     collect_plugin_files(
+        &canonical_root,
         &root,
         Path::new(""),
         0,
@@ -69,6 +70,7 @@ fn read_plugin_folder(folder: &Path) -> Result<Value, String> {
 }
 
 fn collect_plugin_files(
+    root_path: &Path,
     current: &Dir,
     relative_dir: &Path,
     depth: usize,
@@ -96,12 +98,20 @@ fn collect_plugin_files(
             return Err("La carpeta del plugin no puede contener enlaces simbólicos.".into());
         }
         let relative_path = relative_dir.join(name);
+        // Windows junctions and other reparse points are not always reported
+        // as symbolic links by portable file-type APIs. Reject them explicitly;
+        // actual opens remain relative to cap-std directory handles, so a path
+        // swap cannot escape the selected root.
+        if is_reparse_point(&fs::symlink_metadata(root_path.join(&relative_path)).map_err(|error| error.to_string())?) {
+            return Err("La carpeta del plugin no puede contener enlaces simbólicos o puntos de reanálisis.".into());
+        }
         if file_type.is_dir() {
             let child = current.open_dir(name).map_err(|error| error.to_string())?;
             if !child.dir_metadata().map_err(|error| error.to_string())?.is_dir() {
                 return Err("La carpeta del plugin contiene un tipo de archivo no admitido.".into());
             }
             collect_plugin_files(
+                root_path,
                 &child,
                 &relative_path,
                 depth + 1,
