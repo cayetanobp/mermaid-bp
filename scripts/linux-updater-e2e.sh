@@ -159,8 +159,14 @@ def verify_persistence(d):
     assert d.find_element(By.ID,"plugin-updater-persistence-test-alive").text=="Plugin persistente activo"
     d.find_element(By.ID,"plugins-close").click()
 def import_document(d, document):
+    settings=d.find_element(By.ID,"settings-dialog")
+    if settings.get_attribute("open"):
+        d.find_element(By.ID,"plugins-close").click()
+        wait(d,lambda x:not x.find_element(By.ID,"settings-dialog").get_attribute("open"))
     before=subprocess.run(["xdotool","getactivewindow","getwindowname"],capture_output=True,text=True)
     before_title=before.stdout.strip() if before.returncode==0 else ""
+    d.find_element(By.ID,"menu-archivo").click()
+    wait(d,lambda x:x.find_element(By.ID,"menu-archivo-panel").is_displayed())
     d.find_element(By.ID,"open").click()
     deadline=time.time()+15
     while time.time()<deadline:

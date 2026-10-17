@@ -137,6 +137,9 @@ test('el flujo Linux publica el Debian firmado y prueba su actualización instal
   assert.ok(updaterE2E.includes('candidate="$(find_deb_for_version "$candidate_version")"'));
   assert.ok(updaterE2E.includes('dpkg-deb -f "$path" Package'));
   assert.ok(updaterE2E.includes('base64.b64encode'));
+  assert.ok(updaterE2E.includes('d.find_element(By.ID,"plugins-close").click()'));
+  assert.ok(updaterE2E.includes('d.find_element(By.ID,"menu-archivo").click()'));
+  assert.ok(updaterE2E.includes('x.find_element(By.ID,"menu-archivo-panel").is_displayed()'));
   assert.ok(updaterE2E.includes('["xdotool","key","ctrl+l"]'));
   assert.ok(!updaterE2E.includes('file_input.send_keys'));
   assert.ok(updaterE2E.includes('exec sudo -n "$@"'));
