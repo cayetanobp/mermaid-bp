@@ -321,9 +321,6 @@ try{
   await assertPluginAndPreference(page);
   await expect(page.locator('#plugin-updater-persistence-test-alive')).toHaveText('Plugin persistente activo');
   process.stdout.write(`Validación nativa completada: ${baseVersion} -> ${targetVersion}; la firma inválida se rechazó, el instalador firmado se aplicó y el WebView2 reabrió con documento, preferencias y plugin locales disponibles.\n`);
-  const windowClosed=page.waitForEvent('close',{timeout:15000});
-  await page.keyboard.press('Alt+F4');
-  await windowClosed;
 }catch(error){
   primaryError=error;
   try{await captureFailure(error);}catch(captureError){diagnosticLog.write(`[capture:failure] ${captureError.stack??captureError.message}\n`);}
