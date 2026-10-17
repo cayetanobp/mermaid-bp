@@ -47,14 +47,18 @@ try:
     editor = driver.find_element(By.CSS_SELECTOR, "#editor .cm-content")
     editor.click()
     editor.send_keys(Keys.CONTROL, "a")
+    # WebDriver sends embedded newlines as whitespace to contenteditable.
+    # Send Enter as its own key so CodeMirror stores a real Mermaid line break.
     source = "flowchart TD\n  Linux[Ubuntu instalado] --> SVG[Exportado]"
-    editor.send_keys(source)
+    editor.send_keys("flowchart TD")
+    editor.send_keys(Keys.ENTER)
+    editor.send_keys("  Linux[Ubuntu instalado] --> SVG[Exportado]")
     wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "#diagram svg")))
     driver.save_screenshot(str(out / "editor.png"))
 
     open_file_menu()
     driver.find_element(By.ID, "save").click()
-    time.sleep(1)
+    driver.save_screenshot(str(out / "save-dialog.png"))
     mmd = out / "installed-smoke.mmd"
     import subprocess
     subprocess.run(["xdotool", "key", "ctrl+l"], check=True)
