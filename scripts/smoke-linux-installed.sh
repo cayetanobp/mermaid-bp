@@ -22,7 +22,7 @@ done
 curl --silent --fail http://127.0.0.1:4444/status >/dev/null || { cat "$output_dir/tauri-driver.log"; exit 1; }
 
 python3 - "$app_bin" "$output_dir" <<'PY'
-import json, pathlib, shutil, subprocess, sys, time
+import json, pathlib, re, shutil, subprocess, sys, time
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
@@ -177,22 +177,43 @@ def choose_plugin_folder(folder):
         )
 
     capture_desktop("native-plugin-folder-dialog.png")
-    # GTK may keep focus on a hidden location control. Focus the file list
-    # before using the native Ctrl+L location shortcut.
-    subprocess.run(["xdotool", "mousemove", "1100", "800", "click", "1"], check=True)
-    subprocess.run(["xdotool", "key", "ctrl+l"], check=True)
+    # The GTK portal's Ctrl+L location entry remained in edit mode on CI and
+    # never changed folders. Navigate through the real chooser list instead:
+    # the smoke output directory is already shown in Recent after the export
+    # check, then `fixture/installed-smoke` are activated by GTK type search.
+    dialog_ids = subprocess.check_output(
+        ["xdotool", "search", "--name", "Elegir carpeta de plugin"], text=True
+    ).splitlines()
+    if not dialog_ids:
+        raise AssertionError("Could not identify the native folder chooser window")
+    dialog_id = dialog_ids[-1]
+    geometry = subprocess.check_output(["xwininfo", "-id", dialog_id], text=True)
+    origin = re.search(
+        r"Absolute upper-left X:\s*(\d+).*?Absolute upper-left Y:\s*(\d+).*?Width:\s*(\d+).*?Height:\s*(\d+)",
+        geometry,
+        re.S,
+    )
+    if not origin:
+        raise AssertionError(f"Could not read folder chooser geometry:\n{geometry}")
+    left, top, width, height = map(int, origin.groups())
+    # The runner uses 1440x1000 and GTK's Recent view places its only recent
+    # directory at the screenshot-measured screen location (460, 132).
+    subprocess.run(["xdotool", "mousemove", "460", "132", "click", "--repeat", "2", "--delay", "100", "1"], check=True)
     time.sleep(0.3)
-    capture_desktop("native-plugin-folder-location-entry.png")
-    subprocess.run(["xdotool", "key", "ctrl+a"], check=True)
-    subprocess.run(["xdotool", "type", "--clearmodifiers", "--delay", "1", str(folder)], check=True)
-    capture_desktop("native-plugin-folder-location-path.png")
-    subprocess.run(["xdotool", "key", "Return"], check=True)
-    time.sleep(0.5)
-    capture_desktop("native-plugin-folder-selected-path.png")
-    if active_window_title() != before:
-        # In GTK, the first Return may navigate to the typed folder; the second
-        # activates the chooser's Select Folder action for that directory.
+    capture_desktop("native-plugin-folder-recent-opened.png")
+    for folder_name, screenshot in [
+        ("fixture", "native-plugin-folder-fixture.png"),
+        (folder.name, "native-plugin-folder-selected-path.png"),
+    ]:
+        subprocess.run(["xdotool", "type", "--clearmodifiers", "--delay", "100", folder_name], check=True)
         subprocess.run(["xdotool", "key", "Return"], check=True)
+        time.sleep(0.4)
+        capture_desktop(screenshot)
+    # Activate GTK's actual Select button after reaching the selected folder.
+    subprocess.run(
+        ["xdotool", "mousemove", str(left + width - 50), str(top + height - 28), "click", "1"],
+        check=True,
+    )
     deadline = time.time() + 20
     while time.time() < deadline and active_window_title() != before:
         time.sleep(0.1)
