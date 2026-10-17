@@ -411,22 +411,27 @@ try:
             f"plugin-install-diagnostics.json: {json.dumps(diagnostics, ensure_ascii=False)}"
         ) from error
 
+    # Close the modal settings dialog before restarting the WebKit window so
+    # it cannot intercept the toolbar action click after the plugin reloads.
+    driver.find_element(By.ID, "plugins-close").click()
+    wait.until(EC.invisibility_of_element_located((By.ID, "settings-dialog")))
+
     # A WebKit restart proves persistence and module loading through the scoped
     # asset protocol in the installed native application.
     driver.quit()
     driver = start_driver()
     wait = WebDriverWait(driver, 60)
     wait.until(lambda d: d.find_element(By.CSS_SELECTOR, "#editor .cm-content"))
-    wait.until(EC.presence_of_element_located((By.ID, "plugin-installed-smoke-persisted")))
-    driver.find_element(By.ID, "plugin-installed-smoke-persisted").click()
+    action = wait.until(EC.element_to_be_clickable((By.ID, "plugin-installed-smoke-persisted")))
+    action.click()
     wait.until(lambda d: d.find_element(By.ID, "message").text == "Installed plugin ran.")
 
     open_plugins_settings()
-    toggle = driver.find_element(By.CSS_SELECTOR, '[data-plugin-toggle="installed-smoke"]')
+    toggle = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '[data-plugin-toggle="installed-smoke"]')))
     toggle.click()
     wait.until(lambda d: "Desactivado" in d.find_element(By.CSS_SELECTOR, '[data-plugin-status="installed-smoke"]').text)
     wait.until(EC.invisibility_of_element_located((By.ID, "plugin-installed-smoke-persisted")))
-    toggle = driver.find_element(By.CSS_SELECTOR, '[data-plugin-toggle="installed-smoke"]')
+    toggle = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '[data-plugin-toggle="installed-smoke"]')))
     toggle.click()
     wait.until(EC.presence_of_element_located((By.ID, "plugin-installed-smoke-persisted")))
 
@@ -441,10 +446,10 @@ try:
 
     driver.find_element(By.ID, "plugins-close").click()
     wait.until(EC.invisibility_of_element_located((By.ID, "settings-dialog")))
-    driver.find_element(By.ID, "plugin-installed-smoke-persisted").click()
+    wait.until(EC.element_to_be_clickable((By.ID, "plugin-installed-smoke-persisted"))).click()
     wait.until(lambda d: d.find_element(By.ID, "message").text == "Installed plugin ran.")
     open_plugins_settings()
-    driver.find_element(By.ID, "plugin-installed-smoke-remove").click()
+    wait.until(EC.element_to_be_clickable((By.ID, "plugin-installed-smoke-remove"))).click()
     driver.switch_to.alert.accept()
     wait.until(lambda d: "retirado" in d.find_element(By.ID, "plugin-local-status").text)
     wait.until(EC.invisibility_of_element_located((By.CSS_SELECTOR, '[data-plugin-toggle="installed-smoke"]')))
