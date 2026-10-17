@@ -1,6 +1,6 @@
 [package]
 name = "mermaid-bp-desktop"
-version = "1.0.0-alpha.2"
+version = "1.0.0-beta.1"
 description = "Editor local de diagramas Mermaid"
 license = "AGPL-3.0-only"
 edition = "2021"

@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Mermaid BP",
-  "version": "1.0.0-alpha.2",
+  "version": "1.0.0-beta.1",
   "identifier": "io.github.cayetanobp.mermaid-bp",
   "build": {
     "beforeDevCommand": "npm --prefix .. run dev -- --port 1420 --strictPort",
@@ -24,8 +24,9 @@
       "../dist/THIRD_PARTY_NOTICES.md": "THIRD_PARTY_NOTICES.md",
       "../../THIRD_PARTY_RUST_NOTICES.md": "THIRD_PARTY_RUST_NOTICES.md"
     },
-    "targets": ["nsis"],
-    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.ico"],
+    "targets": ["nsis", "deb"],
+    "icon": ["icons/icon.png", "icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.ico"],
+    "linux": { "deb": { "section": "utils", "priority": "optional", "depends": ["libayatana-appindicator3-1"] } },
     "windows": { "webviewInstallMode": { "type": "downloadBootstrapper" }, "nsis": { "installMode": "currentUser", "languages": ["Spanish", "English"], "displayLanguageSelector": true } }
   }
 }
