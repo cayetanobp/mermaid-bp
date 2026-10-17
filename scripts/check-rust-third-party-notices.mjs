@@ -8,7 +8,7 @@ const root=fileURLToPath(new URL('../',import.meta.url));
 if(process.platform!=='linux')throw Error('La comprobación reproducible de avisos Rust se ejecuta en Linux. En Windows usa scripts/audit-windows-docker.ps1.');
 const temporary=await mkdtemp(join(tmpdir(),'mermaid-bp-rust-notices-'));
 try{
-  const metadata=spawnSync('cargo',['metadata','--locked','--format-version','1','--filter-platform','x86_64-pc-windows-msvc','--features','tauri/custom-protocol','--manifest-path',join(root,'desktop-app/src-tauri/Cargo.toml')],
+  const metadata=spawnSync('cargo',['metadata','--locked','--format-version','1','--filter-platform','x86_64-pc-windows-msvc','--features','tauri/custom-protocol,tauri/protocol-asset','--manifest-path',join(root,'desktop-app/src-tauri/Cargo.toml')],
     {cwd:root,encoding:'utf8',maxBuffer:16*1024*1024});
   if(metadata.error||metadata.status!==0)throw Error(`Cargo metadata falló: ${metadata.error?.message??metadata.stderr}`);
   const input=join(temporary,'metadata.json'),output=join(temporary,'notices.md');

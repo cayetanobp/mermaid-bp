@@ -2,7 +2,7 @@
 
 ## Antes de integrar cambios
 
-El flujo `Comprobaciones` se ejecuta en cada PR y en `main`. Comprueba web, seguridad, escritorio y contenido legal del instalador NSIS. Las compilaciones Rust pasan `--locked`. Una actualización de `Cargo.lock` debe incluir las features de producción `tauri/custom-protocol` y actualizar `THIRD_PARTY_RUST_NOTICES.md`; el artefacto del flujo `Generar avisos Rust para revisión` incluye ambos archivos resueltos para `x86_64-pc-windows-msvc`. `node scripts/check-rust-third-party-notices.mjs` verifica el resultado en Linux. La comprobación corre en Ubuntu porque el inventario incluye dependencias de compilación que Cargo resuelve según el sistema anfitrión; el trabajo Windows comprueba los archivos realmente empaquetados.
+El flujo `Comprobaciones` se ejecuta en cada PR y en `main`. Comprueba web, seguridad, escritorio y contenido legal del instalador NSIS. Las compilaciones Rust pasan `--locked`. Una actualización de `Cargo.lock` debe incluir las features de producción `tauri/custom-protocol` y `tauri/protocol-asset` y actualizar `THIRD_PARTY_RUST_NOTICES.md`; el artefacto del flujo `Generar avisos Rust para revisión` incluye ambos archivos resueltos para `x86_64-pc-windows-msvc`. `node scripts/check-rust-third-party-notices.mjs` verifica el resultado en Linux. La comprobación corre en Ubuntu porque el inventario incluye dependencias de compilación que Cargo resuelve según el sistema anfitrión; el trabajo Windows comprueba los archivos realmente empaquetados.
 
 ## Auditoría local de Windows con Docker
 

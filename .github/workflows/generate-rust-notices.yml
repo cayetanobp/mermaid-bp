@@ -22,7 +22,7 @@ jobs:
       - name: Resolver las features de producción Windows y generar lock y avisos
         shell: bash
         run: |
-          cargo metadata --format-version 1 --filter-platform x86_64-pc-windows-msvc --features tauri/custom-protocol --manifest-path desktop-app/src-tauri/Cargo.toml > "$RUNNER_TEMP/rust-metadata.json"
+          cargo metadata --format-version 1 --filter-platform x86_64-pc-windows-msvc --features tauri/custom-protocol,tauri/protocol-asset --manifest-path desktop-app/src-tauri/Cargo.toml > "$RUNNER_TEMP/rust-metadata.json"
           cp desktop-app/src-tauri/Cargo.lock "$RUNNER_TEMP/Cargo.lock"
           node scripts/write-rust-third-party-notices.mjs "$RUNNER_TEMP/rust-metadata.json" "$RUNNER_TEMP/THIRD_PARTY_RUST_NOTICES.md"
       - uses: actions/upload-artifact@v4
