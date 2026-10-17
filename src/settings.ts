@@ -57,16 +57,16 @@ export function setupSettings(onEditorChange:()=>void,reloadPlugins:()=>Promise<
  const importControls=dialog.querySelector<HTMLElement>('#plugin-import-controls');
  if(importControls){
  const choose=dialog.querySelector<HTMLButtonElement>('#plugin-folder-select')!,preview=get('plugin-import-preview'),error=get('plugin-import-error'),warning=get('plugin-trust-warning'),trustLabel=get('plugin-trust-label') as HTMLElement,trust=get('plugin-trust-confirm') as HTMLInputElement,install=get('plugin-install') as HTMLButtonElement,status=get('plugin-local-status');
- let pending:{id:string;paths:string[];contents:Uint8Array[];name:string}|null=null;
+ let pending:{id:string;paths:string[];contents:string[];name:string}|null=null;
  const showImportError=(message:string)=>{error.textContent=message;error.hidden=false;pending=null;preview.hidden=true;warning.hidden=true;trustLabel.hidden=true;install.hidden=true;};
  choose.onclick=async()=>{
   error.hidden=true;preview.hidden=true;warning.hidden=true;trustLabel.hidden=true;install.hidden=true;trust.checked=false;pending=null;status.textContent='';
   choose.disabled=true;
   try{
    const selection=await chooseLocalPluginFolder();if(!selection)return;
-   const max=32*1024*1024;if(!selection.folderName||selection.paths.length===0||selection.paths.length!==selection.contents.length||selection.paths.length>256||selection.contents.reduce((sum,bytes)=>sum+bytes.length,0)>max)throw Error('La carpeta supera los límites de archivos o tamaño (256 archivos y 32 MB), o no contiene archivos.');
-   const paths:string[]=[],contents:Uint8Array[]=[];let manifest:Record<string,unknown>|null=null;
-   for(let i=0;i<selection.paths.length;i++){const path=selection.paths[i],raw=selection.contents[i];if(typeof path!=='string'||!path||path.startsWith('/')||path.split('/').some(part=>!part||part==='.'||part==='..')||path.includes('\\'))throw Error('La carpeta contiene una ruta de archivo no válida.');const bytes=Uint8Array.from(raw);paths.push(path);contents.push(bytes);if(path==='plugin.json'){try{manifest=JSON.parse(new TextDecoder().decode(bytes));}catch{throw Error('plugin.json no contiene JSON válido.');}}}
+   const max=32*1024*1024;if(!selection.folderName||selection.paths.length===0||selection.paths.length!==selection.contents.length||selection.paths.length>256||selection.contents.some(content=>typeof content!=='string'||!/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(content))||selection.contents.reduce((sum,content)=>sum+Math.floor(content.length/4)*3-(content.endsWith('==')?2:content.endsWith('=')?1:0),0)>max)throw Error('La carpeta supera los límites de archivos o tamaño (256 archivos y 32 MB), o no contiene archivos.');
+   const paths:string[]=[],contents:string[]=[],decodeBase64=(text:string)=>Uint8Array.from(atob(text),char=>char.charCodeAt(0));let manifest:Record<string,unknown>|null=null;
+   for(let i=0;i<selection.paths.length;i++){const path=selection.paths[i],raw=selection.contents[i];if(typeof path!=='string'||!path||path.startsWith('/')||path.split('/').some(part=>!part||part==='.'||part==='..')||path.includes('\\'))throw Error('La carpeta contiene una ruta de archivo no válida.');paths.push(path);contents.push(raw);if(path==='plugin.json'){try{manifest=JSON.parse(new TextDecoder().decode(decodeBase64(raw)));}catch{throw Error('plugin.json no contiene JSON válido.');}}}
    if(!manifest||typeof manifest!=='object'||Array.isArray(manifest))throw Error('La carpeta debe incluir plugin.json en su raíz.');
    const id=manifest.id,name=manifest.name,description=manifest.description,version=manifest.version,apiVersion=manifest.apiVersion,entry=manifest.entry??'index.js';
    if(typeof id!=='string'||!/^[a-z][a-z0-9-]*$/.test(id)||typeof name!=='string'||!name.trim()||typeof description!=='string'||!description.trim()||typeof version!=='string'||!version.trim()||!Number.isInteger(apiVersion))throw Error('plugin.json debe incluir id, name, description, version y apiVersion válidos.');

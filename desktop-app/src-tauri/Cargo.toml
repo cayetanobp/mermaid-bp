@@ -12,3 +12,5 @@ tauri-build = { version = "2", features = [] }
 tauri = { version = "2", features = ["protocol-asset"] }
 rfd = "0.15"
 serde_json = "1"
+cap-std = "3"
+base64 = "0.22"
