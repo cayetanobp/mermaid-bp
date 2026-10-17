@@ -1,0 +1,1 @@
+Mermaid BP signature fixture; this is not an installable updater package.

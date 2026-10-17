@@ -73,13 +73,61 @@ jobs:
       - uses: swatinem/rust-cache@v2
         with:
           workspaces: desktop-app/src-tauri -> target
+      - name: Exigir la clave de firma antes de compilar en main
+        if: github.event_name != 'pull_request'
+        shell: pwsh
+        env:
+          SIGNING_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: if ([string]::IsNullOrWhiteSpace($env:SIGNING_KEY)) { throw 'Falta TAURI_SIGNING_PRIVATE_KEY; no se compilará ni publicará un updater sin firma.' }
+      - name: Exigir la clave de firma para PRs internos
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        shell: pwsh
+        env:
+          SIGNING_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: if ([string]::IsNullOrWhiteSpace($env:SIGNING_KEY)) { throw 'Falta TAURI_SIGNING_PRIVATE_KEY para producir el artefacto firmado de validación.' }
       - run: npm ci
       - run: npm ci --prefix desktop-app
-      - run: npm run desktop:build
+      - name: Compilar la aplicación sin empaquetar en pull requests
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository
+        working-directory: desktop-app
+        run: npm exec -- tauri build --no-bundle -- --locked
+      # CI-only: the updater code matches release; the feature only enables WebView2 CDP for UI automation.
+      - name: Probar el updater firmado en una instalación Windows real
+        id: windows-updater
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        run: node scripts/windows-updater-e2e.mjs
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
+      - name: Compilar y firmar el updater en main
+        if: github.event_name != 'pull_request'
+        run: npm run desktop:build
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
       - run: node --test tests/desktop.test.mjs
       - name: Verificar contenido del instalador
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         shell: pwsh
         run: |
           $installer = @(Get-ChildItem desktop-app/src-tauri/target/release/bundle/nsis/*-setup.exe)
           if ($installer.Count -ne 1) { throw 'Se esperaba un instalador NSIS.' }
           ./scripts/verify-nsis-license.ps1 -Installer $installer[0].FullName
+      - name: Subir instalador firmado de validación (sin publicar)
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        uses: actions/upload-artifact@v4
+        with:
+          name: mermaid-bp-windows-signed-validation
+          path: |
+            desktop-app/src-tauri/target/release/bundle/nsis/*-setup.exe
+            desktop-app/src-tauri/target/release/bundle/nsis/*-setup.exe.sig
+          if-no-files-found: error
+          retention-days: 3
+      - name: Adjuntar diagnósticos del updater Windows si falla
+        if: failure() && steps.windows-updater.outcome == 'failure' && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        uses: actions/upload-artifact@v4
+        with:
+          name: mermaid-bp-windows-updater-diagnostics
+          path: ${{ runner.temp }}/mermaid-bp-windows-updater-e2e-*/*
+          if-no-files-found: warn
+          retention-days: 3

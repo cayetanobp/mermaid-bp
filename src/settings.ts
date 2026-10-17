@@ -1,6 +1,7 @@
 import {getPreferences,preferenceDefaults,subscribePreferences,updatePreferences,type Preferences} from './preferences';
 import {closeAppMenus} from './app-menus';
 import {chooseLocalPluginFolder,desktopPluginBridge,installLocalPlugin} from './desktop-plugin-bridge';
+import {setupDesktopUpdater} from './desktop-updater';
 import './settings.css';
 type Section='general'|'editor'|'diagram'|'extensions';
 const sections:Record<Section,string>={general:'General',editor:'Editor',diagram:'Diagrama',extensions:'Extensiones'};
@@ -86,7 +87,7 @@ export function setupSettings(onEditorChange:()=>void,reloadPlugins:()=>Promise<
   catch(reason){status.textContent='No se pudo instalar: '+(reason instanceof Error?reason.message:String(reason));install.disabled=false;}
  };
  }
- subscribePreferences(apply);apply(getPreferences());select('general');
+ subscribePreferences(apply);apply(getPreferences());setupDesktopUpdater(panel('general'));select('general');
  function open(section:Section){const current=document.activeElement as HTMLElement;const trigger=current.closest('[role="menu"]')?.getAttribute('aria-labelledby');returnFocus=trigger?document.getElementById(trigger):current;closeAppMenus();select(section);get('settings-status').textContent='Los cambios se guardan en este navegador.';if(!dialog.open)dialog.showModal();get('settings-tab-'+section).focus();}
  get('settings-button').onclick=()=>open('general');get('plugins-button').onclick=()=>open('extensions');
  get('settings-close').onclick=()=>dialog.close();get('plugins-close').onclick=()=>dialog.close();dialog.onclose=()=>returnFocus?.focus({preventScroll:true});

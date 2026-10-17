@@ -49,8 +49,13 @@ jobs:
         if: inputs.reuse_build_run_id == ''
       - run: npm ci --prefix desktop-app
         if: inputs.reuse_build_run_id == ''
-      - run: npm run desktop:build
+      - name: Preparar configuración de build Debian sin artefactos de updater
         if: inputs.reuse_build_run_id == ''
+        run: printf '{"bundle":{"createUpdaterArtifacts":false}}' > "$RUNNER_TEMP/tauri-linux.json"
+      - name: Compilar el paquete Debian con Cargo bloqueado
+        if: inputs.reuse_build_run_id == ''
+        working-directory: desktop-app
+        run: npm exec -- tauri build --config "$RUNNER_TEMP/tauri-linux.json" -- --locked
       - name: Reutilizar .deb de una compilación Linux verificada
         if: inputs.reuse_build_run_id != ''
         env:
