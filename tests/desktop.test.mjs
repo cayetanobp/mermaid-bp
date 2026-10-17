@@ -56,7 +56,11 @@ test('el flujo Linux instala el paquete y automatiza una sesión gráfica real',
   const smoke=await readFile('scripts/smoke-linux-installed.sh','utf8');
   const docker=await readFile('scripts/build-linux-deb-docker.ps1','utf8');
   assert.match(workflow,/ubuntu-24\.04/);
-  assert.match(workflow,/apt-get install[^\n]*mermaid-bp_/);
+  assert.match(workflow,/packages=\(desktop-app\/src-tauri\/target\/release\/bundle\/deb\/\*\.deb\)/);
+  assert.match(workflow,/dpkg-deb -f "\$package" Package\)" = mermaid-bp/);
+  assert.match(workflow,/dpkg-deb -f "\$package" Version\)" = 1\.0\.0-beta\.1/);
+  assert.match(workflow,/dpkg-deb -f "\$package" Architecture\)" = amd64/);
+  assert.match(workflow,/sudo apt-get install -y "\$\{packages\[0\]\}"/);
   assert.match(workflow,/smoke-linux-installed\.sh/);
   assert.match(smoke,/tauri-driver/);
   assert.match(smoke,/xdotool/);
