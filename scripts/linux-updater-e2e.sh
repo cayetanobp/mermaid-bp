@@ -159,9 +159,19 @@ def verify_persistence(d):
     assert d.find_element(By.ID,"plugin-updater-persistence-test-alive").text=="Plugin persistente activo"
     d.find_element(By.ID,"plugins-close").click()
 def import_document(d, document):
-    file_input=d.find_element(By.ID,"file")
-    d.execute_script("arguments[0].hidden=false; arguments[0].style.display='block';",file_input)
-    file_input.send_keys(str(document))
+    before=subprocess.run(["xdotool","getactivewindow","getwindowname"],capture_output=True,text=True)
+    before_title=before.stdout.strip() if before.returncode==0 else ""
+    d.find_element(By.ID,"open").click()
+    deadline=time.time()+15
+    while time.time()<deadline:
+        active=subprocess.run(["xdotool","getactivewindow","getwindowname"],capture_output=True,text=True)
+        if active.returncode==0 and active.stdout.strip() and active.stdout.strip()!=before_title: break
+        time.sleep(.1)
+    else: raise AssertionError("Native document chooser did not take focus")
+    subprocess.run(["xdotool","key","ctrl+l"],check=True)
+    time.sleep(.3)
+    subprocess.run(["xdotool","type","--clearmodifiers","--delay","1",str(document)],check=True)
+    subprocess.run(["xdotool","key","Return"],check=True)
     deadline=time.time()+30
     while time.time()<deadline:
         confirm=d.find_element(By.ID,"confirm-dialog")

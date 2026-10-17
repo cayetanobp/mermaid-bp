@@ -137,6 +137,8 @@ test('el flujo Linux publica el Debian firmado y prueba su actualización instal
   assert.ok(updaterE2E.includes('candidate="$(find_deb_for_version "$candidate_version")"'));
   assert.ok(updaterE2E.includes('dpkg-deb -f "$path" Package'));
   assert.ok(updaterE2E.includes('base64.b64encode'));
+  assert.ok(updaterE2E.includes('["xdotool","key","ctrl+l"]'));
+  assert.ok(!updaterE2E.includes('file_input.send_keys'));
   assert.ok(updaterE2E.includes('exec sudo -n "$@"'));
   assert.ok(updaterE2E.includes('[[ $# -eq 3 && "$1" == "dpkg" && "$2" == "-i" ]]'));
   assert.match(workflow,/name: mermaid-bp-linux-updater/);
