@@ -47,15 +47,18 @@ const endpoint=`http://127.0.0.1:${server.address().port}/latest.json`;
 function run(command,args,options={}){
   const result=spawnSync(command,args,{cwd:options.cwd??root,env:options.env??process.env,encoding:'utf8',windowsHide:true,maxBuffer:16*1024*1024});
   const output=(result.stdout??'')+(result.stderr??'');
-  if(result.status!==0){const safe=key?output.split(key).join('[redacted signing key]'):output;process.stderr.write(safe);throw Error(`${command} terminó con código ${result.status??result.signal}.`);}
-  if(output)process.stdout.write(output.split(key).join('[redacted signing key]'));
+  const safe=key?output.split(key).join('[redacted signing key]'):output;
+  if(result.error){if(safe)process.stderr.write(safe);throw Error(`${command} no se pudo iniciar (${result.error.code??'error de proceso'}).`);}
+  if(result.status!==0){if(safe)process.stderr.write(safe);throw Error(`${command} terminó con código ${result.status??result.signal}.`);}
+  if(safe)process.stdout.write(safe);
   return result.stdout??'';
 }
 
 async function build(version,tag){
   const overlay=join(scratch,`${tag}.json`);
   await writeFile(overlay,JSON.stringify({version,plugins:{updater:{endpoints:[endpoint],dangerousInsecureTransportProtocol:true}}}));
-  run('npm.cmd',['exec','--','tauri','build','--config',overlay],{cwd:desktop,env:{...process.env,TAURI_SIGNING_PRIVATE_KEY:key,TAURI_SIGNING_PRIVATE_KEY_PASSWORD:''}});
+  const tauriCli=join(desktop,'node_modules','@tauri-apps','cli','tauri.js');
+  run(process.execPath,[tauriCli,'build','--config',overlay],{cwd:desktop,env:{...process.env,TAURI_SIGNING_PRIVATE_KEY:key,TAURI_SIGNING_PRIVATE_KEY_PASSWORD:''}});
   const files=await readdir(bundle);
   const installers=files.filter(name=>name.endsWith('-setup.exe'));
   const zips=files.filter(name=>name.endsWith('-setup.nsis.zip'));
