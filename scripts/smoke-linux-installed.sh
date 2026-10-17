@@ -163,7 +163,7 @@ def choose_plugin_folder(folder):
     before_windows = set(visible_window_titles())
     file_input = driver.find_element(By.ID, "plugin-folder-input")
     bounds = driver.execute_script(
-        "const r=arguments[0].getBoundingClientRect(); return {x:r.x,y:r.y,width:r.width,height:r.height};",
+        "const r=arguments[0].getBoundingClientRect(); return {x:r.x,y:r.y,width:r.width,height:r.height,chromeY:window.outerHeight-window.innerHeight};",
         file_input,
     )
     app_window = subprocess.run(
@@ -177,7 +177,9 @@ def choose_plugin_folder(folder):
     # The native file input renders its Open button at the left edge. Use a real
     # X11 pointer click there; WebDriver's file-input click is unsupported.
     x = round(int(coordinates["X"]) + bounds["x"] + min(55, bounds["width"] / 2))
-    y = round(int(coordinates["Y"]) + bounds["y"] + bounds["height"] / 2)
+    # WebView element coordinates start below the native title bar, while
+    # xdotool targets the X11 client window origin. Add that vertical inset.
+    y = round(int(coordinates["Y"]) + bounds["chromeY"] + bounds["y"] + bounds["height"] / 2)
     subprocess.run(["xdotool", "mousemove", "--sync", str(x), str(y), "click", "1"], check=True)
     deadline = time.time() + 15
     while time.time() < deadline:
@@ -190,7 +192,8 @@ def choose_plugin_folder(folder):
         capture_desktop("native-plugin-folder-dialog-missing.png")
         raise AssertionError(
             f"Native folder chooser did not take focus; active window={active_window_title()!r}; "
-            f"visible windows={visible_window_titles()!r}"
+            f"visible windows={visible_window_titles()!r}; click=({x},{y}); "
+            f"window_geometry={coordinates!r}; element_bounds={bounds!r}"
         )
 
     capture_desktop("native-plugin-folder-dialog.png")
