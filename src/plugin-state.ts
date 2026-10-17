@@ -24,6 +24,7 @@ export function discoverPlugins(base=new URL('./plugins/',document.baseURI)):Pro
      const entry=manifest.entry===undefined?'index.js':manifest.entry;
      if(typeof entry!=='string'||!/^[a-zA-Z0-9_./-]+\.(?:m?js)$/.test(entry)||entry.split('/').includes('..')||entry.startsWith('/'))throw Error('La ruta de entrada no es válida.');
      const entryUrl=new URL(entry,folder);if(entryUrl.origin!==folder.origin||!entryUrl.pathname.startsWith(folder.pathname))throw Error('La ruta de entrada debe permanecer dentro de la carpeta del plugin.');
+     const entryResponse=await fetch(entryUrl,{method:'HEAD',cache:'no-store'});if(!entryResponse.ok)throw Error('No se pudo leer el archivo de entrada.');
      const url=entryUrl.href;
      return{manifest,load:()=>import(/* @vite-ignore */ url)} satisfies PluginDescriptor;
     }catch(error){const reason=error instanceof Error&&error.message?error.message:'Error de manifiesto o entrada.';discoveryErrors.push('No se ha podido cargar la extensión '+id+': '+reason);return null;}
