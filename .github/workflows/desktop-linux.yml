@@ -4,13 +4,25 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      reuse_build_run_id:
+        description: Prior Linux build run whose artifact can be reused for a smoke-only check
+        required: false
+        type: string
+      reuse_deb_sha256:
+        description: SHA256 of the .deb artifact from reuse_build_run_id
+        required: false
+        type: string
 permissions:
   contents: read
+  actions: read
 jobs:
   deb-installed-smoke:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -20,16 +32,54 @@ jobs:
             desktop-app/package-lock.json
       - uses: dtolnay/rust-toolchain@stable
       - uses: swatinem/rust-cache@v2
+        if: inputs.reuse_build_run_id == ''
         with:
           workspaces: desktop-app/src-tauri -> target
+          cache-on-failure: true
       - name: Instalar dependencias Linux, WebDriver y Xvfb
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential curl wget file libssl-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev libwebkit2gtk-4.1-dev libxdo-dev webkit2gtk-driver xdotool xvfb python3-selenium
-      - run: cargo install tauri-driver --locked
+          sudo apt-get install -y build-essential curl wget file libssl-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev libwebkit2gtk-4.1-dev libxdo-dev webkit2gtk-driver xdotool xvfb scrot python3-selenium
+      - name: Instalar tauri-driver
+        run: cargo install tauri-driver --locked
       - run: npm ci
+        if: inputs.reuse_build_run_id == ''
       - run: npm ci --prefix desktop-app
+        if: inputs.reuse_build_run_id == ''
       - run: npm run desktop:build
+        if: inputs.reuse_build_run_id == ''
+      - name: Reutilizar .deb de una compilación Linux verificada
+        if: inputs.reuse_build_run_id != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN_ID: ${{ inputs.reuse_build_run_id }}
+          SOURCE_DEB_SHA256: ${{ inputs.reuse_deb_sha256 }}
+        run: |
+          set -euo pipefail
+          test -n "$SOURCE_RUN_ID"
+          test -n "$SOURCE_DEB_SHA256"
+          run_json="$(gh run view "$SOURCE_RUN_ID" --repo "$GITHUB_REPOSITORY" --json workflowName,headBranch,headSha,status,conclusion)"
+          test "$(jq -r .workflowName <<<"$run_json")" = "Aplicación de escritorio Linux"
+          test "$(jq -r .status <<<"$run_json")" = completed
+          test "$(jq -r .headBranch <<<"$run_json")" = "$GITHUB_REF_NAME"
+          source_sha="$(jq -r .headSha <<<"$run_json")"
+          git merge-base --is-ancestor "$source_sha" "$GITHUB_SHA"
+          changed_files="$(git diff --name-only "$source_sha" "$GITHUB_SHA")"
+          while IFS= read -r file; do
+            [ -z "$file" ] && continue
+            case "$file" in
+              scripts/smoke-linux-installed.sh|.github/workflows/desktop-linux.yml) ;;
+              *) echo "Cannot reuse package: app source changed at $file" >&2; exit 1 ;;
+            esac
+          done <<<"$changed_files"
+          mkdir -p "$RUNNER_TEMP/reused-deb" desktop-app/src-tauri/target/release/bundle/deb
+          gh run download "$SOURCE_RUN_ID" --repo "$GITHUB_REPOSITORY" --name mermaid-bp-linux-deb --dir "$RUNNER_TEMP/reused-deb"
+          shopt -s nullglob
+          packages=("$RUNNER_TEMP/reused-deb"/*.deb)
+          test "${#packages[@]}" -eq 1
+          actual_sha="$(sha256sum "${packages[0]}" | cut -d' ' -f1)"
+          test "$actual_sha" = "$SOURCE_DEB_SHA256"
+          cp "${packages[0]}" desktop-app/src-tauri/target/release/bundle/deb/
       - name: Verificar nombre, versión y arquitectura del paquete
         run: |
           shopt -s nullglob
