@@ -621,68 +621,75 @@ LICENSE-APACHE: [texto 60](#texto-60).
 
 LICENSE-MIT: [texto 61](#texto-61).
 
+## http-range 0.1.5 — MIT
+
+Origen: https://github.com/bancek/rust-http-range.git.
+Autores declarados: Luka Zakrajšek <luka@bancek.net>.
+
+LICENSE: [texto 62](#texto-62).
+
 ## ico 0.5.0 — MIT
 
 Origen: https://github.com/mdsteele/rust-ico.
 Autores declarados: Matthew D. Steele <mdsteele@alum.mit.edu>.
 
-LICENSE: [texto 62](#texto-62).
+LICENSE: [texto 63](#texto-63).
 
 ## icu_collections 2.3.0 — Unicode-3.0
 
 Origen: https://github.com/unicode-org/icu4x.
 Autores declarados: The ICU4X Project Developers.
 
-LICENSE: [texto 63](#texto-63).
+LICENSE: [texto 64](#texto-64).
 
 ## icu_locale_core 2.3.0 — Unicode-3.0
 
 Origen: https://github.com/unicode-org/icu4x.
 Autores declarados: The ICU4X Project Developers.
 
-LICENSE: [texto 63](#texto-63).
+LICENSE: [texto 64](#texto-64).
 
 ## icu_normalizer 2.3.0 — Unicode-3.0
 
 Origen: https://github.com/unicode-org/icu4x.
 Autores declarados: The ICU4X Project Developers.
 
-LICENSE: [texto 63](#texto-63).
+LICENSE: [texto 64](#texto-64).
 
 ## icu_normalizer_data 2.3.0 — Unicode-3.0
 
 Origen: https://github.com/unicode-org/icu4x.
 Autores declarados: The ICU4X Project Developers.
 
-LICENSE: [texto 63](#texto-63).
+LICENSE: [texto 64](#texto-64).
 
 ## icu_properties 2.3.0 — Unicode-3.0
 
 Origen: https://github.com/unicode-org/icu4x.
 Autores declarados: The ICU4X Project Developers.
 
-LICENSE: [texto 63](#texto-63).
+LICENSE: [texto 64](#texto-64).
 
 ## icu_properties_data 2.3.0 — Unicode-3.0
 
 Origen: https://github.com/unicode-org/icu4x.
 Autores declarados: The ICU4X Project Developers.
 
-LICENSE: [texto 63](#texto-63).
+LICENSE: [texto 64](#texto-64).
 
 ## icu_provider 2.3.1 — Unicode-3.0
 
 Origen: https://github.com/unicode-org/icu4x.
 Autores declarados: The ICU4X Project Developers.
 
-LICENSE: [texto 63](#texto-63).
+LICENSE: [texto 64](#texto-64).
 
 ## ident_case 1.0.1 — MIT/Apache-2.0
 
 Origen: https://github.com/TedDriggs/ident_case.
 Autores declarados: Ted Driggs <ted.driggs@outlook.com>.
 
-LICENSE: [texto 64](#texto-64).
+LICENSE: [texto 65](#texto-65).
 
 ## idna 1.1.0 — MIT OR Apache-2.0
 
@@ -691,7 +698,7 @@ Autores declarados: The rust-url developers.
 
 LICENSE-APACHE: [texto 8](#texto-8).
 
-LICENSE-MIT: [texto 65](#texto-65).
+LICENSE-MIT: [texto 66](#texto-66).
 
 ## idna_adapter 1.2.2 — Apache-2.0 OR MIT
 
@@ -700,7 +707,7 @@ Autores declarados: The rust-url developers.
 
 LICENSE-APACHE: [texto 8](#texto-8).
 
-LICENSE-MIT: [texto 66](#texto-66).
+LICENSE-MIT: [texto 67](#texto-67).
 
 ## indexmap 1.9.3 — Apache-2.0 OR MIT
 
@@ -709,7 +716,7 @@ Autores declarados: no indicados en los metadatos del crate.
 
 LICENSE-APACHE: [texto 8](#texto-8).
 
-LICENSE-MIT: [texto 67](#texto-67).
+LICENSE-MIT: [texto 68](#texto-68).
 
 ## indexmap 2.14.2 — Apache-2.0 OR MIT
 
@@ -718,14 +725,14 @@ Autores declarados: no indicados en los metadatos del crate.
 
 LICENSE-APACHE: [texto 8](#texto-8).
 
-LICENSE-MIT: [texto 67](#texto-67).
+LICENSE-MIT: [texto 68](#texto-68).
 
 ## infer 0.22.0 — MIT
 
 Origen: https://github.com/bojand/infer.
 Autores declarados: Bojan <dbojan@gmail.com>.
 
-LICENSE: [texto 68](#texto-68).
+LICENSE: [texto 69](#texto-69).
 
 ## itoa 1.0.18 — MIT OR Apache-2.0
 
@@ -779,16 +786,16 @@ Autores declarados: Ivan Dubrov <dubrov.ivan@gmail.com>.
 
 LICENSE-APACHE: [texto 26](#texto-26).
 
-LICENSE-MIT: [texto 69](#texto-69).
+LICENSE-MIT: [texto 70](#texto-70).
 
 ## jsonptr 0.7.1 — MIT OR Apache-2.0
 
 Origen: https://github.com/chanced/jsonptr.
 Autores declarados: chance dinkins; André Sá de Mello <codasm@pm.me>; Oliver Wangler <oliver@wngr.de>.
 
-LICENSE-APACHE: [texto 70](#texto-70).
+LICENSE-APACHE: [texto 71](#texto-71).
 
-LICENSE-MIT: [texto 71](#texto-71).
+LICENSE-MIT: [texto 72](#texto-72).
 
 ## keyboard-types 0.8.3 — MIT OR Apache-2.0
 
@@ -797,7 +804,7 @@ Autores declarados: Pyfisch <pyfisch@posteo.org>.
 
 LICENSE-APACHE: [texto 8](#texto-8).
 
-LICENSE-MIT: [texto 72](#texto-72).
+LICENSE-MIT: [texto 73](#texto-73).
 
 ## libc 0.2.191 — MIT OR Apache-2.0
 
@@ -806,14 +813,14 @@ Autores declarados: no indicados en los metadatos del crate.
 
 LICENSE-APACHE: [texto 7](#texto-7).
 
-LICENSE-MIT: [texto 73](#texto-73).
+LICENSE-MIT: [texto 74](#texto-74).
 
 ## litemap 0.8.3 — Unicode-3.0
 
 Origen: https://github.com/unicode-org/icu4x.
 Autores declarados: The ICU4X Project Developers.
 
-LICENSE: [texto 63](#texto-63).
+LICENSE: [texto 64](#texto-64).
 
 ## lock_api 0.4.14 — MIT OR Apache-2.0
 
@@ -822,7 +829,7 @@ Autores declarados: Amanieu d'Antras <amanieu@gmail.com>.
 
 LICENSE-APACHE: [texto 8](#texto-8).
 
-LICENSE-MIT: [texto 74](#texto-74).
+LICENSE-MIT: [texto 75](#texto-75).
 
 ## log 0.4.34 — MIT OR Apache-2.0
 
@@ -858,40 +865,40 @@ Autores declarados: Sean McArthur <sean@seanmonstar.com>.
 
 LICENSE-APACHE: [texto 8](#texto-8).
 
-LICENSE-MIT: [texto 75](#texto-75).
+LICENSE-MIT: [texto 76](#texto-76).
 
 ## miniz_oxide 0.8.9 — MIT OR Zlib OR Apache-2.0
 
 Origen: https://github.com/Frommi/miniz_oxide/tree/master/miniz_oxide.
 Autores declarados: Frommi <daniil.liferenko@gmail.com>; oyvindln <oyvindln@users.noreply.github.com>; Rich Geldreich richgel99@gmail.com.
 
-LICENSE: [texto 76](#texto-76).
+LICENSE: [texto 77](#texto-77).
 
 LICENSE-APACHE.md: [texto 46](#texto-46).
 
-LICENSE-MIT.md: [texto 77](#texto-77).
+LICENSE-MIT.md: [texto 78](#texto-78).
 
-LICENSE-ZLIB.md: [texto 78](#texto-78).
+LICENSE-ZLIB.md: [texto 79](#texto-79).
 
 ## miniz_oxide 0.9.1 — MIT OR Zlib OR Apache-2.0
 
 Origen: https://github.com/Frommi/miniz_oxide/tree/master/miniz_oxide.
 Autores declarados: Frommi <daniil.liferenko@gmail.com>; oyvindln <oyvindln@users.noreply.github.com>; Rich Geldreich richgel99@gmail.com.
 
-LICENSE: [texto 76](#texto-76).
+LICENSE: [texto 77](#texto-77).
 
 LICENSE-APACHE.md: [texto 46](#texto-46).
 
-LICENSE-MIT.md: [texto 77](#texto-77).
+LICENSE-MIT.md: [texto 78](#texto-78).
 
-LICENSE-ZLIB.md: [texto 78](#texto-78).
+LICENSE-ZLIB.md: [texto 79](#texto-79).
 
 ## mio 1.2.4 — MIT
 
 Origen: https://github.com/tokio-rs/mio.
 Autores declarados: Carl Lerche <me@carllerche.com>; Thomas de Zeeuw <thomasdezeeuw@gmail.com>; Tokio Contributors <team@tokio.rs>.
 
-LICENSE: [texto 79](#texto-79).
+LICENSE: [texto 80](#texto-80).
 
 ## muda 0.20.0 — Apache-2.0 OR MIT
 
@@ -900,16 +907,16 @@ Autores declarados: no indicados en los metadatos del crate.
 
 LICENSE-APACHE: [texto 8](#texto-8).
 
-LICENSE-MIT: [texto 80](#texto-80).
+LICENSE-MIT: [texto 81](#texto-81).
 
-LICENSE.spdx: [texto 81](#texto-81).
+LICENSE.spdx: [texto 82](#texto-82).
 
 ## new_debug_unreachable 1.0.6 — MIT
 
 Origen: https://github.com/mbrubeck/rust-debug-unreachable.
 Autores declarados: Matt Brubeck <mbrubeck@limpet.net>; Jonathan Reem <jonathan.reem@gmail.com>.
 
-LICENSE-MIT: [texto 82](#texto-82).
+LICENSE-MIT: [texto 83](#texto-83).
 
 ## num-conv 0.2.2 — MIT OR Apache-2.0
 
@@ -918,7 +925,7 @@ Autores declarados: Jacob Pratt <jacob@jhpratt.dev>.
 
 LICENSE-Apache: [texto 46](#texto-46).
 
-LICENSE-MIT: [texto 83](#texto-83).
+LICENSE-MIT: [texto 84](#texto-84).
 
 ## num-traits 0.2.19 — MIT OR Apache-2.0
 
@@ -943,7 +950,7 @@ LICENSE-MIT: [texto 3](#texto-3).
 Origen: https://github.com/soc/option-ext.git.
 Autores declarados: Simon Ochsenreither <simon@ochsenreither.de>.
 
-LICENSE.txt: [texto 84](#texto-84).
+LICENSE.txt: [texto 85](#texto-85).
 
 ## parking_lot 0.12.5 — MIT OR Apache-2.0
 
@@ -952,7 +959,7 @@ Autores declarados: Amanieu d'Antras <amanieu@gmail.com>.
 
 LICENSE-APACHE: [texto 8](#texto-8).
 
-LICENSE-MIT: [texto 74](#texto-74).
+LICENSE-MIT: [texto 75](#texto-75).
 
 ## parking_lot_core 0.9.12 — MIT OR Apache-2.0
 
@@ -961,7 +968,7 @@ Autores declarados: Amanieu d'Antras <amanieu@gmail.com>.
 
 LICENSE-APACHE: [texto 8](#texto-8).
 
-LICENSE-MIT: [texto 74](#texto-74).
+LICENSE-MIT: [texto 75](#texto-75).
 
 ## percent-encoding 2.3.2 — MIT OR Apache-2.0
 
@@ -970,42 +977,42 @@ Autores declarados: The rust-url developers.
 
 LICENSE-APACHE: [texto 8](#texto-8).
 
-LICENSE-MIT: [texto 65](#texto-65).
+LICENSE-MIT: [texto 66](#texto-66).
 
 ## phf 0.13.1 — MIT
 
 Origen: https://github.com/rust-phf/rust-phf.
 Autores declarados: Steven Fackler <sfackler@gmail.com>.
 
-LICENSE: [texto 85](#texto-85).
+LICENSE: [texto 86](#texto-86).
 
 ## phf_codegen 0.13.1 — MIT
 
 Origen: https://github.com/rust-phf/rust-phf.
 Autores declarados: Steven Fackler <sfackler@gmail.com>.
 
-LICENSE: [texto 85](#texto-85).
+LICENSE: [texto 86](#texto-86).
 
 ## phf_generator 0.13.1 — MIT
 
 Origen: https://github.com/rust-phf/rust-phf.
 Autores declarados: Steven Fackler <sfackler@gmail.com>.
 
-LICENSE: [texto 85](#texto-85).
+LICENSE: [texto 86](#texto-86).
 
 ## phf_macros 0.13.1 — MIT
 
 Origen: https://github.com/rust-phf/rust-phf.
 Autores declarados: Steven Fackler <sfackler@gmail.com>.
 
-LICENSE: [texto 85](#texto-85).
+LICENSE: [texto 86](#texto-86).
 
 ## phf_shared 0.13.1 — MIT
 
 Origen: https://github.com/rust-phf/rust-phf.
 Autores declarados: Steven Fackler <sfackler@gmail.com>.
 
-LICENSE: [texto 85](#texto-85).
+LICENSE: [texto 86](#texto-86).
 
 ## pin-project-lite 0.2.17 — Apache-2.0 OR MIT
 
@@ -1021,7 +1028,7 @@ LICENSE-MIT: [texto 3](#texto-3).
 Origen: https://github.com/ebarnard/rust-plist/.
 Autores declarados: Ed Barnard <eabarnard@gmail.com>.
 
-LICENCE: [texto 86](#texto-86).
+LICENCE: [texto 87](#texto-87).
 
 ## png 0.17.16 — MIT OR Apache-2.0
 
@@ -1030,7 +1037,7 @@ Autores declarados: The image-rs Developers.
 
 LICENSE-APACHE: [texto 8](#texto-8).
 
-LICENSE-MIT: [texto 87](#texto-87).
+LICENSE-MIT: [texto 88](#texto-88).
 
 ## png 0.18.1 — MIT OR Apache-2.0
 
@@ -1039,30 +1046,30 @@ Autores declarados: The image-rs Developers.
 
 LICENSE-APACHE: [texto 8](#texto-8).
 
-LICENSE-MIT: [texto 87](#texto-87).
+LICENSE-MIT: [texto 88](#texto-88).
 
 ## potential_utf 0.1.6 — Unicode-3.0
 
 Origen: https://github.com/unicode-org/icu4x.
 Autores declarados: The ICU4X Project Developers.
 
-LICENSE: [texto 63](#texto-63).
+LICENSE: [texto 64](#texto-64).
 
 ## powerfmt 0.2.1 — MIT OR Apache-2.0
 
 Origen: https://github.com/jhpratt/powerfmt.
 Autores declarados: Jacob Pratt <jacob@jhpratt.dev>.
 
-LICENSE-Apache: [texto 88](#texto-88).
+LICENSE-Apache: [texto 89](#texto-89).
 
-LICENSE-MIT: [texto 89](#texto-89).
+LICENSE-MIT: [texto 90](#texto-90).
 
 ## precomputed-hash 0.1.1 — MIT
 
 Origen: https://github.com/emilio/precomputed-hash.
 Autores declarados: Emilio Cobos Álvarez <emilio@crisal.io>.
 
-LICENSE: [texto 90](#texto-90).
+LICENSE: [texto 91](#texto-91).
 
 ## proc-macro2 1.0.107 — MIT OR Apache-2.0
 
@@ -1078,7 +1085,7 @@ LICENSE-MIT: [texto 3](#texto-3).
 Origen: https://github.com/tafia/quick-xml.
 Autores declarados: no indicados en los metadatos del crate.
 
-LICENSE-MIT.md: [texto 91](#texto-91).
+LICENSE-MIT.md: [texto 92](#texto-92).
 
 ## quote 1.0.47 — MIT OR Apache-2.0
 
@@ -1096,9 +1103,9 @@ Autores declarados: Osspial <osspial@gmail.com>.
 
 LICENSE-APACHE.md: [texto 46](#texto-46).
 
-LICENSE-MIT.md: [texto 92](#texto-92).
+LICENSE-MIT.md: [texto 93](#texto-93).
 
-LICENSE-ZLIB.md: [texto 93](#texto-93).
+LICENSE-ZLIB.md: [texto 94](#texto-94).
 
 ## ref-cast 1.0.27 — MIT OR Apache-2.0
 
@@ -1150,7 +1157,7 @@ LICENSE-MIT: [texto 13](#texto-13).
 Origen: https://github.com/PolyMeilex/rfd.
 Autores declarados: Poly <marynczak.bartlomiej@gmail.com>.
 
-LICENSE: [texto 94](#texto-94).
+LICENSE: [texto 95](#texto-95).
 
 ## rustc-hash 2.1.3 — Apache-2.0 OR MIT
 
@@ -1168,7 +1175,7 @@ Autores declarados: no indicados en los metadatos del crate.
 
 LICENSE-APACHE: [texto 8](#texto-8).
 
-LICENSE-MIT: [texto 74](#texto-74).
+LICENSE-MIT: [texto 75](#texto-75).
 
 ## same-file 1.0.6 — Unlicense/MIT
 
@@ -1177,35 +1184,35 @@ Autores declarados: Andrew Gallant <jamslam@gmail.com>.
 
 COPYING: [texto 4](#texto-4).
 
-LICENSE-MIT: [texto 95](#texto-95).
+LICENSE-MIT: [texto 96](#texto-96).
 
 ## schemars 0.8.22 — MIT
 
 Origen: https://github.com/GREsau/schemars.
 Autores declarados: Graham Esau <gesau@hotmail.co.uk>.
 
-LICENSE: [texto 96](#texto-96).
+LICENSE: [texto 97](#texto-97).
 
 ## schemars 0.9.0 — MIT
 
 Origen: https://github.com/GREsau/schemars.
 Autores declarados: Graham Esau <gesau@hotmail.co.uk>.
 
-LICENSE: [texto 96](#texto-96).
+LICENSE: [texto 97](#texto-97).
 
 ## schemars 1.2.3 — MIT
 
 Origen: https://github.com/GREsau/schemars.
 Autores declarados: Graham Esau <gesau@hotmail.co.uk>.
 
-LICENSE: [texto 96](#texto-96).
+LICENSE: [texto 97](#texto-97).
 
 ## schemars_derive 0.8.22 — MIT
 
 Origen: https://github.com/GREsau/schemars.
 Autores declarados: Graham Esau <gesau@hotmail.co.uk>.
 
-LICENSE: [texto 96](#texto-96).
+LICENSE: [texto 97](#texto-97).
 
 ## scopeguard 1.2.0 — MIT OR Apache-2.0
 
@@ -1214,14 +1221,14 @@ Autores declarados: bluss.
 
 LICENSE-APACHE: [texto 8](#texto-8).
 
-LICENSE-MIT: [texto 97](#texto-97).
+LICENSE-MIT: [texto 98](#texto-98).
 
 ## selectors 0.38.0 — MPL-2.0
 
 Origen: https://github.com/servo/stylo.
 Autores declarados: The Servo Project Developers.
 
-El crate publicado omite el archivo de licencia; se incluye el [texto 84](#texto-84) de https://www.mozilla.org/media/MPL/2.0/index.txt.
+El crate publicado omite el archivo de licencia; se incluye el [texto 85](#texto-85) de https://www.mozilla.org/media/MPL/2.0/index.txt.
 
 ## semver 1.0.28 — MIT OR Apache-2.0
 
@@ -1300,9 +1307,9 @@ LICENSE-MIT: [texto 3](#texto-3).
 Origen: https://github.com/toml-rs/toml.
 Autores declarados: no indicados en los metadatos del crate.
 
-LICENSE-APACHE: [texto 98](#texto-98).
+LICENSE-APACHE: [texto 99](#texto-99).
 
-LICENSE-MIT: [texto 99](#texto-99).
+LICENSE-MIT: [texto 100](#texto-100).
 
 ## serde_with 3.24.0 — MIT OR Apache-2.0
 
@@ -1311,7 +1318,7 @@ Autores declarados: Jonas Bushart; Marcin Kaźmierczak.
 
 LICENSE-APACHE: [texto 8](#texto-8).
 
-LICENSE-MIT: [texto 100](#texto-100).
+LICENSE-MIT: [texto 101](#texto-101).
 
 ## serde_with_macros 3.24.0 — MIT OR Apache-2.0
 
@@ -1320,25 +1327,25 @@ Autores declarados: Jonas Bushart.
 
 LICENSE-APACHE: [texto 8](#texto-8).
 
-LICENSE-MIT: [texto 100](#texto-100).
+LICENSE-MIT: [texto 101](#texto-101).
 
 ## serialize-to-javascript 0.1.2 — MIT OR Apache-2.0
 
 Origen: https://github.com/chippers/serialize-to-javascript.
 Autores declarados: Chip Reed <chip@chip.sh>.
 
-LICENSE-APACHE: [texto 101](#texto-101).
+LICENSE-APACHE: [texto 102](#texto-102).
 
-LICENSE-MIT: [texto 102](#texto-102).
+LICENSE-MIT: [texto 103](#texto-103).
 
 ## serialize-to-javascript-impl 0.1.2 — MIT OR Apache-2.0
 
 Origen: https://github.com/chippers/serialize-to-javascript.
 Autores declarados: Chip Reed <chip@chip.sh>.
 
-LICENSE-APACHE: [texto 101](#texto-101).
+LICENSE-APACHE: [texto 102](#texto-102).
 
-LICENSE-MIT: [texto 102](#texto-102).
+LICENSE-MIT: [texto 103](#texto-103).
 
 ## servo_arc 0.4.3 — MIT OR Apache-2.0
 
@@ -1356,34 +1363,34 @@ Autores declarados: RustCrypto Developers.
 
 LICENSE-APACHE: [texto 14](#texto-14).
 
-LICENSE-MIT: [texto 103](#texto-103).
+LICENSE-MIT: [texto 104](#texto-104).
 
 ## shlex 2.0.1 — MIT OR Apache-2.0
 
 Origen: https://github.com/comex/rust-shlex.
 Autores declarados: comex <comexk@gmail.com>; Fenhl <fenhl@fenhl.net>; Adrian Taylor <adetaylor@chromium.org>; Alex Touchet <alextouchet@outlook.com>; Daniel Parks <dp+git@oxidized.org>; Garrett Berg <googberg@gmail.com>.
 
-LICENSE-APACHE: [texto 104](#texto-104).
+LICENSE-APACHE: [texto 105](#texto-105).
 
-LICENSE-MIT: [texto 105](#texto-105).
+LICENSE-MIT: [texto 106](#texto-106).
 
 ## simd-adler32 0.3.10 — MIT
 
 Origen: https://github.com/mcountryman/simd-adler32.
 Autores declarados: Marvin Countryman <me@maar.vin>.
 
-LICENSE.md: [texto 106](#texto-106).
+LICENSE.md: [texto 107](#texto-107).
 
 ## siphasher 1.0.4 — MIT OR Apache-2.0
 
 Origen: https://github.com/jedisct1/rust-siphash.
 Autores declarados: Frank Denis <github@pureftpd.org>.
 
-COPYING: [texto 107](#texto-107).
+COPYING: [texto 108](#texto-108).
 
-LICENSE-APACHE: [texto 101](#texto-101).
+LICENSE-APACHE: [texto 102](#texto-102).
 
-LICENSE-MIT: [texto 108](#texto-108).
+LICENSE-MIT: [texto 109](#texto-109).
 
 ## smallvec 1.16.3 — MIT OR Apache-2.0
 
@@ -1392,7 +1399,7 @@ Autores declarados: The Servo Project Developers.
 
 LICENSE-APACHE: [texto 8](#texto-8).
 
-LICENSE-MIT: [texto 109](#texto-109).
+LICENSE-MIT: [texto 110](#texto-110).
 
 ## socket2 0.6.5 — MIT OR Apache-2.0
 
@@ -1408,9 +1415,9 @@ LICENSE-MIT: [texto 20](#texto-20).
 Origen: https://github.com/rust-windowing/softbuffer.
 Autores declarados: no indicados en los metadatos del crate.
 
-LICENSE-APACHE: [texto 110](#texto-110).
+LICENSE-APACHE: [texto 111](#texto-111).
 
-LICENSE-MIT: [texto 111](#texto-111).
+LICENSE-MIT: [texto 112](#texto-112).
 
 ## stable_deref_trait 1.2.1 — MIT OR Apache-2.0
 
@@ -1419,20 +1426,20 @@ Autores declarados: Robert Grosse <n210241048576@gmail.com>.
 
 LICENSE-APACHE: [texto 8](#texto-8).
 
-LICENSE-MIT: [texto 112](#texto-112).
+LICENSE-MIT: [texto 113](#texto-113).
 
 ## static_vcruntime 3.0.0 — MIT OR Apache-2.0 OR Zlib
 
 Origen: https://github.com/ChrisDenton/static_vcruntime.
 Autores declarados: no indicados en los metadatos del crate.
 
-LICENSE: [texto 113](#texto-113).
+LICENSE: [texto 114](#texto-114).
 
-LICENSE-APACHE: [texto 114](#texto-114).
+LICENSE-APACHE: [texto 115](#texto-115).
 
-LICENSE-MIT: [texto 115](#texto-115).
+LICENSE-MIT: [texto 116](#texto-116).
 
-LICENSE-ZLIB: [texto 116](#texto-116).
+LICENSE-ZLIB: [texto 117](#texto-117).
 
 ## string_cache 0.9.0 — MIT OR Apache-2.0
 
@@ -1441,7 +1448,7 @@ Autores declarados: The Servo Project Developers.
 
 LICENSE-APACHE: [texto 8](#texto-8).
 
-LICENSE-MIT: [texto 117](#texto-117).
+LICENSE-MIT: [texto 118](#texto-118).
 
 ## string_cache_codegen 0.6.1 — MIT OR Apache-2.0
 
@@ -1450,14 +1457,14 @@ Autores declarados: The Servo Project Developers.
 
 LICENSE-APACHE: [texto 8](#texto-8).
 
-LICENSE-MIT: [texto 117](#texto-117).
+LICENSE-MIT: [texto 118](#texto-118).
 
 ## strsim 0.11.1 — MIT
 
 Origen: https://github.com/rapidfuzz/strsim-rs.
 Autores declarados: Danny Guo <danny@dannyguo.com>; maxbachmann <oss@maxbachmann.de>.
 
-LICENSE: [texto 118](#texto-118).
+LICENSE: [texto 119](#texto-119).
 
 ## syn 2.0.119 — MIT OR Apache-2.0
 
@@ -1482,7 +1489,7 @@ LICENSE-MIT: [texto 3](#texto-3).
 Origen: https://github.com/mystor/synstructure.
 Autores declarados: Nika Layzell <nika@thelayzells.com>.
 
-LICENSE: [texto 119](#texto-119).
+LICENSE: [texto 120](#texto-120).
 
 ## tao 0.37.1 — Apache-2.0
 
@@ -1491,7 +1498,7 @@ Autores declarados: Tauri Programme within The Commons Conservancy; The winit co
 
 LICENSE: [texto 26](#texto-26).
 
-LICENSE.spdx: [texto 120](#texto-120).
+LICENSE.spdx: [texto 121](#texto-121).
 
 ## tauri 2.12.4 — Apache-2.0 OR MIT
 
@@ -1500,7 +1507,7 @@ Autores declarados: Tauri Programme within The Commons Conservancy.
 
 LICENSE-APACHE-2.0: [texto 46](#texto-46).
 
-LICENSE-MIT: [texto 121](#texto-121).
+LICENSE-MIT: [texto 122](#texto-122).
 
 ## tauri-build 2.7.3 — Apache-2.0 OR MIT
 
@@ -1509,7 +1516,7 @@ Autores declarados: Tauri Programme within The Commons Conservancy.
 
 LICENSE-APACHE-2.0: [texto 46](#texto-46).
 
-LICENSE-MIT: [texto 121](#texto-121).
+LICENSE-MIT: [texto 122](#texto-122).
 
 ## tauri-codegen 2.7.3 — Apache-2.0 OR MIT
 
@@ -1518,7 +1525,7 @@ Autores declarados: Tauri Programme within The Commons Conservancy.
 
 LICENSE-APACHE-2.0: [texto 46](#texto-46).
 
-LICENSE-MIT: [texto 121](#texto-121).
+LICENSE-MIT: [texto 122](#texto-122).
 
 ## tauri-macros 2.7.3 — Apache-2.0 OR MIT
 
@@ -1527,7 +1534,7 @@ Autores declarados: Tauri Programme within The Commons Conservancy.
 
 LICENSE-APACHE-2.0: [texto 46](#texto-46).
 
-LICENSE-MIT: [texto 121](#texto-121).
+LICENSE-MIT: [texto 122](#texto-122).
 
 ## tauri-runtime 2.12.2 — Apache-2.0 OR MIT
 
@@ -1536,7 +1543,7 @@ Autores declarados: Tauri Programme within The Commons Conservancy.
 
 LICENSE-APACHE-2.0: [texto 46](#texto-46).
 
-LICENSE-MIT: [texto 121](#texto-121).
+LICENSE-MIT: [texto 122](#texto-122).
 
 ## tauri-runtime-wry 2.12.2 — Apache-2.0 OR MIT
 
@@ -1545,7 +1552,7 @@ Autores declarados: Tauri Programme within The Commons Conservancy.
 
 LICENSE-APACHE-2.0: [texto 46](#texto-46).
 
-LICENSE-MIT: [texto 121](#texto-121).
+LICENSE-MIT: [texto 122](#texto-122).
 
 ## tauri-utils 2.10.2 — Apache-2.0 OR MIT
 
@@ -1554,14 +1561,14 @@ Autores declarados: Tauri Programme within The Commons Conservancy.
 
 LICENSE-APACHE-2.0: [texto 46](#texto-46).
 
-LICENSE-MIT: [texto 121](#texto-121).
+LICENSE-MIT: [texto 122](#texto-122).
 
 ## tauri-winres 0.3.6 — MIT
 
 Origen: https://github.com/tauri-apps/winres.
 Autores declarados: Tauri Programme within The Commons Conservancy; Max Resch <resch.max@gmail.com>.
 
-LICENSE: [texto 122](#texto-122).
+LICENSE: [texto 123](#texto-123).
 
 ## tendril 0.5.1 — MIT OR Apache-2.0
 
@@ -1570,7 +1577,7 @@ Autores declarados: Keegan McAllister <mcallister.keegan@gmail.com>; Simon Sapin
 
 LICENSE-APACHE: [texto 8](#texto-8).
 
-LICENSE-MIT: [texto 123](#texto-123).
+LICENSE-MIT: [texto 124](#texto-124).
 
 ## thiserror 2.0.21 — MIT OR Apache-2.0
 
@@ -1597,7 +1604,7 @@ Autores declarados: Jacob Pratt <open-source@jhpratt.dev>; Time contributors.
 
 LICENSE-Apache: [texto 46](#texto-46).
 
-LICENSE-MIT: [texto 124](#texto-124).
+LICENSE-MIT: [texto 125](#texto-125).
 
 ## time-core 0.1.9 — MIT OR Apache-2.0
 
@@ -1606,7 +1613,7 @@ Autores declarados: Jacob Pratt <open-source@jhpratt.dev>; Time contributors.
 
 LICENSE-Apache: [texto 46](#texto-46).
 
-LICENSE-MIT: [texto 124](#texto-124).
+LICENSE-MIT: [texto 125](#texto-125).
 
 ## time-macros 0.2.32 — MIT OR Apache-2.0
 
@@ -1615,89 +1622,89 @@ Autores declarados: Jacob Pratt <open-source@jhpratt.dev>; Time contributors.
 
 LICENSE-Apache: [texto 46](#texto-46).
 
-LICENSE-MIT: [texto 124](#texto-124).
+LICENSE-MIT: [texto 125](#texto-125).
 
 ## tinystr 0.8.4 — Unicode-3.0
 
 Origen: https://github.com/unicode-org/icu4x.
 Autores declarados: The ICU4X Project Developers.
 
-LICENSE: [texto 63](#texto-63).
+LICENSE: [texto 64](#texto-64).
 
 ## tinyvec 1.13.3 — Zlib OR Apache-2.0 OR MIT
 
 Origen: https://github.com/Lokathor/tinyvec.
 Autores declarados: Lokathor <zefria@gmail.com>.
 
-LICENSE-APACHE.md: [texto 101](#texto-101).
+LICENSE-APACHE.md: [texto 102](#texto-102).
 
 LICENSE-MIT.md: [texto 32](#texto-32).
 
-LICENSE-ZLIB.md: [texto 125](#texto-125).
+LICENSE-ZLIB.md: [texto 126](#texto-126).
 
 ## tokio 1.53.3 — MIT
 
 Origen: https://github.com/tokio-rs/tokio.
 Autores declarados: Tokio Contributors <team@tokio.rs>.
 
-LICENSE: [texto 126](#texto-126).
+LICENSE: [texto 127](#texto-127).
 
 ## toml 1.1.8+spec-1.1.0 — MIT OR Apache-2.0
 
 Origen: https://github.com/toml-rs/toml.
 Autores declarados: no indicados en los metadatos del crate.
 
-LICENSE-APACHE: [texto 98](#texto-98).
+LICENSE-APACHE: [texto 99](#texto-99).
 
-LICENSE-MIT: [texto 99](#texto-99).
+LICENSE-MIT: [texto 100](#texto-100).
 
 ## toml_datetime 1.1.2+spec-1.1.0 — MIT OR Apache-2.0
 
 Origen: https://github.com/toml-rs/toml.
 Autores declarados: no indicados en los metadatos del crate.
 
-LICENSE-APACHE: [texto 98](#texto-98).
+LICENSE-APACHE: [texto 99](#texto-99).
 
-LICENSE-MIT: [texto 99](#texto-99).
+LICENSE-MIT: [texto 100](#texto-100).
 
 ## toml_parser 1.1.5+spec-1.1.0 — MIT OR Apache-2.0
 
 Origen: https://github.com/toml-rs/toml.
 Autores declarados: no indicados en los metadatos del crate.
 
-LICENSE-APACHE: [texto 98](#texto-98).
+LICENSE-APACHE: [texto 99](#texto-99).
 
-LICENSE-MIT: [texto 99](#texto-99).
+LICENSE-MIT: [texto 100](#texto-100).
 
 ## toml_writer 1.1.3+spec-1.1.0 — MIT OR Apache-2.0
 
 Origen: https://github.com/toml-rs/toml.
 Autores declarados: no indicados en los metadatos del crate.
 
-LICENSE-APACHE: [texto 98](#texto-98).
+LICENSE-APACHE: [texto 99](#texto-99).
 
-LICENSE-MIT: [texto 99](#texto-99).
+LICENSE-MIT: [texto 100](#texto-100).
 
 ## tracing 0.1.44 — MIT
 
 Origen: https://github.com/tokio-rs/tracing.
 Autores declarados: Eliza Weisman <eliza@buoyant.io>; Tokio Contributors <team@tokio.rs>.
 
-LICENSE: [texto 127](#texto-127).
+LICENSE: [texto 128](#texto-128).
 
 ## tracing-attributes 0.1.31 — MIT
 
 Origen: https://github.com/tokio-rs/tracing.
 Autores declarados: Tokio Contributors <team@tokio.rs>; Eliza Weisman <eliza@buoyant.io>; David Barsky <dbarsky@amazon.com>.
 
-LICENSE: [texto 127](#texto-127).
+LICENSE: [texto 128](#texto-128).
 
 ## tracing-core 0.1.36 — MIT
 
 Origen: https://github.com/tokio-rs/tracing.
 Autores declarados: Tokio Contributors <team@tokio.rs>.
 
-LICENSE: [texto 127](#texto-127).
+LICENSE: [texto 128](#texto-128).
 
 ## tray-icon 0.25.1 — MIT OR Apache-2.0
 
@@ -1706,9 +1713,9 @@ Autores declarados: no indicados en los metadatos del crate.
 
 LICENSE-APACHE: [texto 8](#texto-8).
 
-LICENSE-MIT: [texto 80](#texto-80).
+LICENSE-MIT: [texto 81](#texto-81).
 
-LICENSE.spdx: [texto 128](#texto-128).
+LICENSE.spdx: [texto 129](#texto-129).
 
 ## typeid 1.0.3 — MIT OR Apache-2.0
 
@@ -1724,11 +1731,11 @@ LICENSE-MIT: [texto 3](#texto-3).
 Origen: https://github.com/paholg/typenum.
 Autores declarados: no indicados en los metadatos del crate.
 
-LICENSE: [texto 129](#texto-129).
+LICENSE: [texto 130](#texto-130).
 
-LICENSE-APACHE: [texto 130](#texto-130).
+LICENSE-APACHE: [texto 131](#texto-131).
 
-LICENSE-MIT: [texto 131](#texto-131).
+LICENSE-MIT: [texto 132](#texto-132).
 
 ## unicode-ident 1.0.27 — (MIT OR Apache-2.0) AND Unicode-3.0
 
@@ -1739,7 +1746,7 @@ LICENSE-APACHE: [texto 7](#texto-7).
 
 LICENSE-MIT: [texto 3](#texto-3).
 
-LICENSE-UNICODE: [texto 132](#texto-132).
+LICENSE-UNICODE: [texto 133](#texto-133).
 
 ## unicode-segmentation 1.13.3 — MIT OR Apache-2.0
 
@@ -1757,23 +1764,23 @@ Autores declarados: The rust-url developers.
 
 LICENSE-APACHE: [texto 8](#texto-8).
 
-LICENSE-MIT: [texto 65](#texto-65).
+LICENSE-MIT: [texto 66](#texto-66).
 
 ## urlpattern 0.6.0 — MIT
 
 Origen: https://github.com/denoland/rust-urlpattern.
 Autores declarados: the Deno authors; crowlKats <crowlkats@toaxl.com>.
 
-LICENSE: [texto 133](#texto-133).
+LICENSE: [texto 134](#texto-134).
 
 ## utf8_iter 1.0.4 — Apache-2.0 OR MIT
 
 Origen: https://github.com/hsivonen/utf8_iter.
 Autores declarados: Henri Sivonen <hsivonen@hsivonen.fi>.
 
-LICENSE-APACHE: [texto 101](#texto-101).
+LICENSE-APACHE: [texto 102](#texto-102).
 
-LICENSE-MIT: [texto 134](#texto-134).
+LICENSE-MIT: [texto 135](#texto-135).
 
 ## uuid 1.28.0 — Apache-2.0 OR MIT
 
@@ -1782,7 +1789,7 @@ Autores declarados: Ashley Mannix<ashleymannix@live.com.au>; Dylan DPC<dylan.dpc
 
 LICENSE-APACHE: [texto 8](#texto-8).
 
-LICENSE-MIT: [texto 135](#texto-135).
+LICENSE-MIT: [texto 136](#texto-136).
 
 ## version_check 0.9.5 — MIT/Apache-2.0
 
@@ -1791,21 +1798,21 @@ Autores declarados: Sergio Benitez <sb@sergio.bz>.
 
 LICENSE-APACHE: [texto 8](#texto-8).
 
-LICENSE-MIT: [texto 136](#texto-136).
+LICENSE-MIT: [texto 137](#texto-137).
 
 ## vswhom 0.1.0 — MIT
 
 Origen: https://github.com/nabijaczleweli/vswhom.rs.
 Autores declarados: nabijaczleweli <nabijaczleweli@gmail.com>.
 
-LICENSE: [texto 137](#texto-137).
+LICENSE: [texto 138](#texto-138).
 
 ## vswhom-sys 0.1.3 — MIT
 
 Origen: https://github.com/nabijaczleweli/vswhom-sys.rs.
 Autores declarados: наб <nabijaczleweli@nabijaczleweli.xyz>; forrestsmithfb <forrest.smith@fb.com>.
 
-LICENSE: [texto 137](#texto-137).
+LICENSE: [texto 138](#texto-138).
 
 ## walkdir 2.5.0 — Unlicense/MIT
 
@@ -1821,9 +1828,9 @@ LICENSE-MIT: [texto 5](#texto-5).
 Origen: https://github.com/daxpedda/web-time.
 Autores declarados: no indicados en los metadatos del crate.
 
-LICENSE-APACHE: [texto 138](#texto-138).
+LICENSE-APACHE: [texto 139](#texto-139).
 
-LICENSE-MIT: [texto 139](#texto-139).
+LICENSE-MIT: [texto 140](#texto-140).
 
 ## web_atoms 0.2.6 — MIT OR Apache-2.0
 
@@ -1839,21 +1846,21 @@ LICENSE-MIT: [texto 59](#texto-59).
 Origen: https://github.com/wravery/webview2-rs.
 Autores declarados: no indicados en los metadatos del crate.
 
-El crate publicado omite el archivo de licencia; se incluye el [texto 140](#texto-140) de https://github.com/wravery/webview2-rs/blob/main/LICENSE.
+El crate publicado omite el archivo de licencia; se incluye el [texto 141](#texto-141) de https://github.com/wravery/webview2-rs/blob/main/LICENSE.
 
 ## webview2-com-macros 0.8.1 — MIT
 
 Origen: https://github.com/wravery/webview2-rs.
 Autores declarados: no indicados en los metadatos del crate.
 
-El crate publicado omite el archivo de licencia; se incluye el [texto 140](#texto-140) de https://github.com/wravery/webview2-rs/blob/main/LICENSE.
+El crate publicado omite el archivo de licencia; se incluye el [texto 141](#texto-141) de https://github.com/wravery/webview2-rs/blob/main/LICENSE.
 
 ## webview2-com-sys 0.39.1 — MIT
 
 Origen: https://github.com/wravery/webview2-rs.
 Autores declarados: no indicados en los metadatos del crate.
 
-El crate publicado omite el archivo de licencia; se incluye el [texto 140](#texto-140) de https://github.com/wravery/webview2-rs/blob/main/LICENSE.
+El crate publicado omite el archivo de licencia; se incluye el [texto 141](#texto-141) de https://github.com/wravery/webview2-rs/blob/main/LICENSE.
 
 ## winapi-util 0.1.11 — Unlicense OR MIT
 
@@ -1862,7 +1869,7 @@ Autores declarados: Andrew Gallant <jamslam@gmail.com>.
 
 COPYING: [texto 4](#texto-4).
 
-LICENSE-MIT: [texto 95](#texto-95).
+LICENSE-MIT: [texto 96](#texto-96).
 
 ## window-vibrancy 0.8.1 — Apache-2.0 OR MIT
 
@@ -1871,174 +1878,174 @@ Autores declarados: Tauri Programme within The Commons Conservancy.
 
 LICENSE-APACHE: [texto 8](#texto-8).
 
-LICENSE-MIT: [texto 141](#texto-141).
+LICENSE-MIT: [texto 142](#texto-142).
 
-LICENSE.spdx: [texto 142](#texto-142).
+LICENSE.spdx: [texto 143](#texto-143).
 
 ## windows 0.62.2 — MIT OR Apache-2.0
 
 Origen: https://github.com/microsoft/windows-rs.
 Autores declarados: no indicados en los metadatos del crate.
 
-license-apache-2.0: [texto 143](#texto-143).
+license-apache-2.0: [texto 144](#texto-144).
 
-license-mit: [texto 144](#texto-144).
+license-mit: [texto 145](#texto-145).
 
 ## windows-collections 0.3.2 — MIT OR Apache-2.0
 
 Origen: https://github.com/microsoft/windows-rs.
 Autores declarados: no indicados en los metadatos del crate.
 
-license-apache-2.0: [texto 143](#texto-143).
+license-apache-2.0: [texto 144](#texto-144).
 
-license-mit: [texto 144](#texto-144).
+license-mit: [texto 145](#texto-145).
 
 ## windows-core 0.62.2 — MIT OR Apache-2.0
 
 Origen: https://github.com/microsoft/windows-rs.
 Autores declarados: no indicados en los metadatos del crate.
 
-license-apache-2.0: [texto 143](#texto-143).
+license-apache-2.0: [texto 144](#texto-144).
 
-license-mit: [texto 144](#texto-144).
+license-mit: [texto 145](#texto-145).
 
 ## windows-future 0.3.2 — MIT OR Apache-2.0
 
 Origen: https://github.com/microsoft/windows-rs.
 Autores declarados: no indicados en los metadatos del crate.
 
-license-apache-2.0: [texto 143](#texto-143).
+license-apache-2.0: [texto 144](#texto-144).
 
-license-mit: [texto 144](#texto-144).
+license-mit: [texto 145](#texto-145).
 
 ## windows-implement 0.60.2 — MIT OR Apache-2.0
 
 Origen: https://github.com/microsoft/windows-rs.
 Autores declarados: no indicados en los metadatos del crate.
 
-license-apache-2.0: [texto 143](#texto-143).
+license-apache-2.0: [texto 144](#texto-144).
 
-license-mit: [texto 144](#texto-144).
+license-mit: [texto 145](#texto-145).
 
 ## windows-interface 0.59.3 — MIT OR Apache-2.0
 
 Origen: https://github.com/microsoft/windows-rs.
 Autores declarados: no indicados en los metadatos del crate.
 
-license-apache-2.0: [texto 143](#texto-143).
+license-apache-2.0: [texto 144](#texto-144).
 
-license-mit: [texto 144](#texto-144).
+license-mit: [texto 145](#texto-145).
 
 ## windows-link 0.2.1 — MIT OR Apache-2.0
 
 Origen: https://github.com/microsoft/windows-rs.
 Autores declarados: no indicados en los metadatos del crate.
 
-license-apache-2.0: [texto 143](#texto-143).
+license-apache-2.0: [texto 144](#texto-144).
 
-license-mit: [texto 144](#texto-144).
+license-mit: [texto 145](#texto-145).
 
 ## windows-numerics 0.3.1 — MIT OR Apache-2.0
 
 Origen: https://github.com/microsoft/windows-rs.
 Autores declarados: no indicados en los metadatos del crate.
 
-license-apache-2.0: [texto 143](#texto-143).
+license-apache-2.0: [texto 144](#texto-144).
 
-license-mit: [texto 144](#texto-144).
+license-mit: [texto 145](#texto-145).
 
 ## windows-result 0.4.1 — MIT OR Apache-2.0
 
 Origen: https://github.com/microsoft/windows-rs.
 Autores declarados: no indicados en los metadatos del crate.
 
-license-apache-2.0: [texto 143](#texto-143).
+license-apache-2.0: [texto 144](#texto-144).
 
-license-mit: [texto 144](#texto-144).
+license-mit: [texto 145](#texto-145).
 
 ## windows-strings 0.5.1 — MIT OR Apache-2.0
 
 Origen: https://github.com/microsoft/windows-rs.
 Autores declarados: no indicados en los metadatos del crate.
 
-license-apache-2.0: [texto 143](#texto-143).
+license-apache-2.0: [texto 144](#texto-144).
 
-license-mit: [texto 144](#texto-144).
+license-mit: [texto 145](#texto-145).
 
 ## windows-sys 0.59.0 — MIT OR Apache-2.0
 
 Origen: https://github.com/microsoft/windows-rs.
 Autores declarados: Microsoft.
 
-license-apache-2.0: [texto 143](#texto-143).
+license-apache-2.0: [texto 144](#texto-144).
 
-license-mit: [texto 144](#texto-144).
+license-mit: [texto 145](#texto-145).
 
 ## windows-sys 0.61.2 — MIT OR Apache-2.0
 
 Origen: https://github.com/microsoft/windows-rs.
 Autores declarados: no indicados en los metadatos del crate.
 
-license-apache-2.0: [texto 143](#texto-143).
+license-apache-2.0: [texto 144](#texto-144).
 
-license-mit: [texto 144](#texto-144).
+license-mit: [texto 145](#texto-145).
 
 ## windows-targets 0.52.6 — MIT OR Apache-2.0
 
 Origen: https://github.com/microsoft/windows-rs.
 Autores declarados: Microsoft.
 
-license-apache-2.0: [texto 143](#texto-143).
+license-apache-2.0: [texto 144](#texto-144).
 
-license-mit: [texto 144](#texto-144).
+license-mit: [texto 145](#texto-145).
 
 ## windows-threading 0.2.1 — MIT OR Apache-2.0
 
 Origen: https://github.com/microsoft/windows-rs.
 Autores declarados: no indicados en los metadatos del crate.
 
-license-apache-2.0: [texto 143](#texto-143).
+license-apache-2.0: [texto 144](#texto-144).
 
-license-mit: [texto 144](#texto-144).
+license-mit: [texto 145](#texto-145).
 
 ## windows-version 0.1.7 — MIT OR Apache-2.0
 
 Origen: https://github.com/microsoft/windows-rs.
 Autores declarados: no indicados en los metadatos del crate.
 
-license-apache-2.0: [texto 143](#texto-143).
+license-apache-2.0: [texto 144](#texto-144).
 
-license-mit: [texto 144](#texto-144).
+license-mit: [texto 145](#texto-145).
 
 ## windows_x86_64_msvc 0.52.6 — MIT OR Apache-2.0
 
 Origen: https://github.com/microsoft/windows-rs.
 Autores declarados: Microsoft.
 
-license-apache-2.0: [texto 143](#texto-143).
+license-apache-2.0: [texto 144](#texto-144).
 
-license-mit: [texto 144](#texto-144).
+license-mit: [texto 145](#texto-145).
 
 ## winnow 1.0.4 — MIT
 
 Origen: https://github.com/winnow-rs/winnow.
 Autores declarados: no indicados en los metadatos del crate.
 
-LICENSE-MIT: [texto 145](#texto-145).
+LICENSE-MIT: [texto 146](#texto-146).
 
 ## winreg 0.56.0 — MIT
 
 Origen: https://github.com/gentoo90/winreg-rs.
 Autores declarados: Igor Shaula <gentoo90@gmail.com>.
 
-LICENSE: [texto 146](#texto-146).
+LICENSE: [texto 147](#texto-147).
 
 ## writeable 0.6.4 — Unicode-3.0
 
 Origen: https://github.com/unicode-org/icu4x.
 Autores declarados: The ICU4X Project Developers.
 
-LICENSE: [texto 63](#texto-63).
+LICENSE: [texto 64](#texto-64).
 
 ## wry 0.57.0 — Apache-2.0 OR MIT
 
@@ -2047,65 +2054,65 @@ Autores declarados: Tauri Programme within The Commons Conservancy.
 
 LICENSE-APACHE: [texto 8](#texto-8).
 
-LICENSE-MIT: [texto 147](#texto-147).
+LICENSE-MIT: [texto 148](#texto-148).
 
-LICENSE.spdx: [texto 148](#texto-148).
+LICENSE.spdx: [texto 149](#texto-149).
 
 ## yoke 0.8.3 — Unicode-3.0
 
 Origen: https://github.com/unicode-org/icu4x.
 Autores declarados: Manish Goregaokar <manishsmail@gmail.com>.
 
-LICENSE: [texto 63](#texto-63).
+LICENSE: [texto 64](#texto-64).
 
 ## yoke-derive 0.8.4 — Unicode-3.0
 
 Origen: https://github.com/unicode-org/icu4x.
 Autores declarados: Manish Goregaokar <manishsmail@gmail.com>.
 
-LICENSE: [texto 63](#texto-63).
+LICENSE: [texto 64](#texto-64).
 
 ## zerofrom 0.1.8 — Unicode-3.0
 
 Origen: https://github.com/unicode-org/icu4x.
 Autores declarados: The ICU4X Project Developers.
 
-LICENSE: [texto 63](#texto-63).
+LICENSE: [texto 64](#texto-64).
 
 ## zerofrom-derive 0.1.8 — Unicode-3.0
 
 Origen: https://github.com/unicode-org/icu4x.
 Autores declarados: Manish Goregaokar <manishsmail@gmail.com>.
 
-LICENSE: [texto 63](#texto-63).
+LICENSE: [texto 64](#texto-64).
 
 ## zerotrie 0.2.5 — Unicode-3.0
 
 Origen: https://github.com/unicode-org/icu4x.
 Autores declarados: The ICU4X Project Developers.
 
-LICENSE: [texto 63](#texto-63).
+LICENSE: [texto 64](#texto-64).
 
 ## zerovec 0.11.8 — Unicode-3.0
 
 Origen: https://github.com/unicode-org/icu4x.
 Autores declarados: The ICU4X Project Developers.
 
-LICENSE: [texto 63](#texto-63).
+LICENSE: [texto 64](#texto-64).
 
 ## zerovec-derive 0.11.6 — Unicode-3.0
 
 Origen: https://github.com/unicode-org/icu4x.
 Autores declarados: Manish Goregaokar <manishsmail@gmail.com>.
 
-LICENSE: [texto 63](#texto-63).
+LICENSE: [texto 64](#texto-64).
 
 ## zlib-rs 0.6.8 — Zlib
 
 Origen: https://github.com/trifectatechfoundation/zlib-rs.
 Autores declarados: no indicados en los metadatos del crate.
 
-LICENSE: [texto 149](#texto-149).
+LICENSE: [texto 150](#texto-150).
 
 ## zmij 1.0.23 — MIT
 
@@ -7284,6 +7291,32 @@ DEALINGS IN THE SOFTWARE.
 
 ### Texto 62
 
+Procedencia: http-range@0.1.5/LICENSE.
+
+MIT License
+
+Copyright (c) 2016 Luka Zakrajšek
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+### Texto 63
+
 Procedencia: ico@0.5.0/LICENSE.
 
 MIT License
@@ -7308,7 +7341,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-### Texto 63
+### Texto 64
 
 Procedencia: icu_collections@2.3.0/LICENSE.
 
@@ -7359,7 +7392,7 @@ SPDX-License-Identifier: Unicode-3.0
 Portions of ICU4X may have been adapted from ICU4C and/or ICU4J.
 ICU 1.8.1 to ICU 57.1 © 1995-2016 International Business Machines Corporation and others.
 
-### Texto 64
+### Texto 65
 
 Procedencia: ident_case@1.0.1/LICENSE.
 
@@ -7383,7 +7416,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-### Texto 65
+### Texto 66
 
 Procedencia: idna@1.1.0/LICENSE-MIT.
 
@@ -7413,7 +7446,7 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
 IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 
-### Texto 66
+### Texto 67
 
 Procedencia: idna_adapter@1.2.2/LICENSE-MIT.
 
@@ -7443,7 +7476,7 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
 IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 
-### Texto 67
+### Texto 68
 
 Procedencia: indexmap@1.9.3/LICENSE-MIT.
 
@@ -7473,7 +7506,7 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
 IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 
-### Texto 68
+### Texto 69
 
 Procedencia: infer@0.22.0/LICENSE.
 
@@ -7499,7 +7532,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-### Texto 69
+### Texto 70
 
 Procedencia: json-patch@4.2.0/LICENSE-MIT.
 
@@ -7525,7 +7558,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-### Texto 70
+### Texto 71
 
 Procedencia: jsonptr@0.7.1/LICENSE-APACHE.
 
@@ -7731,7 +7764,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-### Texto 71
+### Texto 72
 
 Procedencia: jsonptr@0.7.1/LICENSE-MIT.
 
@@ -7757,7 +7790,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-### Texto 72
+### Texto 73
 
 Procedencia: keyboard-types@0.8.3/LICENSE-MIT.
 
@@ -7781,7 +7814,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
-### Texto 73
+### Texto 74
 
 Procedencia: libc@0.2.191/LICENSE-MIT.
 
@@ -7811,7 +7844,7 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
 IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 
-### Texto 74
+### Texto 75
 
 Procedencia: lock_api@0.4.14/LICENSE-MIT.
 
@@ -7841,7 +7874,7 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
 IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 
-### Texto 75
+### Texto 76
 
 Procedencia: mime@0.3.17/LICENSE-MIT.
 
@@ -7865,7 +7898,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
-### Texto 76
+### Texto 77
 
 Procedencia: miniz_oxide@0.8.9/LICENSE.
 
@@ -7895,7 +7928,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-### Texto 77
+### Texto 78
 
 Procedencia: miniz_oxide@0.8.9/LICENSE-MIT.md.
 
@@ -7924,7 +7957,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-### Texto 78
+### Texto 79
 
 Procedencia: miniz_oxide@0.8.9/LICENSE-ZLIB.md.
 
@@ -7943,7 +7976,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 
 3. This notice may not be removed or altered from any source distribution.
 
-### Texto 79
+### Texto 80
 
 Procedencia: mio@1.2.4/LICENSE.
 
@@ -7967,7 +8000,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
-### Texto 80
+### Texto 81
 
 Procedencia: muda@0.20.0/LICENSE-MIT.
 
@@ -7993,7 +8026,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-### Texto 81
+### Texto 82
 
 Procedencia: muda@0.20.0/LICENSE.spdx.
 
@@ -8017,7 +8050,7 @@ PackageDownloadLocation: git+https://github.com/tauri-apps/muda.git
 PackageDownloadLocation: git+ssh://github.com/tauri-apps/muda.git
 Creator: Person: Daniel Thompson-Yvetot
 
-### Texto 82
+### Texto 83
 
 Procedencia: new_debug_unreachable@1.0.6/LICENSE-MIT.
 
@@ -8047,7 +8080,7 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
 IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 
-### Texto 83
+### Texto 84
 
 Procedencia: num-conv@0.2.2/LICENSE-MIT.
 
@@ -8071,7 +8104,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-### Texto 84
+### Texto 85
 
 Procedencia: option-ext@0.2.0/LICENSE.txt.
 
@@ -8449,7 +8482,7 @@ Exhibit B - "Incompatible With Secondary Licenses" Notice
   This Source Code Form is "Incompatible With Secondary Licenses", as
   defined by the Mozilla Public License, v. 2.0.
 
-### Texto 85
+### Texto 86
 
 Procedencia: phf@0.13.1/LICENSE.
 
@@ -8474,7 +8507,7 @@ COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
 IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-### Texto 86
+### Texto 87
 
 Procedencia: plist@1.10.1/LICENCE.
 
@@ -8498,7 +8531,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-### Texto 87
+### Texto 88
 
 Procedencia: png@0.17.16/LICENSE-MIT.
 
@@ -8528,7 +8561,7 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
 IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 
-### Texto 88
+### Texto 89
 
 Procedencia: powerfmt@0.2.1/LICENSE-Apache.
 
@@ -8734,7 +8767,7 @@ Apache License
    See the License for the specific language governing permissions and
    limitations under the License.
 
-### Texto 89
+### Texto 90
 
 Procedencia: powerfmt@0.2.1/LICENSE-MIT.
 
@@ -8758,7 +8791,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-### Texto 90
+### Texto 91
 
 Procedencia: precomputed-hash@0.1.1/LICENSE.
 
@@ -8784,7 +8817,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-### Texto 91
+### Texto 92
 
 Procedencia: quick-xml@0.42.0/LICENSE-MIT.md.
 
@@ -8812,7 +8845,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
-### Texto 92
+### Texto 93
 
 Procedencia: raw-window-handle@0.6.2/LICENSE-MIT.md.
 
@@ -8838,7 +8871,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-### Texto 93
+### Texto 94
 
 Procedencia: raw-window-handle@0.6.2/LICENSE-ZLIB.md.
 
@@ -8854,7 +8887,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 
 3. This notice may not be removed or altered from any source distribution.
 
-### Texto 94
+### Texto 95
 
 Procedencia: rfd@0.15.4/LICENSE.
 
@@ -8880,7 +8913,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-### Texto 95
+### Texto 96
 
 Procedencia: same-file@1.0.6/LICENSE-MIT.
 
@@ -8906,7 +8939,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
-### Texto 96
+### Texto 97
 
 Procedencia: schemars@0.8.22/LICENSE.
 
@@ -8932,7 +8965,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-### Texto 97
+### Texto 98
 
 Procedencia: scopeguard@1.2.0/LICENSE-MIT.
 
@@ -8962,7 +8995,7 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
 IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 
-### Texto 98
+### Texto 99
 
 Procedencia: serde_spanned@1.1.2/LICENSE-APACHE.
 
@@ -9168,7 +9201,7 @@ Apache License
    See the License for the specific language governing permissions and
    limitations under the License.
 
-### Texto 99
+### Texto 100
 
 Procedencia: serde_spanned@1.1.2/LICENSE-MIT.
 
@@ -9192,7 +9225,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-### Texto 100
+### Texto 101
 
 Procedencia: serde_with@3.24.0/LICENSE-MIT.
 
@@ -9222,7 +9255,7 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
 IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 
-### Texto 101
+### Texto 102
 
 Procedencia: serialize-to-javascript@0.1.2/LICENSE-APACHE.
 
@@ -9428,7 +9461,7 @@ Apache License
    See the License for the specific language governing permissions and
    limitations under the License.
 
-### Texto 102
+### Texto 103
 
 Procedencia: serialize-to-javascript@0.1.2/LICENSE-MIT.
 
@@ -9454,7 +9487,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-### Texto 103
+### Texto 104
 
 Procedencia: sha2@0.10.9/LICENSE-MIT.
 
@@ -9486,7 +9519,7 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
 IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 
-### Texto 104
+### Texto 105
 
 Procedencia: shlex@2.0.1/LICENSE-APACHE.
 
@@ -9504,7 +9537,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-### Texto 105
+### Texto 106
 
 Procedencia: shlex@2.0.1/LICENSE-MIT.
 
@@ -9530,7 +9563,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
-### Texto 106
+### Texto 107
 
 Procedencia: simd-adler32@0.3.10/LICENSE.md.
 
@@ -9556,7 +9589,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-### Texto 107
+### Texto 108
 
 Procedencia: siphasher@1.0.4/COPYING.
 
@@ -9568,7 +9601,7 @@ http://www.apache.org/licenses/LICENSE-2.0> or the MIT license
 <LICENSE-MIT or http://opensource.org/licenses/MIT>, at your
 option.
 
-### Texto 108
+### Texto 109
 
 Procedencia: siphasher@1.0.4/LICENSE-MIT.
 
@@ -9590,7 +9623,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-### Texto 109
+### Texto 110
 
 Procedencia: smallvec@1.16.3/LICENSE-MIT.
 
@@ -9620,7 +9653,7 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
 IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 
-### Texto 110
+### Texto 111
 
 Procedencia: softbuffer@0.4.8/LICENSE-APACHE.
 
@@ -9826,7 +9859,7 @@ Apache License
    See the License for the specific language governing permissions and
    limitations under the License.
 
-### Texto 111
+### Texto 112
 
 Procedencia: softbuffer@0.4.8/LICENSE-MIT.
 
@@ -9850,7 +9883,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-### Texto 112
+### Texto 113
 
 Procedencia: stable_deref_trait@1.2.1/LICENSE-MIT.
 
@@ -9880,13 +9913,13 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
 IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 
-### Texto 113
+### Texto 114
 
 Procedencia: static_vcruntime@3.0.0/LICENSE.
 
 MIT OR Apache-2.0 OR Zlib
 
-### Texto 114
+### Texto 115
 
 Procedencia: static_vcruntime@3.0.0/LICENSE-APACHE.
 
@@ -9952,7 +9985,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-### Texto 115
+### Texto 116
 
 Procedencia: static_vcruntime@3.0.0/LICENSE-MIT.
 
@@ -9966,7 +9999,7 @@ The above copyright notice and this permission notice (including the next paragr
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-### Texto 116
+### Texto 117
 
 Procedencia: static_vcruntime@3.0.0/LICENSE-ZLIB.
 
@@ -9982,7 +10015,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 
 3. This notice may not be removed or altered from any source distribution.
 
-### Texto 117
+### Texto 118
 
 Procedencia: string_cache@0.9.0/LICENSE-MIT.
 
@@ -10012,7 +10045,7 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
 IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 
-### Texto 118
+### Texto 119
 
 Procedencia: strsim@0.11.1/LICENSE.
 
@@ -10040,7 +10073,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-### Texto 119
+### Texto 120
 
 Procedencia: synstructure@0.14.0/LICENSE.
 
@@ -10052,7 +10085,7 @@ The above copyright notice and this permission notice shall be included in all c
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-### Texto 120
+### Texto 121
 
 Procedencia: tao@0.37.1/LICENSE.spdx.
 
@@ -10075,7 +10108,7 @@ PackageDownloadLocation: git+https://github.com/tauri-apps/tao.git
 PackageDownloadLocation: git+ssh://github.com/tauri-apps/tao.git
 Creator: Person: Daniel Thompson-Yvetot
 
-### Texto 121
+### Texto 122
 
 Procedencia: tauri@2.12.4/LICENSE-MIT.
 
@@ -10101,7 +10134,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-### Texto 122
+### Texto 123
 
 Procedencia: tauri-winres@0.3.6/LICENSE.
 
@@ -10134,7 +10167,7 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
 IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 
-### Texto 123
+### Texto 124
 
 Procedencia: tendril@0.5.1/LICENSE-MIT.
 
@@ -10164,7 +10197,7 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
 IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 
-### Texto 124
+### Texto 125
 
 Procedencia: time@0.3.55/LICENSE-MIT.
 
@@ -10188,7 +10221,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-### Texto 125
+### Texto 126
 
 Procedencia: tinyvec@1.13.3/LICENSE-ZLIB.md.
 
@@ -10204,7 +10237,7 @@ Permission is granted to anyone to use this software for any purpose, including 
 
 3. This notice may not be removed or altered from any source distribution.
 
-### Texto 126
+### Texto 127
 
 Procedencia: tokio@1.53.3/LICENSE.
 
@@ -10230,7 +10263,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-### Texto 127
+### Texto 128
 
 Procedencia: tracing@0.1.44/LICENSE.
 
@@ -10260,7 +10293,7 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
 IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 
-### Texto 128
+### Texto 129
 
 Procedencia: tray-icon@0.25.1/LICENSE.spdx.
 
@@ -10284,13 +10317,13 @@ PackageDownloadLocation: git+https://github.com/tauri-apps/tray-icon.git
 PackageDownloadLocation: git+ssh://github.com/tauri-apps/tray-icon.git
 Creator: Person: Daniel Thompson-Yvetot
 
-### Texto 129
+### Texto 130
 
 Procedencia: typenum@1.20.1/LICENSE.
 
 MIT OR Apache-2.0
 
-### Texto 130
+### Texto 131
 
 Procedencia: typenum@1.20.1/LICENSE-APACHE.
 
@@ -10496,7 +10529,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-### Texto 131
+### Texto 132
 
 Procedencia: typenum@1.20.1/LICENSE-MIT.
 
@@ -10522,7 +10555,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-### Texto 132
+### Texto 133
 
 Procedencia: unicode-ident@1.0.27/LICENSE-UNICODE.
 
@@ -10566,7 +10599,7 @@ not be used in advertising or otherwise to promote the sale, use or other
 dealings in these Data Files or Software without prior written
 authorization of the copyright holder.
 
-### Texto 133
+### Texto 134
 
 Procedencia: urlpattern@0.6.0/LICENSE.
 
@@ -10592,7 +10625,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-### Texto 134
+### Texto 135
 
 Procedencia: utf8_iter@1.0.4/LICENSE-MIT.
 
@@ -10622,7 +10655,7 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
 IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 
-### Texto 135
+### Texto 136
 
 Procedencia: uuid@1.28.0/LICENSE-MIT.
 
@@ -10653,7 +10686,7 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
 IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 
-### Texto 136
+### Texto 137
 
 Procedencia: version_check@0.9.5/LICENSE-MIT.
 
@@ -10677,7 +10710,7 @@ COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
 IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-### Texto 137
+### Texto 138
 
 Procedencia: vswhom@0.1.0/LICENSE.
 
@@ -10703,7 +10736,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-### Texto 138
+### Texto 139
 
 Procedencia: web-time@1.1.0/LICENSE-APACHE.
 
@@ -10909,7 +10942,7 @@ Apache License
    See the License for the specific language governing permissions and
    limitations under the License.
 
-### Texto 139
+### Texto 140
 
 Procedencia: web-time@1.1.0/LICENSE-MIT.
 
@@ -10935,7 +10968,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-### Texto 140
+### Texto 141
 
 Procedencia: https://github.com/wravery/webview2-rs/blob/main/LICENSE.
 
@@ -10961,7 +10994,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-### Texto 141
+### Texto 142
 
 Procedencia: window-vibrancy@0.8.1/LICENSE-MIT.
 
@@ -10987,7 +11020,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-### Texto 142
+### Texto 143
 
 Procedencia: window-vibrancy@0.8.1/LICENSE.spdx.
 
@@ -11011,7 +11044,7 @@ PackageDownloadLocation: git+https://github.com/tauri-apps/window-vibrancy.git
 PackageDownloadLocation: git+ssh://github.com/tauri-apps/window-vibrancy.git
 Creator: Person: Daniel Thompson-Yvetot
 
-### Texto 143
+### Texto 144
 
 Procedencia: windows@0.62.2/license-apache-2.0.
 
@@ -11217,7 +11250,7 @@ Apache License
    See the License for the specific language governing permissions and
    limitations under the License.
 
-### Texto 144
+### Texto 145
 
 Procedencia: windows@0.62.2/license-mit.
 
@@ -11243,7 +11276,7 @@ MIT License
     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
     SOFTWARE
 
-### Texto 145
+### Texto 146
 
 Procedencia: winnow@1.0.4/LICENSE-MIT.
 
@@ -11266,7 +11299,7 @@ LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-### Texto 146
+### Texto 147
 
 Procedencia: winreg@0.56.0/LICENSE.
 
@@ -11290,7 +11323,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
-### Texto 147
+### Texto 148
 
 Procedencia: wry@0.57.0/LICENSE-MIT.
 
@@ -11316,7 +11349,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-### Texto 148
+### Texto 149
 
 Procedencia: wry@0.57.0/LICENSE.spdx.
 
@@ -11341,7 +11374,7 @@ PackageDownloadLocation: git+https://github.com/tauri-apps/wry.git
 PackageDownloadLocation: git+ssh://github.com/tauri-apps/wry.git
 Creator: Person: Daniel Thompson-Yvetot
 
-### Texto 149
+### Texto 150
 
 Procedencia: zlib-rs@0.6.8/LICENSE.
 
