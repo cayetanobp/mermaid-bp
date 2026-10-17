@@ -5,6 +5,10 @@ description = "Editor local de diagramas Mermaid"
 license = "AGPL-3.0-only"
 edition = "2021"
 
+[features]
+# The Windows updater E2E harness alone enables this; release builds must leave it off.
+updater-e2e-cdp = []
+
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 

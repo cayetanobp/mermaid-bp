@@ -91,6 +91,7 @@ jobs:
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository
         working-directory: desktop-app
         run: npm exec -- tauri build --no-bundle -- --locked
+      # CI-only: the updater code matches release; the feature only enables WebView2 CDP for UI automation.
       - name: Probar el updater firmado en una instalación Windows real
         id: windows-updater
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository

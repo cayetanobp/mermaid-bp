@@ -136,7 +136,7 @@ async function build(version,tag){
   await writeFile(overlay,JSON.stringify({version,plugins:{updater:{endpoints:[endpoint],dangerousInsecureTransportProtocol:true}}}));
   const npmCli=process.env.npm_execpath??join(dirname(process.execPath),'node_modules','npm','bin','npm-cli.js');
   await stat(npmCli);
-  run(process.execPath,[npmCli,'exec','--','tauri','build','--config',overlay,'--','--locked'],{cwd:desktop,env:{...process.env,npm_execpath:npmCli,TAURI_SIGNING_PRIVATE_KEY:key,TAURI_SIGNING_PRIVATE_KEY_PASSWORD:''}});
+  run(process.execPath,[npmCli,'exec','--','tauri','build','--features','tauri/devtools,updater-e2e-cdp','--config',overlay,'--','--locked'],{cwd:desktop,env:{...process.env,npm_execpath:npmCli,TAURI_SIGNING_PRIVATE_KEY:key,TAURI_SIGNING_PRIVATE_KEY_PASSWORD:''}});
   const files=await readdir(bundle);
   const installers=files.filter(name=>name.endsWith('-setup.exe'));
   if(installers.length!==1)throw Error(`La compilación ${tag} debía producir un solo instalador NSIS firmado; se encontraron ${installers.length}.`);
