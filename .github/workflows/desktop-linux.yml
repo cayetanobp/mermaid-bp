@@ -48,7 +48,7 @@ jobs:
           shopt -s nullglob
           packages=(desktop-app/src-tauri/target/release/bundle/deb/*.deb)
           test "${#packages[@]}" -eq 1
-          sudo apt-get install -y "${packages[0]}"
+          sudo apt-get install -y "./${packages[0]}"
           xvfb-run --auto-servernum --server-args='-screen 0 1440x1000x24' ./scripts/smoke-linux-installed.sh
         env:
           MERMAID_BP_SMOKE_DIR: ${{ runner.temp }}/mermaid-bp-linux-smoke
