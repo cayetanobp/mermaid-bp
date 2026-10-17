@@ -87,6 +87,19 @@ def capture_desktop(name):
         encoding="utf-8",
     )
 
+def save_path_diagnostics(path):
+    candidates = {
+        path,
+        pathlib.Path.cwd() / path.name,
+        pathlib.Path.home() / path.name,
+        pathlib.Path.cwd() / path.parent.name / path.name,
+    }
+    report = [f"Requested path: {path}", f"Working directory: {pathlib.Path.cwd()}"]
+    for candidate in sorted(candidates, key=str):
+        if candidate.exists():
+            report.append(f"Found: {candidate} ({candidate.stat().st_size} bytes)")
+    (out / "native-save-path-diagnostics.txt").write_text("\n".join(report) + "\n", encoding="utf-8")
+
 def save_from_native_dialog(button, path):
     before = active_window_title()
     before_windows = set(visible_window_titles())
@@ -106,14 +119,24 @@ def save_from_native_dialog(button, path):
         )
 
     capture_desktop("native-save-dialog.png")
-    # GTK's location shortcut navigates to the directory. Choose the file name
-    # separately in the dialog's name field, then confirm the save.
+    # The portal dialog opens with the file name entry focused, where Ctrl+L
+    # does not activate GTK's location shortcut. Focus the file list first.
+    subprocess.run(["xdotool", "mousemove", "1100", "800", "click", "1"], check=True)
     subprocess.run(["xdotool", "key", "ctrl+l"], check=True)
+    time.sleep(0.3)
+    capture_desktop("native-save-location-entry.png")
+    subprocess.run(["xdotool", "key", "ctrl+a"], check=True)
     subprocess.run(["xdotool", "type", "--clearmodifiers", "--delay", "1", str(path.parent)], check=True)
+    capture_desktop("native-save-location-path.png")
     subprocess.run(["xdotool", "key", "Return"], check=True)
+    time.sleep(0.5)
     capture_desktop("native-save-dialog-directory.png")
+    # Return from the location entry can leave focus on the file list. Click
+    # GTK's Name field explicitly before entering the output filename.
+    subprocess.run(["xdotool", "mousemove", "600", "123", "click", "1"], check=True)
     subprocess.run(["xdotool", "key", "ctrl+a"], check=True)
     subprocess.run(["xdotool", "type", "--clearmodifiers", "--delay", "1", path.name], check=True)
+    time.sleep(0.3)
     capture_desktop("native-save-dialog-filename.png")
     subprocess.run(["xdotool", "key", "Return"], check=True)
 
@@ -122,6 +145,7 @@ def save_from_native_dialog(button, path):
         time.sleep(0.1)
     if not path.exists():
         capture_desktop("native-save-dialog-after-submit.png")
+        save_path_diagnostics(path)
         raise AssertionError(
             f"Native dialog did not save {path}; active window={active_window_title()!r}; "
             f"visible windows={visible_window_titles()!r}"
