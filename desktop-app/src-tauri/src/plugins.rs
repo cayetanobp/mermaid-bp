@@ -99,13 +99,13 @@ fn collect_plugin_files(
         // Windows junctions and other reparse points are not always reported
         // as symbolic links by portable file-type APIs. Check metadata fetched
         // relative to the current capability handle, not an ambient path.
-        if is_reparse_point(&metadata) {
+        if is_cap_reparse_point(&metadata) {
             return Err("La carpeta del plugin no puede contener enlaces simbólicos o puntos de reanálisis.".into());
         }
         if file_type.is_dir() {
             let child = current.open_dir(name).map_err(|error| error.to_string())?;
             let child_metadata = child.dir_metadata().map_err(|error| error.to_string())?;
-            if is_reparse_point(&child_metadata) || !child_metadata.is_dir() {
+            if is_cap_reparse_point(&child_metadata) || !child_metadata.is_dir() {
                 return Err("La carpeta del plugin contiene un tipo de archivo no admitido.".into());
             }
             collect_plugin_files(
@@ -141,7 +141,7 @@ fn collect_plugin_files(
 
         let mut file = current.open(name).map_err(|error| error.to_string())?;
         let file_metadata = file.metadata().map_err(|error| error.to_string())?;
-        if is_reparse_point(&file_metadata) || !file_metadata.is_file() {
+        if is_cap_reparse_point(&file_metadata) || !file_metadata.is_file() {
             return Err("La carpeta del plugin contiene un archivo no regular.".into());
         }
         let remaining = MAX_TOTAL_BYTES.saturating_sub(*total_bytes);
@@ -172,6 +172,22 @@ fn is_reparse_point(metadata: &fs::Metadata) -> bool {
     #[cfg(windows)]
     {
         use std::os::windows::fs::MetadataExt;
+        const FILE_ATTRIBUTE_REPARSE_POINT: u32 = 0x400;
+        metadata.file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT != 0
+    }
+    #[cfg(not(windows))]
+    {
+        false
+    }
+}
+
+fn is_cap_reparse_point(metadata: &cap_std::fs::Metadata) -> bool {
+    if metadata.is_symlink() {
+        return true;
+    }
+    #[cfg(windows)]
+    {
+        use cap_std::fs::MetadataExt;
         const FILE_ATTRIBUTE_REPARSE_POINT: u32 = 0x400;
         metadata.file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT != 0
     }
