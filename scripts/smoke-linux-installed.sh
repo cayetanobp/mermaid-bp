@@ -367,7 +367,49 @@ try:
     trust.click()
     driver.find_element(By.ID, "plugin-install").click()
     wait.until(lambda d: "instalado o actualizado" in d.find_element(By.ID, "plugin-local-status").text)
-    wait.until(EC.presence_of_element_located((By.ID, "plugin-installed-smoke-persisted")))
+    try:
+        WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, "plugin-installed-smoke-persisted")))
+    except Exception as error:
+        diagnostics = driver.execute_script("""
+          return (async () => {
+            const id = 'installed-smoke';
+            const bridge = window.__TAURI__?.core;
+            const state = {
+              location: location.href,
+              localStatus: document.querySelector('#plugin-local-status')?.textContent,
+              importError: document.querySelector('#plugin-import-error')?.textContent,
+              preview: document.querySelector('#plugin-import-preview')?.textContent,
+              pluginList: document.querySelector('#plugin-list')?.textContent,
+              pluginRows: Array.from(document.querySelectorAll('[data-plugin-status]')).map(node => ({
+                id: node.dataset.pluginStatus, text: node.textContent,
+              })),
+              actions: Array.from(document.querySelectorAll('#plugin-actions > *')).map(node => ({id: node.id, text: node.textContent})),
+              resources: performance.getEntriesByType('resource').map(entry => entry.name).filter(name => /asset|plugin/i.test(name)),
+            };
+            if (!bridge) return {...state, bridge: 'missing'};
+            try {
+              state.root = await bridge.invoke('plugins_root');
+              const root = state.root.replace(/[\\/]+$/, '');
+              const unixPath = `${root}/${id}/plugin.json`;
+              const windowsPath = `${root}\\${id}\\plugin.json`;
+              state.urls = {unix: bridge.convertFileSrc(unixPath, 'asset'), windows: bridge.convertFileSrc(windowsPath, 'asset')};
+              state.fetches = {};
+              for (const [name, url] of Object.entries(state.urls)) {
+                try {
+                  const response = await fetch(url, {cache: 'no-store'});
+                  state.fetches[name] = {status: response.status, body: (await response.text()).slice(0, 500)};
+                } catch (reason) { state.fetches[name] = {error: String(reason)}; }
+              }
+            } catch (reason) { state.bridgeError = String(reason); }
+            return state;
+          })();
+        """)
+        (out / "plugin-install-diagnostics.json").write_text(json.dumps(diagnostics, indent=2), encoding="utf-8")
+        driver.save_screenshot(str(out / "plugin-install-failure.png"))
+        raise AssertionError(
+            "Installed plugin action did not appear; diagnostic state saved to "
+            f"plugin-install-diagnostics.json: {json.dumps(diagnostics, ensure_ascii=False)}"
+        ) from error
 
     # A WebKit restart proves persistence and module loading through the scoped
     # asset protocol in the installed native application.
