@@ -56,7 +56,8 @@ jobs:
       - run: npm ci --prefix desktop-app
       - name: Compilar la aplicación sin empaquetar en pull requests
         if: github.event_name == 'pull_request'
-        run: npm --prefix desktop-app exec -- tauri build --no-bundle
+        working-directory: desktop-app
+        run: npm exec -- tauri build --no-bundle
       - name: Compilar y firmar el updater en main
         if: github.event_name != 'pull_request'
         run: npm run desktop:build
