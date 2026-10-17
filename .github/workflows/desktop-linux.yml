@@ -39,7 +39,7 @@ jobs:
       - name: Instalar dependencias Linux, WebDriver y Xvfb
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential curl wget file libssl-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev libwebkit2gtk-4.1-dev libxdo-dev webkit2gtk-driver xdotool xvfb scrot python3-selenium
+          sudo apt-get install -y build-essential curl wget file libssl-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev libwebkit2gtk-4.1-dev libxdo-dev webkit2gtk-driver xdotool xvfb scrot openbox x11-utils python3-selenium
       - name: Instalar tauri-driver
         run: cargo install tauri-driver --locked
       - run: npm ci
@@ -123,7 +123,20 @@ jobs:
           packages=(desktop-app/src-tauri/target/release/bundle/deb/*.deb)
           test "${#packages[@]}" -eq 1
           sudo apt-get install -y "./${packages[0]}"
-          xvfb-run --auto-servernum --server-args='-screen 0 1440x1000x24' bash ./scripts/smoke-linux-installed.sh
+          xvfb-run --auto-servernum --server-args='-screen 0 1440x1000x24' bash -c '
+            set -euo pipefail
+            mkdir -p "$MERMAID_BP_SMOKE_DIR"
+            openbox --sm-disable >"$MERMAID_BP_SMOKE_DIR/openbox.log" 2>&1 &
+            wm_pid=$!
+            cleanup() { kill "$wm_pid" 2>/dev/null || true; }
+            trap cleanup EXIT
+            for _ in $(seq 1 100); do
+              if xprop -root _NET_SUPPORTING_WM_CHECK | grep -q "window id"; then break; fi
+              sleep 0.1
+            done
+            xprop -root _NET_SUPPORTING_WM_CHECK | grep -q "window id" || { cat "$MERMAID_BP_SMOKE_DIR/openbox.log"; exit 1; }
+            bash ./scripts/smoke-linux-installed.sh
+          '
         env:
           MERMAID_BP_SMOKE_DIR: ${{ runner.temp }}/mermaid-bp-linux-smoke
       - uses: actions/upload-artifact@v4

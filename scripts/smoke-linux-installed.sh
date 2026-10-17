@@ -41,10 +41,24 @@ def open_file_menu():
     wait.until(lambda d: d.find_element(By.ID, "menu-archivo-panel").is_displayed())
 
 def active_window_title():
-    return subprocess.run(
+    active = subprocess.run(
         ["xdotool", "getactivewindow", "getwindowname"],
-        check=True, capture_output=True, text=True,
-    ).stdout.strip()
+        capture_output=True, text=True,
+    )
+    if active.returncode == 0 and active.stdout.strip():
+        return active.stdout.strip()
+
+    focused = subprocess.run(
+        ["xdotool", "getwindowfocus", "-f"], capture_output=True, text=True,
+    )
+    if focused.returncode == 0 and focused.stdout.strip():
+        title = subprocess.run(
+            ["xdotool", "getwindowname", focused.stdout.strip()],
+            capture_output=True, text=True,
+        )
+        if title.returncode == 0 and title.stdout.strip():
+            return title.stdout.strip()
+    return "<no active X11 window>"
 
 def visible_window_titles():
     result = subprocess.run(
