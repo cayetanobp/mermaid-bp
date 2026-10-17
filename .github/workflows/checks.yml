@@ -64,9 +64,9 @@ jobs:
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository
         working-directory: desktop-app
         run: npm exec -- tauri build --no-bundle
-      - name: Compilar y firmar el instalador de validación sin publicar
+      - name: Probar el updater firmado en una instalación Windows real
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
-        run: npm run desktop:build
+        run: node scripts/windows-updater-e2e.mjs
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
