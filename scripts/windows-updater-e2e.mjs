@@ -70,7 +70,6 @@ const server=createServer(async(req,res)=>{
 });
 await new Promise((resolveListen,reject)=>server.once('error',reject).listen(0,'127.0.0.1',resolveListen));
 const endpoint=`http://127.0.0.1:${server.address().port}/latest.json`;
-
 function run(command,args,options={}){
   const result=spawnSync(command,args,{cwd:options.cwd??root,env:options.env??process.env,encoding:'utf8',windowsHide:true,maxBuffer:16*1024*1024});
   const output=(result.stdout??'')+(result.stderr??'');
@@ -214,7 +213,7 @@ async function openSettings(page,section='General'){
   await page.getByRole('tab',{name:section,exact:true}).click();
 }
 
-async function openUpdater(page){await openSettings(page,'General');}
+async function openUpdater(page){await openSettings(page,'General');await expect(page.locator('#desktop-updates')).toBeVisible();}
 async function assertPluginAndPreference(page){
   await openSettings(page,'Editor');
   await expect(page.locator('#setting-editorFontSize')).toHaveValue('18');
@@ -248,17 +247,18 @@ try{
   ({browser}=await attachApp());
   let page=browser.contexts().flatMap(context=>context.pages()).find(item=>item.url().includes('tauri.localhost')||item.url().startsWith('tauri://'));
   if(!page)throw Error('La ventana de la aplicación no está disponible en WebView2.');
+  const updater=()=>page.locator('#desktop-updates');
 
   phase='verify unavailable updater feed';
   await openUpdater(page);
   mode='offline';
-  await page.getByRole('button',{name:'Buscar actualizaciones'}).click();
-  await expect(page.getByRole('status')).toContainText('No se pudo buscar actualizaciones.',{timeout:30000});
+  await page.locator('#desktop-updates').getByRole('button',{name:'Buscar actualizaciones',exact:true}).click();
+  await expect(page.locator('#update-status')).toContainText('No se pudo buscar actualizaciones.',{timeout:30000});
   await expect(page.locator('.cm-content')).toBeVisible();
   phase='verify current version and open local document';
   mode='none';
-  await page.getByRole('button',{name:'Buscar actualizaciones'}).click();
-  await expect(page.getByRole('status')).toHaveText('No hay actualizaciones disponibles.');
+  await page.locator('#desktop-updates').getByRole('button',{name:'Buscar actualizaciones',exact:true}).click();
+  await expect(page.locator('#update-status')).toHaveText('No hay actualizaciones disponibles.');
 
   await page.locator('#file').setInputFiles(documentPath);
   await expect(page.locator('.cm-content')).toContainText('Documento conservado');
@@ -278,21 +278,21 @@ try{
   phase='verify invalid updater signature is rejected';
   mode='bad-signature';
   await openUpdater(page);
-  await page.getByRole('button',{name:'Buscar actualizaciones'}).click();
-  await expect(page.getByText(`Nueva versión: ${targetVersion}`)).toBeVisible();
-  await page.getByRole('button',{name:'Descargar e instalar'}).click();
-  await expect(page.getByRole('status')).toContainText('No se pudo instalar la actualización.',{timeout:120000});
+  await updater().getByRole('button',{name:'Buscar actualizaciones',exact:true}).click();
+  await expect(updater().getByText(`Nueva versión: ${targetVersion}`,{exact:true})).toBeVisible();
+  await updater().getByRole('button',{name:'Descargar e instalar',exact:true}).click();
+  await expect(page.locator('#update-status')).toContainText('No se pudo instalar la actualización.',{timeout:120000});
   await expect(page.locator('.cm-content')).toContainText('Documento conservado');
   await assertPluginAndPreference(page);
   await openUpdater(page);
-  await expect(page.getByText(`Versión instalada: ${baseVersion}`)).toBeVisible();
+  await expect(updater().getByText(`Versión instalada: ${baseVersion}`,{exact:true})).toBeVisible();
 
   phase='download and install signed candidate';
   mode='candidate';
-  await page.getByRole('button',{name:'Buscar actualizaciones'}).click();
-  await expect(page.getByText(`Nueva versión: ${targetVersion}`)).toBeVisible();
-  await page.getByText('Validación privada de actualización Windows.').waitFor();
-  try{await page.getByRole('button',{name:'Descargar e instalar'}).click({noWaitAfter:true});}catch{}
+  await updater().getByRole('button',{name:'Buscar actualizaciones',exact:true}).click();
+  await expect(updater().getByText(`Nueva versión: ${targetVersion}`,{exact:true})).toBeVisible();
+  await updater().getByText('Validación privada de actualización Windows.',{exact:true}).waitFor();
+  try{await updater().getByRole('button',{name:'Descargar e instalar',exact:true}).click({noWaitAfter:true});}catch{}
   await waitForAppExit(appProcess);
   try{await browser.close();}catch{}
   browser=undefined;
@@ -301,9 +301,9 @@ try{
   for(const pid of runningAppPids(installedExecutable))spawnedAppPids.add(pid);
   phase='verify installed candidate and preserved data';
   await openUpdater(page);
-  await page.getByRole('button',{name:'Buscar actualizaciones'}).click();
-  await expect(page.getByRole('status')).toHaveText('No hay actualizaciones disponibles.',{timeout:120000});
-  await expect(page.getByText(`Versión instalada: ${targetVersion}`)).toBeVisible();
+  await updater().getByRole('button',{name:'Buscar actualizaciones',exact:true}).click();
+  await expect(page.locator('#update-status')).toHaveText('No hay actualizaciones disponibles.',{timeout:120000});
+  await expect(updater().getByText(`Versión instalada: ${targetVersion}`,{exact:true})).toBeVisible();
 
   await page.locator('#file').setInputFiles(documentPath);
   await expect(page.locator('.cm-content')).toContainText('Documento conservado');
