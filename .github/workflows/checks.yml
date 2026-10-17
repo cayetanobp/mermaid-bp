@@ -53,6 +53,7 @@ jobs:
           path: dist/
       - run: npx playwright install --with-deps chromium
       - run: npm run test:browser
+      - run: env MERMAID_BP_PLUGINS=none npx playwright test --config config/playwright.config.ts tests/core-only.spec.ts
   windows:
     needs: rust-notices
     runs-on: windows-2025
