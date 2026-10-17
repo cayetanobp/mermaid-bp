@@ -44,6 +44,13 @@ def open_file_menu():
     driver.find_element(By.ID, "menu-archivo").click()
     wait.until(lambda d: d.find_element(By.ID, "menu-archivo-panel").is_displayed())
 
+def open_plugins_settings():
+    driver.find_element(By.ID, "menu-configuracion").click()
+    wait.until(lambda d: d.find_element(By.ID, "menu-configuracion-panel").is_displayed())
+    driver.find_element(By.ID, "plugins-button").click()
+    wait.until(EC.visibility_of_element_located((By.ID, "settings-dialog")))
+    wait.until(lambda d: not d.find_element(By.ID, "plugins-dialog").get_attribute("hidden"))
+
 def active_window_title():
     active = subprocess.run(
         ["xdotool", "getactivewindow", "getwindowname"],
@@ -224,9 +231,7 @@ try:
     plugin_folder.mkdir(parents=True, exist_ok=True)
     (plugin_folder / "plugin.json").write_text(plugin_manifest, encoding="utf-8")
     (plugin_folder / "index.js").write_text(plugin_entry, encoding="utf-8")
-    driver.find_element(By.ID, "plugins-button").click()
-    wait.until(EC.visibility_of_element_located((By.ID, "settings-dialog")))
-    wait.until(lambda d: not d.find_element(By.ID, "plugins-dialog").get_attribute("hidden"))
+    open_plugins_settings()
     choose_plugin_folder(plugin_folder)
     wait.until(lambda d: "Installed smoke plugin · versión 1.0.0" in d.find_element(By.ID, "plugin-import-preview").text)
     trust = driver.find_element(By.ID, "plugin-trust-confirm")
@@ -246,8 +251,7 @@ try:
     driver.find_element(By.ID, "plugin-installed-smoke-persisted").click()
     wait.until(lambda d: d.find_element(By.ID, "message").text == "Installed plugin ran.")
 
-    driver.find_element(By.ID, "plugins-button").click()
-    wait.until(EC.visibility_of_element_located((By.ID, "settings-dialog")))
+    open_plugins_settings()
     toggle = driver.find_element(By.CSS_SELECTOR, '[data-plugin-toggle="installed-smoke"]')
     toggle.click()
     wait.until(lambda d: "Desactivado" in d.find_element(By.CSS_SELECTOR, '[data-plugin-status="installed-smoke"]').text)
@@ -269,8 +273,7 @@ try:
     wait.until(EC.invisibility_of_element_located((By.ID, "settings-dialog")))
     driver.find_element(By.ID, "plugin-installed-smoke-persisted").click()
     wait.until(lambda d: d.find_element(By.ID, "message").text == "Installed plugin ran.")
-    driver.find_element(By.ID, "plugins-button").click()
-    wait.until(EC.visibility_of_element_located((By.ID, "settings-dialog")))
+    open_plugins_settings()
     driver.find_element(By.ID, "plugin-installed-smoke-remove").click()
     driver.switch_to.alert.accept()
     wait.until(lambda d: "retirado" in d.find_element(By.ID, "plugin-local-status").text)
