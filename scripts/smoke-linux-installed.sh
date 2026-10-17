@@ -161,7 +161,24 @@ def save_from_native_dialog(button, path):
 def choose_plugin_folder(folder):
     before = active_window_title()
     before_windows = set(visible_window_titles())
-    driver.find_element(By.CSS_SELECTOR, 'label[for="plugin-folder-input"]').click()
+    file_input = driver.find_element(By.ID, "plugin-folder-input")
+    bounds = driver.execute_script(
+        "const r=arguments[0].getBoundingClientRect(); return {x:r.x,y:r.y,width:r.width,height:r.height};",
+        file_input,
+    )
+    app_window = subprocess.run(
+        ["xdotool", "getactivewindow"], check=True, capture_output=True, text=True,
+    ).stdout.strip()
+    geometry = subprocess.run(
+        ["xdotool", "getwindowgeometry", "--shell", app_window],
+        check=True, capture_output=True, text=True,
+    ).stdout
+    coordinates = dict(line.split("=", 1) for line in geometry.splitlines() if "=" in line)
+    # The native file input renders its Open button at the left edge. Use a real
+    # X11 pointer click there; WebDriver's file-input click is unsupported.
+    x = round(int(coordinates["X"]) + bounds["x"] + min(55, bounds["width"] / 2))
+    y = round(int(coordinates["Y"]) + bounds["y"] + bounds["height"] / 2)
+    subprocess.run(["xdotool", "mousemove", "--sync", str(x), str(y), "click", "1"], check=True)
     deadline = time.time() + 15
     while time.time() < deadline:
         current = active_window_title()
