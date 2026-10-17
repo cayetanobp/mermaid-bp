@@ -1,5 +1,24 @@
+[CmdletBinding(SupportsShouldProcess)]
+param(
+  [double]$MinimumFreeGB = 30,
+  [switch]$CleanupUnused,
+  [switch]$CleanupDockerVolumes
+)
 $ErrorActionPreference = 'Stop'
 $root = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
+. (Join-Path $PSScriptRoot 'build-cache.ps1')
+if ($CleanupUnused) {
+  Invoke-BuildCacheCleanup -RepositoryRoot $root -DockerVolumes:$CleanupDockerVolumes -WhatIf:$WhatIfPreference
+  return
+}
+$targetRoot = Join-Path $root 'desktop-app/src-tauri/target/x86_64-pc-windows-msvc/release'
+Invoke-BuildCachePreflight -RepositoryRoot $root -TargetPath $targetRoot -MinimumFreeGB $MinimumFreeGB
+$installerDir = Join-Path $targetRoot 'bundle/nsis'
+Register-BuildOutput -RepositoryRoot $root -Path $installerDir -Retention preserved -Purpose 'Verified Windows installer output'
+Register-BuildOutput -RepositoryRoot $root -Path (Join-Path $installerDir 'mermaid-bp.sha256') -Retention preserved -Purpose 'Installer SHA-256 sidecar'
+foreach ($relative in @('build', 'deps', 'incremental', '.fingerprint')) {
+  Register-BuildOutput -RepositoryRoot $root -Path (Join-Path $targetRoot $relative) -Retention regenerable -Purpose 'Windows Cargo intermediate output'
+}
 $lock = Get-Content -LiteralPath (Join-Path $root 'desktop-app/package-lock.json') -Raw | ConvertFrom-Json -AsHashtable
 $cliVersion = $lock.packages['node_modules/@tauri-apps/cli'].version
 if (-not $cliVersion) { throw 'No se encontró @tauri-apps/cli en el lockfile de escritorio.' }
@@ -14,6 +33,8 @@ try {
 
   docker build --quiet -f docker/license-audit.Dockerfile --build-arg "TAURI_CLI_VERSION=$cliVersion" -t mermaid-bp:license-audit .
   if ($LASTEXITCODE -ne 0) { throw 'No se pudo crear la imagen de auditoría.' }
+  Ensure-BuildDockerVolume -RepositoryRoot $root -Name 'mermaid-bp-cargo-cache' -Purpose 'Windows Cargo registry cache'
+  Ensure-BuildDockerVolume -RepositoryRoot $root -Name 'mermaid-bp-xwin-cache' -Purpose 'Windows cross-compiler cache'
 
   $containerScript = @'
 set -eu
@@ -30,9 +51,12 @@ cmp /tmp/mermaid-bp-nsis/THIRD_PARTY_NOTICES.md /work/desktop-app/dist/THIRD_PAR
 cmp /tmp/mermaid-bp-nsis/THIRD_PARTY_RUST_NOTICES.md /work/THIRD_PARTY_RUST_NOTICES.md
 test -s /tmp/mermaid-bp-nsis/mermaid-bp-desktop.exe
 echo "NSIS y cuatro archivos legales verificados: $installer"
+sha256sum "$installer" > /work/desktop-app/src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/mermaid-bp.sha256
 '@
   docker run --rm --mount "type=bind,source=$root,target=/work" --mount 'type=volume,source=mermaid-bp-cargo-cache,target=/usr/local/cargo/registry' --mount 'type=volume,source=mermaid-bp-xwin-cache,target=/xwin-cache' -e XWIN_CACHE_DIR=/xwin-cache -w /work/desktop-app/src-tauri mermaid-bp:license-audit /bin/sh -ec $containerScript
   if ($LASTEXITCODE -ne 0) { throw 'Falló la auditoría Docker del instalador.' }
+  Register-BuildOutput -RepositoryRoot $root -Path (Join-Path $installerDir 'mermaid-bp.sha256') -Retention preserved -Purpose 'Installer SHA-256 sidecar'
+  Write-Output 'Use -CleanupUnused -WhatIf to review registered intermediates; add -CleanupDockerVolumes to remove task-owned unused Docker caches.'
 } finally {
   Pop-Location
 }

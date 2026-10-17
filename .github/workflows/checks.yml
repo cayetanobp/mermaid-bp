@@ -3,6 +3,9 @@ on:
   push:
     branches: [main]
   pull_request:
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 permissions:
   contents: read
 jobs:
@@ -30,6 +33,30 @@ jobs:
       - run: npm test
       - run: npm run test:security
       - run: npm run package:web
+        env:
+          MERMAID_BP_PLUGINS: none
+      - uses: actions/upload-artifact@v4
+        with:
+          name: core-web-dist
+          path: dist/
+          if-no-files-found: error
+  core-browser:
+    needs: web
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: core-web-dist
+          path: dist/
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:browser
+      - run: env MERMAID_BP_PLUGINS=none npx playwright test --config config/playwright.config.ts tests/core-only.spec.ts
   windows:
     needs: rust-notices
     runs-on: windows-2025
