@@ -62,6 +62,8 @@ test('el flujo Linux instala el paquete y automatiza una sesión gráfica real',
   assert.match(workflow,/dpkg-deb -f "\$package" Architecture\)" = amd64/);
   assert.match(workflow,/sudo apt-get install -y "\.\/\$\{packages\[0\]\}"/);
   assert.match(workflow,/smoke-linux-installed\.sh/);
+  assert.match(workflow,/xvfb-run[^\n]* bash \.\/scripts\/smoke-linux-installed\.sh/);
+  assert.ok(!smoke.includes('\r'));
   assert.match(smoke,/tauri-driver/);
   assert.match(smoke,/xdotool/);
   assert.match(smoke,/\.mmd/);
