@@ -132,7 +132,7 @@ let appProcess;
 let browser;
 try{
   const base=await build(baseVersion,'base');
-  run('powershell.exe',['-NoProfile','-ExecutionPolicy','Bypass','-File',join(root,'scripts','verify-nsis-license.ps1'),'-Installer',base.installer]);
+  run('pwsh',['-NoProfile','-ExecutionPolicy','Bypass','-File',join(root,'scripts','verify-nsis-license.ps1'),'-Installer',base.installer]);
   installBase(base.installer);
   for(const file of base.files)await rm(file,{force:true});
   const candidate=await build(targetVersion,'candidate');
