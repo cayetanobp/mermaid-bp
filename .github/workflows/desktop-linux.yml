@@ -1,0 +1,66 @@
+name: Aplicación de escritorio Linux
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  deb-installed-smoke:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            desktop-app/package-lock.json
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: desktop-app/src-tauri -> target
+      - name: Instalar dependencias Linux, WebDriver y Xvfb
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential curl wget file libssl-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev libwebkit2gtk-4.1-dev libxdo-dev webkit2gtk-driver xdotool xvfb python3-selenium
+      - run: cargo install tauri-driver --locked
+      - run: npm ci
+      - run: npm ci --prefix desktop-app
+      - run: npm run desktop:build
+      - name: Verificar nombre, versión y arquitectura del paquete
+        run: |
+          shopt -s nullglob
+          packages=(desktop-app/src-tauri/target/release/bundle/deb/*.deb)
+          if [ "${#packages[@]}" -ne 1 ]; then
+            printf 'Expected exactly one .deb package, found %s\n' "${#packages[@]}"
+            exit 1
+          fi
+          package="${packages[0]}"
+          dpkg-deb --info "$package"
+          test "$(dpkg-deb -f "$package" Package)" = mermaid-bp
+          test "$(dpkg-deb -f "$package" Version)" = 1.0.0-beta.1
+          test "$(dpkg-deb -f "$package" Architecture)" = amd64
+      - name: Instalar paquete en el runner y probar edición y exportación
+        run: |
+          shopt -s nullglob
+          packages=(desktop-app/src-tauri/target/release/bundle/deb/*.deb)
+          test "${#packages[@]}" -eq 1
+          sudo apt-get install -y "${packages[0]}"
+          xvfb-run --auto-servernum --server-args='-screen 0 1440x1000x24' ./scripts/smoke-linux-installed.sh
+        env:
+          MERMAID_BP_SMOKE_DIR: ${{ runner.temp }}/mermaid-bp-linux-smoke
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mermaid-bp-linux-smoke
+          path: ${{ runner.temp }}/mermaid-bp-linux-smoke
+          if-no-files-found: ignore
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mermaid-bp-linux-deb
+          path: desktop-app/src-tauri/target/release/bundle/deb/*.deb
+          if-no-files-found: error
