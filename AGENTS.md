@@ -14,4 +14,8 @@ Use a single-context layout with a root `GLOSSARY.md` and `docs/adr/`. See `docs
 
 ### Release checks
 
-For Windows installer builds, license notices, or beta publication, see `docs/agents/release.md`.
+For Cargo commands, Docker engine access errors, Windows installer builds, license notices, or beta publication, see `docs/agents/release.md`.
+
+### Multi-ticket implementation
+
+For multi-ticket specs and native CI failures, see `docs/agents/implementation.md`.
