@@ -107,7 +107,7 @@ for _ in $(seq 1 60); do if curl --silent --fail http://127.0.0.1:4444/status >/
 curl --silent --fail http://127.0.0.1:4444/status >/dev/null || { cat "$diagnostics/tauri-driver.log"; exit 1; }
 
 python3 - "$candidate" "$candidate_signature" "$candidate_version" "$base_version" "$diagnostics" "$server_port" "$app_bin" <<'PY'
-import http.server, json, pathlib, subprocess, sys, threading, time
+import base64, http.server, json, pathlib, subprocess, sys, threading, time
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait, Select
@@ -146,9 +146,10 @@ def open_updater(d): open_settings(d,"General"); wait(d,lambda x:x.find_element(
 def check(d):
     d.find_element(By.ID,"check-updates").click(); wait(d,lambda x:x.find_element(By.ID,"check-updates").is_enabled()); return d.find_element(By.ID,"update-status").text
 def install_plugin(d):
-    manifest=json.dumps({"id":"updater-persistence-test","name":"Plugin persistente","description":"Comprueba persistencia tras actualizar.","version":"1.0.0","apiVersion":1,"enabledByDefault":True,"entry":"index.js"})
+    manifest=base64.b64encode(json.dumps({"id":"updater-persistence-test","name":"Plugin persistente","description":"Comprueba persistencia tras actualizar.","version":"1.0.0","apiVersion":1,"enabledByDefault":True,"entry":"index.js"}).encode()).decode()
     module="export default {setup(context){context.ui.addAction({id:'alive',label:'Plugin persistente activo',run(){}});}};"
-    result=d.execute_async_script("const done=arguments[arguments.length-1];window.__TAURI__.core.invoke('install_plugin',{id:'updater-persistence-test',paths:['plugin.json','index.js'],contents:[Array.from(new TextEncoder().encode(arguments[0])),Array.from(new TextEncoder().encode(arguments[1]))]}).then(()=>done('ok'),e=>done(String(e)));",manifest,module)
+    module=base64.b64encode(module.encode()).decode()
+    result=d.execute_async_script("const done=arguments[arguments.length-1];window.__TAURI__.core.invoke('install_plugin',{id:'updater-persistence-test',paths:['plugin.json','index.js'],contents:[arguments[0],arguments[1]]}).then(()=>done('ok'),e=>done(String(e)));",manifest,module)
     assert result=="ok",f"Plugin install bridge failed: {result}"
     d.refresh(); wait(d,lambda x:x.find_element(By.CSS_SELECTOR,"#editor .cm-content").is_displayed())
 def verify_persistence(d):
