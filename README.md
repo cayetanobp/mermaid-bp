@@ -78,7 +78,7 @@ El botón de copia produce un bloque Markdown delimitado con `mermaid`. Las posi
 
 El arrastre fija posiciones libres. El nodo sigue al puntero mediante requestAnimationFrame y solo se actualizan sus conexiones incidentes. No se invoca Mermaid durante el movimiento ni al soltar. Se conserva el zoom; Escape cancela y deshacer/rehacer recuperan la colocación.
 
-Al mover un nodo se añade la etiqueta superior `%% mermaid-bp:manual-layout`. Solo los bloques con esa etiqueta aplican posiciones manuales. Las coordenadas se guardan en `%% graph:positions` dentro del archivo .mmd. Los agentes deben conservar los identificadores de los nodos y ese comentario. "Recolocar todo" recupera la distribución automática y permite deshacer.
+Al mover un nodo se añade la etiqueta superior `%% mermaid-bp:manual-layout`. Solo Mermaid BP, y solo en los diagramas con esa etiqueta, aplica posiciones manuales. Las coordenadas se guardan en comentarios `%% graph:positions`, `%% graph:connections` y `%% graph:groups` dentro del archivo `.mmd`. Son comentarios Mermaid normales: un renderizador Mermaid genérico puede ignorarlos y mostrar el diagrama con su distribución automática. Los agentes deben conservar los identificadores de los nodos y estos comentarios al editar el archivo. "Recolocar todo" recupera la distribución automática y permite deshacer.
 
 Se conservan las formas y los estilos generados por Mermaid. Las conexiones se redondean, pero no esquivan automáticamente los obstáculos y los nodos pueden solaparse al colocarlos manualmente. Al seleccionar una relación puedes arrastrar los puntos de origen y destino alrededor de sus nodos o restaurarlos. Los dos círculos azules son manejadores Bézier independientes. "Restablecer conexión" restaura los anclajes y la curva automática. Los ángulos y los vectores se guardan en `%% graph:connections`, con claves por conexión y número entre conexiones paralelas.
 
@@ -154,11 +154,19 @@ El separador sobre "Información" cambia la altura del panel y deja el resto par
 
 ## Extensiones
 
-El núcleo no incluye plugins. Desde "Extensiones" puedes activar o desactivar los que estén instalados; la preferencia es local. Editar, guardar y exportar funcionan sin plugins. La arquitectura y un ejemplo de contribución están en [docs/plugins.md](docs/plugins.md).
+El núcleo no incluye plugins. Se mantienen en el [repositorio separado de plugins](https://github.com/cayetanobp/mermaid-bp-plugins). Revisa las instrucciones del plugin y consigue su carpeta antes de instalarlo. Los plugins ejecutan código con los permisos de la aplicación; instala solo los que confíes.
 
-Instala un plugin copiando su carpeta dentro de `plugins/` y recargando la web con F5. Aparecerá automáticamente en "Extensiones". Para quitarlo, retira su carpeta y recarga. No requiere registro, reinicio del servidor ni recompilación.
+En la web local, copia la carpeta que contiene `plugin.json` dentro de `plugins/` en la raíz del proyecto y recarga con F5. En una web publicada, copia la carpeta dentro de `plugins/` de la carpeta publicada (por ejemplo, `dist/plugins/`) y recarga. El servidor debe ofrecer el listado de esa carpeta para que el núcleo detecte las extensiones; los servidores locales y el Nginx incluido ya lo hacen.
 
-En una web publicada directamente desde `dist`, coloca los paquetes opcionales en `dist/plugins/`. La guía de creación está en [docs/plugins.md](docs/plugins.md).
+En la aplicación de escritorio, abre "Configuración > Extensiones", elige "Seleccionar carpeta", selecciona la carpeta extraída que contiene `plugin.json` y revisa el nombre y la versión. Confirma la advertencia de confianza y pulsa "Instalar plugin". La aplicación copia el plugin a su almacenamiento privado; no hace falta colocar archivos en una carpeta interna del sistema. Para retirarlo, pulsa "Retirar" junto al plugin.
+
+Desde "Extensiones" puedes activar o desactivar plugins instalados; la preferencia es local. Editar, guardar y exportar funcionan sin plugins. La [guía para desarrollar plugins](docs/plugins.md) describe el contrato y el ejemplo de API.
+
+## Núcleo y contribuciones
+
+Propón cambios al núcleo cuando afecten a la edición, el renderizado, los formatos de archivo, la accesibilidad, la seguridad o a funciones que la mayoría necesita. Propón un plugin cuando la función sea opcional, integre un servicio externo o atienda un flujo de trabajo específico. El editor funciona sin plugins.
+
+Consulta [CONTRIBUTING.md](CONTRIBUTING.md) para preparar una contribución, ejecutar las comprobaciones y abrir una PR.
 
 La dirección visual está en [style.md](style.md). Las siguientes mejoras se mantienen en [docs/roadmap.md](docs/roadmap.md).
 

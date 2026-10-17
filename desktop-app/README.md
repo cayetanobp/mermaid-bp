@@ -19,7 +19,13 @@ npm run desktop:build
 
 El instalador se genera en `desktop-app/src-tauri/target/release/bundle/nsis/`. El usuario final no necesita Node, Rust ni herramientas de desarrollo.
 
-El guardado abre un diálogo nativo y permite elegir dónde escribir cada archivo. El documento conserva el comportamiento del editor: hay que guardarlo antes de cerrar. Las extensiones se incluyen al compilar; cambiar sus archivos requiere volver a generar el instalador.
+El guardado abre un diálogo nativo y permite elegir dónde escribir cada archivo. El documento conserva el comportamiento del editor: hay que guardarlo antes de cerrar. Los plugins incluidos con una compilación forman parte del instalador; los plugins adicionales se pueden instalar desde la aplicación.
+
+## Instalar plugins
+
+Los plugins se mantienen en el [repositorio separado de plugins](https://github.com/cayetanobp/mermaid-bp-plugins). Consigue y descomprime la carpeta del plugin que quieras instalar. En Mermaid BP abre `Configuración > Extensiones`, pulsa `Seleccionar carpeta`, elige la carpeta que contiene `plugin.json` y revisa el nombre y la versión. Confirma la advertencia de confianza y pulsa `Instalar plugin`.
+
+La aplicación guarda la copia en su almacenamiento privado. No tienes que buscar una carpeta del sistema ni compilar la aplicación. Para quitar un plugin, pulsa `Retirar` en su fila. Los plugins ejecutan código con los permisos de la aplicación; instala solo código en el que confíes.
 
 En Windows, abre `Configuración > General > Actualizaciones > Buscar actualizaciones` para consultar el canal beta. La aplicación muestra la versión y las notas antes de descargarla; verifica la firma del paquete NSIS, lo instala y se reinicia. Los documentos guardados, las preferencias y los datos locales de extensiones se mantienen fuera del instalador.
 
