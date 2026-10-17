@@ -1,0 +1,23 @@
+name: Build clean Mermaid BP core
+description: Build the core distribution without any locally installed plugins for plugin compatibility checks.
+outputs:
+  core-root:
+    description: Absolute path to the core checkout containing the compiled distribution.
+    value: ${{ steps.build.outputs.core-root }}
+  distribution-path:
+    description: Absolute path to the compiled core distribution.
+    value: ${{ steps.build.outputs.distribution-path }}
+runs:
+  using: composite
+  steps:
+    - id: build
+      shell: bash
+      env:
+        CORE_ROOT: ${{ github.action_path }}/../../..
+      run: |
+        set -euo pipefail
+        npm ci --prefix "$CORE_ROOT"
+        npm run build --prefix "$CORE_ROOT"
+        core_root="$(cd "$CORE_ROOT" && pwd)"
+        printf 'core-root=%s\n' "$core_root" >> "$GITHUB_OUTPUT"
+        printf 'distribution-path=%s/dist\n' "$core_root" >> "$GITHUB_OUTPUT"
