@@ -27,17 +27,17 @@ await writeFile(join(pluginFolder,'plugin.json'),JSON.stringify({id:'updater-per
 await writeFile(join(pluginFolder,'index.js'),`export default {setup(context){context.ui.addAction({id:'alive',label:'Plugin persistente activo',run(){}});}};\n`);
 
 let mode='none';
-let updateZip='';
+let updateInstaller='';
 let updateSignature='';
 const server=createServer(async(req,res)=>{
   const pathname=new URL(req.url??'/',`http://127.0.0.1`).pathname;
   if(pathname==='/latest.json'){
     if(mode==='offline'){res.writeHead(503,{'cache-control':'no-store'});res.end('Feed temporalmente no disponible');return;}
-    const manifest={version:mode==='none'?baseVersion:targetVersion,notes:'Validación privada de actualización Windows.',pub_date:'2026-10-17T00:00:00Z',platforms:{'windows-x86_64':{signature:mode==='bad-signature'?'invalid updater signature':updateSignature,url:`http://127.0.0.1:${server.address().port}/candidate.nsis.zip`}}};
+    const manifest={version:mode==='none'?baseVersion:targetVersion,notes:'Validación privada de actualización Windows.',pub_date:'2026-10-17T00:00:00Z',platforms:{'windows-x86_64':{signature:mode==='bad-signature'?'invalid updater signature':updateSignature,url:`http://127.0.0.1:${server.address().port}/candidate.exe`}}};
     res.writeHead(200,{'content-type':'application/json','cache-control':'no-store'});res.end(JSON.stringify(manifest));return;
   }
-  if(pathname==='/candidate.nsis.zip'&&updateZip){
-    const bytes=await readFile(updateZip);res.writeHead(200,{'content-type':'application/zip','content-length':bytes.length,'cache-control':'no-store'});res.end(bytes);return;
+  if(pathname==='/candidate.exe'&&updateInstaller){
+    const bytes=await readFile(updateInstaller);res.writeHead(200,{'content-type':'application/octet-stream','content-length':bytes.length,'cache-control':'no-store'});res.end(bytes);return;
   }
   res.writeHead(404);res.end('Not found');
 });
@@ -59,15 +59,14 @@ async function build(version,tag){
   await writeFile(overlay,JSON.stringify({version,plugins:{updater:{endpoints:[endpoint],dangerousInsecureTransportProtocol:true}}}));
   const npmCli=process.env.npm_execpath??join(dirname(process.execPath),'node_modules','npm','bin','npm-cli.js');
   await stat(npmCli);
-  run(process.execPath,[npmCli,'exec','--','tauri','build','--config',overlay],{cwd:desktop,env:{...process.env,npm_execpath:npmCli,TAURI_SIGNING_PRIVATE_KEY:key,TAURI_SIGNING_PRIVATE_KEY_PASSWORD:''}});
+  run(process.execPath,[npmCli,'exec','--','tauri','build','--config',overlay,'--','--locked'],{cwd:desktop,env:{...process.env,npm_execpath:npmCli,TAURI_SIGNING_PRIVATE_KEY:key,TAURI_SIGNING_PRIVATE_KEY_PASSWORD:''}});
   const files=await readdir(bundle);
   const installers=files.filter(name=>name.endsWith('-setup.exe'));
-  const zips=files.filter(name=>name.endsWith('-setup.nsis.zip'));
-  if(installers.length!==1||zips.length!==1)throw Error(`La compilación ${tag} debía producir un solo instalador y un solo ZIP firmado; se encontraron ${installers.length} y ${zips.length}.`);
-  const installer=join(bundle,installers[0]),zip=join(bundle,zips[0]),signature=zip+'.sig';
+  if(installers.length!==1)throw Error(`La compilación ${tag} debía producir un solo instalador NSIS firmado; se encontraron ${installers.length}.`);
+  const installer=join(bundle,installers[0]),signature=installer+'.sig';
   const signatureText=(await readFile(signature,'utf8')).trim();
-  if(!signatureText)throw Error(`El ZIP ${basename(zip)} no tiene firma.`);
-  return{installer,zip,signature,signatureText,files:[installer,zip,signature]};
+  if(!signatureText)throw Error(`El instalador updater ${basename(installer)} no tiene firma.`);
+  return{installer,signature,signatureText,files:[installer,signature]};
 }
 
 function installBase(installer){
@@ -137,7 +136,7 @@ try{
   installBase(base.installer);
   for(const file of base.files)await rm(file,{force:true});
   const candidate=await build(targetVersion,'candidate');
-  updateZip=candidate.zip;updateSignature=candidate.signatureText;
+  updateInstaller=candidate.installer;updateSignature=candidate.signatureText;
 
   const executable=await findInstalledExecutable();
   appProcess=startApp(executable);

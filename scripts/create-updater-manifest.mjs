@@ -16,6 +16,7 @@ const version=input['--version'];
 if(!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/.test(version))throw new Error('La versión del updater debe ser SemVer.');
 const artifactUrl=new URL(input['--artifact-url']);
 if(artifactUrl.protocol!=='https:'||artifactUrl.hostname!=='github.com'||!artifactUrl.pathname.includes('/releases/download/'))throw new Error('El artefacto del updater debe usar una URL HTTPS de un release de GitHub.');
+if(!artifactUrl.pathname.toLowerCase().endsWith('.exe'))throw new Error('El updater Windows debe apuntar al instalador NSIS .exe firmado que genera Tauri 2.');
 const signature=(await readFile(input['--signature-file'],'utf8')).trim();
 if(!signature)throw new Error('El artefacto no tiene firma de updater.');
 const notes=(await readFile(input['--notes-file'],'utf8')).trim();

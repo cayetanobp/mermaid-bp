@@ -59,6 +59,5 @@ jobs:
           name: mermaid-bp-windows
           path: |
             desktop-app/src-tauri/target/release/bundle/nsis/*-setup.exe
-            desktop-app/src-tauri/target/release/bundle/nsis/*-setup.nsis.zip
-            desktop-app/src-tauri/target/release/bundle/nsis/*-setup.nsis.zip.sig
+            desktop-app/src-tauri/target/release/bundle/nsis/*-setup.exe.sig
           if-no-files-found: error

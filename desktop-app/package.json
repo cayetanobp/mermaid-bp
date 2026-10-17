@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "tauri dev",
-    "build": "tauri build",
+    "build": "tauri build -- --locked",
     "build:frontend": "node build.mjs",
     "test": "cd .. && node --test tests/desktop.test.mjs"
   },

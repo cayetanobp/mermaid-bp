@@ -57,17 +57,16 @@ jobs:
           $tag = (Get-Content desktop-app/src-tauri/tauri.conf.json | ConvertFrom-Json).version
           $folder = 'desktop-app/src-tauri/target/release/bundle/nsis'
           $installer = @(Get-ChildItem "$folder/*-setup.exe")
-          $updater = @(Get-ChildItem "$folder/*-setup.nsis.zip")
-          if ($installer.Count -ne 1 -or $updater.Count -ne 1) { throw 'Se esperaba un instalador y un paquete updater NSIS.' }
-          $signaturePath = "$($updater[0].FullName).sig"
-          if (!(Test-Path -LiteralPath $signaturePath) -or (Get-Item -LiteralPath $signaturePath).Length -eq 0) { throw 'Falta la firma minisign del paquete updater.' }
+          if ($installer.Count -ne 1) { throw 'Se esperaba un instalador NSIS.' }
+          $signaturePath = "$($installer[0].FullName).sig"
+          if (!(Test-Path -LiteralPath $signaturePath) -or (Get-Item -LiteralPath $signaturePath).Length -eq 0) { throw 'Falta la firma minisign del instalador updater.' }
           $hash = (Get-FileHash $installer[0].FullName -Algorithm SHA256).Hash.ToLower()
           "$hash  $($installer[0].Name)" | Set-Content "$($installer[0].FullName).sha256" -Encoding utf8
           $manifestPath = Join-Path $folder 'latest.json'
-          $assetUrl = "https://github.com/$env:GITHUB_REPOSITORY/releases/download/$tag/$($updater[0].Name)"
+          $assetUrl = "https://github.com/$env:GITHUB_REPOSITORY/releases/download/$tag/$($installer[0].Name)"
           node scripts/create-updater-manifest.mjs --version $tag --notes-file desktop-app/RELEASE.md --artifact-url $assetUrl --signature-file $signaturePath --output $manifestPath
           if ($LASTEXITCODE -ne 0) { throw 'No se pudo crear el manifiesto firmado del canal beta.' }
-          gh release create $tag $installer[0].FullName "$($installer[0].FullName).sha256" $updater[0].FullName $signaturePath $manifestPath --target $env:GITHUB_SHA --title $tag --prerelease --notes-file desktop-app/RELEASE.md
+          gh release create $tag $installer[0].FullName "$($installer[0].FullName).sha256" $signaturePath $manifestPath --target $env:GITHUB_SHA --title $tag --prerelease --notes-file desktop-app/RELEASE.md
           if ($LASTEXITCODE -ne 0) { throw 'No se pudo publicar la beta.' }
           gh release view beta --repo $env:GITHUB_REPOSITORY *> $null
           if ($LASTEXITCODE -eq 0) {

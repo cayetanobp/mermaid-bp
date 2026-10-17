@@ -63,7 +63,7 @@ jobs:
       - name: Compilar la aplicación sin empaquetar en pull requests
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository
         working-directory: desktop-app
-        run: npm exec -- tauri build --no-bundle
+        run: npm exec -- tauri build --no-bundle -- --locked
       - name: Probar el updater firmado en una instalación Windows real
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         run: node scripts/windows-updater-e2e.mjs
@@ -91,7 +91,6 @@ jobs:
           name: mermaid-bp-windows-signed-validation
           path: |
             desktop-app/src-tauri/target/release/bundle/nsis/*-setup.exe
-            desktop-app/src-tauri/target/release/bundle/nsis/*-setup.nsis.zip
-            desktop-app/src-tauri/target/release/bundle/nsis/*-setup.nsis.zip.sig
+            desktop-app/src-tauri/target/release/bundle/nsis/*-setup.exe.sig
           if-no-files-found: error
           retention-days: 3

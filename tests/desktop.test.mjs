@@ -44,11 +44,12 @@ test('el paquete estático permite descubrir las extensiones y resolver sus entr
 test('el manifiesto del canal beta publica el artefacto firmado de Windows y las notas de release',async()=>{
   const folder=await mkdtemp(join(tmpdir(),'mermaid-bp-updater-'));
   try{
-    const notes=join(folder,'RELEASE.md'),signature=join(folder,'installer.nsis.zip.sig'),output=join(folder,'latest.json');
+    const notes=join(folder,'RELEASE.md'),signature=join(folder,'installer.exe.sig'),output=join(folder,'latest.json');
     const signedFixture=await readFile('tests/fixtures/updater-signature-sample.txt.sig','utf8');
     await writeFile(notes,'Mejoras de esta versión.\n');
     await writeFile(signature,signedFixture);
-    const generated=spawnSync(process.execPath,['scripts/create-updater-manifest.mjs','--version','1.0.0-beta.1','--notes-file',notes,'--artifact-url','https://github.com/cayetanobp/mermaid-bp/releases/download/1.0.0-beta.1/updater-signature-sample.txt','--signature-file',signature,'--output',output],{encoding:'utf8'});
+    // The fixture checks signature serialization; production publishes the Tauri 2 NSIS executable.
+    const generated=spawnSync(process.execPath,['scripts/create-updater-manifest.mjs','--version','1.0.0-beta.1','--notes-file',notes,'--artifact-url','https://github.com/cayetanobp/mermaid-bp/releases/download/1.0.0-beta.1/Mermaid-BP-setup.exe','--signature-file',signature,'--output',output],{encoding:'utf8'});
     assert.equal(generated.status,0,generated.stderr);
     const manifest=JSON.parse(await readFile(output,'utf8'));
     assert.match(Buffer.from(manifest.platforms['windows-x86_64'].signature,'base64').toString('utf8'),/trusted comment: timestamp:.*version:1\.0\.0-beta\.1/);
@@ -57,7 +58,7 @@ test('el manifiesto del canal beta publica el artefacto firmado de Windows y las
     assert.match(manifest.pub_date,/^\d{4}-\d\d-\d\dT/);
     assert.deepEqual(manifest.platforms['windows-x86_64'],{
       signature:signedFixture.trim(),
-      url:'https://github.com/cayetanobp/mermaid-bp/releases/download/1.0.0-beta.1/updater-signature-sample.txt',
+      url:'https://github.com/cayetanobp/mermaid-bp/releases/download/1.0.0-beta.1/Mermaid-BP-setup.exe',
     });
   }finally{await rm(folder,{recursive:true,force:true});}
 });
@@ -67,14 +68,19 @@ test('el manifiesto rechaza una URL HTTP o un artefacto sin firma',async()=>{
   try{
     const notes=join(folder,'RELEASE.md'),signature=join(folder,'installer.sig'),output=join(folder,'latest.json');
     await writeFile(notes,'Notas');await writeFile(signature,'');
-    const args=['scripts/create-updater-manifest.mjs','--version','1.0.0-beta.1','--notes-file',notes,'--artifact-url','http://github.com/cayetanobp/mermaid-bp/releases/download/beta/installer.zip','--signature-file',signature,'--output',output];
+    const args=['scripts/create-updater-manifest.mjs','--version','1.0.0-beta.1','--notes-file',notes,'--artifact-url','http://github.com/cayetanobp/mermaid-bp/releases/download/beta/installer.exe','--signature-file',signature,'--output',output];
     const generated=spawnSync(process.execPath,args,{encoding:'utf8'});
     assert.notEqual(generated.status,0);
     assert.match(generated.stderr,/HTTPS/);
     await writeFile(signature,'');
-    args[6]='https://github.com/cayetanobp/mermaid-bp/releases/download/beta/installer.zip';
+    args[6]='https://github.com/cayetanobp/mermaid-bp/releases/download/beta/installer.exe';
     const unsigned=spawnSync(process.execPath,args,{encoding:'utf8'});
     assert.notEqual(unsigned.status,0);
     assert.match(unsigned.stderr,/firma de updater/);
+    await writeFile(signature,await readFile('tests/fixtures/updater-signature-sample.txt.sig','utf8'));
+    args[6]='https://github.com/cayetanobp/mermaid-bp/releases/download/beta/installer.zip';
+    const wrongArtifact=spawnSync(process.execPath,args,{encoding:'utf8'});
+    assert.notEqual(wrongArtifact.status,0);
+    assert.match(wrongArtifact.stderr,/NSIS \.exe/);
   }finally{await rm(folder,{recursive:true,force:true});}
 });
