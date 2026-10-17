@@ -9,6 +9,7 @@ const included=new Set(metadata.resolve.nodes.map(node=>node.id));
 const fallback={
   'alloc-stdlib':['rust-alloc-no-stdlib-BSD-3-Clause.txt','https://github.com/dropbox/rust-alloc-no-stdlib/blob/master/LICENSE'],
   'selectors':['MPL-2.0.txt','https://www.mozilla.org/media/MPL/2.0/index.txt'],
+  'tauri-plugin':['tauri-MIT.txt','https://github.com/tauri-apps/tauri/blob/dev/LICENSE-MIT'],
   'webview2-com':['webview2-rs-MIT.txt','https://github.com/wravery/webview2-rs/blob/main/LICENSE'],
   'webview2-com-macros':['webview2-rs-MIT.txt','https://github.com/wravery/webview2-rs/blob/main/LICENSE'],
   'webview2-com-sys':['webview2-rs-MIT.txt','https://github.com/wravery/webview2-rs/blob/main/LICENSE']
