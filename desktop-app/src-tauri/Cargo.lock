@@ -2158,6 +2158,7 @@ name = "mermaid-bp-desktop"
 version = "1.0.0-alpha.2"
 dependencies = [
  "rfd",
+ "serde_json",
  "tauri",
  "tauri-build",
  "tauri-plugin-process",
