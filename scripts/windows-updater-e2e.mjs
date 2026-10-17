@@ -214,6 +214,13 @@ async function openSettings(page,section='General'){
 }
 
 async function openUpdater(page){await openSettings(page,'General');await expect(page.locator('#desktop-updates')).toBeVisible();}
+async function importDocument(page,path,expectedText){
+  await page.locator('#file').setInputFiles(path);
+  const dialog=page.locator('#confirm-dialog');
+  await expect.poll(async()=>await dialog.evaluate(element=>element.open)||((await page.locator('.cm-content').innerText()).includes(expectedText))).toBeTruthy();
+  if(await dialog.evaluate(element=>element.open))await dialog.getByRole('button',{name:'Continuar sin descargar',exact:true}).click();
+  await expect(page.locator('.cm-content')).toContainText(expectedText);
+}
 async function assertPluginAndPreference(page){
   await openSettings(page,'Editor');
   await expect(page.locator('#setting-editorFontSize')).toHaveValue('18');
@@ -260,8 +267,7 @@ try{
   await page.locator('#desktop-updates').getByRole('button',{name:'Buscar actualizaciones',exact:true}).click();
   await expect(page.locator('#update-status')).toHaveText('No hay actualizaciones disponibles.');
 
-  await page.locator('#file').setInputFiles(documentPath);
-  await expect(page.locator('.cm-content')).toContainText('Documento conservado');
+  await importDocument(page,documentPath,'Documento conservado');
   await expect(page.locator('#render-state')).toHaveText('Actualizado');
   await openSettings(page,'Editor');
   await page.locator('#setting-editorFontSize').selectOption('18');
@@ -305,8 +311,7 @@ try{
   await expect(page.locator('#update-status')).toHaveText('No hay actualizaciones disponibles.',{timeout:120000});
   await expect(updater().getByText(`Versión instalada: ${targetVersion}`,{exact:true})).toBeVisible();
 
-  await page.locator('#file').setInputFiles(documentPath);
-  await expect(page.locator('.cm-content')).toContainText('Documento conservado');
+  await importDocument(page,documentPath,'Documento conservado');
   await assertPluginAndPreference(page);
   await expect(page.locator('#plugin-updater-persistence-test-alive')).toHaveText('Plugin persistente activo');
   process.stdout.write(`Validación nativa completada: ${baseVersion} -> ${targetVersion}; la firma inválida se rechazó, el instalador firmado se aplicó y el WebView2 reabrió con documento, preferencias y plugin locales disponibles.\n`);
