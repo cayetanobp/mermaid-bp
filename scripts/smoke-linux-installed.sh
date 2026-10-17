@@ -159,6 +159,8 @@ def save_from_native_dialog(button, path):
         )
 
 def choose_plugin_folder(folder):
+    import pyatspi
+
     before = active_window_title()
     before_windows = set(visible_window_titles())
     driver.find_element(By.ID, "plugin-folder-select").click()
@@ -177,67 +179,134 @@ def choose_plugin_folder(folder):
         )
 
     capture_desktop("native-plugin-folder-dialog.png")
-    # Focus the chooser's file list, then use GTK's native location entry to
-    # navigate to the requested directory. The name-search field can highlight
-    # a match without changing the selected folder.
     dialog_ids = subprocess.check_output(
         ["xdotool", "search", "--name", "Elegir carpeta de plugin"], text=True
     ).splitlines()
     if not dialog_ids:
         raise AssertionError("Could not identify the native folder chooser window")
     dialog_id = dialog_ids[-1]
-    geometry = subprocess.check_output(["xwininfo", "-id", dialog_id], text=True)
-    origin = re.search(
-        r"Absolute upper-left X:\s*(\d+).*?Absolute upper-left Y:\s*(\d+).*?Width:\s*(\d+).*?Height:\s*(\d+)",
-        geometry,
-        re.S,
-    )
-    if not origin:
-        raise AssertionError(f"Could not read folder chooser geometry:\n{geometry}")
-    left, top, width, height = map(int, origin.groups())
-    subprocess.run(
-        ["xdotool", "mousemove", str(left + width - 160), str(top + height - 130), "click", "1"],
-        check=True,
-    )
+
+    def accessible_tree():
+        nodes = []
+        desktop = pyatspi.Registry.getDesktop(0)
+        pending = [(desktop, 0, [])]
+        while pending:
+            node, depth, ancestors = pending.pop()
+            try:
+                role = node.getRoleName()
+                name = node.name or ""
+                ancestry = ancestors + [f"{role} name={name!r}"]
+                value = ""
+                try:
+                    value = node.queryText().getText(0, 4096)
+                except Exception:
+                    pass
+                actions = []
+                try:
+                    action = node.queryAction()
+                    actions = [action.getName(index) for index in range(action.nActions)]
+                except Exception:
+                    pass
+                nodes.append({"node": node, "role": role, "name": name, "value": value, "actions": actions, "ancestry": ancestry})
+                if depth < 14:
+                    for index in reversed(range(node.childCount)):
+                        child = node.getChildAtIndex(index)
+                        if child is not None:
+                            pending.append((child, depth + 1, ancestry))
+            except Exception:
+                continue
+        return nodes
+
+    def save_accessible_tree(filename, nodes):
+        lines = [
+            f"{entry['role']} name={entry['name']!r} value={entry['value']!r} actions={entry['actions']!r} "
+            f"ancestry={entry['ancestry']!r}"
+            for entry in nodes
+        ]
+        (out / filename).write_text("\n".join(lines), encoding="utf-8")
+
+    # GTK's folder-only chooser hides regular files. Navigate through the
+    # accessible location entry, verify it accepts the target, then activate
+    # the native Select button through its accessible action.
     subprocess.run(["xdotool", "key", "ctrl+l"], check=True)
     time.sleep(0.3)
     capture_desktop("native-plugin-folder-location-entry.png")
-    subprocess.run(
-        ["xdotool", "key", "ctrl+a"],
-        check=True,
-    )
-    subprocess.run(
-        ["xdotool", "type", "--clearmodifiers", "--delay", "1", str(folder.resolve())],
-        check=True,
-    )
-    time.sleep(0.3)
+    nodes = accessible_tree()
+    save_accessible_tree("native-plugin-folder-location-entry.accessibility.txt", nodes)
+    dialog_nodes = [item for item in nodes if "Elegir carpeta de plugin" in " ".join(item["ancestry"])]
+    if not dialog_nodes:
+        raise AssertionError("AT-SPI cannot find the native GTK folder chooser in the accessibility tree")
+    entries = []
+    for item in dialog_nodes:
+        try:
+            editable = item["node"].queryEditableText()
+            entries.append((item, editable))
+        except Exception:
+            continue
+    if not entries:
+        raise AssertionError(
+            "GTK location prompt has no accessible editable text control; "
+            f"active window={active_window_title()!r}"
+        )
+    # GTK exposes one active editable control after Ctrl+L. Prefer the
+    # Location-named entry, falling back only when there is exactly one.
+    location_entries = [pair for pair in entries if "location" in (pair[0]["name"] + pair[0]["value"]).lower()]
+    selected_entry = location_entries[0] if len(location_entries) == 1 else (entries[0] if len(entries) == 1 else None)
+    if selected_entry is None:
+        raise AssertionError(
+            "Could not identify a unique GTK location entry; "
+            f"accessible controls={[item['name'] for item, _ in entries]!r}"
+        )
+    location_node, editable = selected_entry
+    if not editable.setTextContents(str(folder.resolve())):
+        raise AssertionError("GTK rejected setting the requested folder in its accessible location entry")
+    location_node["node"].queryComponent().grabFocus()
+    location_text = location_node["node"].queryText().getText(0, 4096)
+    (out / "native-plugin-folder-location-path.txt").write_text(location_text, encoding="utf-8")
     capture_desktop("native-plugin-folder-location-path.png")
-    location_text = subprocess.run(
-        ["tesseract", str(out / "native-plugin-folder-location-path.png"), "stdout", "--psm", "6"],
-        check=True, capture_output=True, text=True,
-    ).stdout.lower()
-    if "installed" not in location_text or "smoke" not in location_text:
+    if str(folder.resolve()) not in location_text:
+        raise AssertionError(f"GTK location entry contains {location_text!r}, expected {str(folder.resolve())!r}")
+    subprocess.run(["xdotool", "windowactivate", "--sync", dialog_id], check=True)
+    subprocess.run(["xdotool", "windowfocus", "--sync", dialog_id], check=True)
+    subprocess.run(["xdotool", "key", "--clearmodifiers", "Return"], check=True)
+
+    deadline = time.time() + 10
+    selected_button = None
+    while time.time() < deadline:
+        time.sleep(0.2)
+        nodes = accessible_tree()
+        save_accessible_tree("native-plugin-folder-after-navigation.accessibility.txt", nodes)
+        buttons = [
+            item for item in nodes
+            if "Elegir carpeta de plugin" in " ".join(item["ancestry"])
+            and item["role"].lower() == "push button" and item["name"].strip().lower() in {"select", "open", "seleccionar"}
+        ]
+        enabled = []
+        for item in buttons:
+            try:
+                if item["node"].getState().contains(pyatspi.STATE_ENABLED):
+                    enabled.append(item)
+            except Exception:
+                pass
+        if len(enabled) == 1:
+            selected_button = enabled[0]
+            break
+    if selected_button is None:
+        capture_desktop("native-plugin-folder-selected-path.png")
         raise AssertionError(
-            "The native chooser location entry does not visibly contain the requested folder; "
-            f"OCR output was {location_text!r}"
+            "GTK did not enable its native Select button after entering the requested folder; "
+            f"active window={active_window_title()!r}"
         )
-    subprocess.run(["xdotool", "key", "Return"], check=True)
-    time.sleep(0.6)
     capture_desktop("native-plugin-folder-selected-path.png")
-    chooser_text = subprocess.run(
-        ["tesseract", str(out / "native-plugin-folder-selected-path.png"), "stdout", "--psm", "6"],
-        check=True, capture_output=True, text=True,
-    ).stdout.lower()
-    if "plugin.json" not in chooser_text or "index.js" not in chooser_text:
-        raise AssertionError(
-            "The native chooser did not visibly reach the plugin folder; "
-            f"expected plugin.json and index.js in OCR output, got {chooser_text!r}"
-        )
-    # Activate GTK's actual Select button after reaching the selected folder.
-    subprocess.run(
-        ["xdotool", "mousemove", str(left + width - 50), str(top + height - 28), "click", "1"],
-        check=True,
+    action = selected_button["node"].queryAction()
+    action_names = [action.getName(index).lower() for index in range(action.nActions)]
+    activate_index = next(
+        (index for index, name in enumerate(action_names) if name in {"click", "press", "activate"}),
+        None,
     )
+    if activate_index is None or not action.doAction(activate_index):
+        raise AssertionError(f"GTK Select button has no usable activation action: {action_names!r}")
+
     deadline = time.time() + 20
     while time.time() < deadline and active_window_title() != before:
         time.sleep(0.1)
