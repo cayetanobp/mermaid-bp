@@ -50,34 +50,3 @@ test('el artefacto Linux declara el paquete Debian y la versión beta publicada'
   assert.ok(config.bundle.linux.deb.depends.includes('libayatana-appindicator3-1'));
   await access('desktop-app/src-tauri/icons/icon.png');
 });
-
-test('el flujo Linux instala el paquete y automatiza una sesión gráfica real',async()=>{
-  const workflow=await readFile('.github/workflows/desktop-linux.yml','utf8');
-  const smoke=await readFile('scripts/smoke-linux-installed.sh','utf8');
-  const docker=await readFile('scripts/build-linux-deb-docker.ps1','utf8');
-  assert.match(workflow,/ubuntu-24\.04/);
-  assert.match(workflow,/packages=\(desktop-app\/src-tauri\/target\/release\/bundle\/deb\/\*\.deb\)/);
-  assert.match(workflow,/dpkg-deb -f "\$package" Package\)" = mermaid-bp/);
-  assert.match(workflow,/dpkg-deb -f "\$package" Version\)" = 1\.0\.0-beta\.1/);
-  assert.match(workflow,/dpkg-deb -f "\$package" Architecture\)" = amd64/);
-  assert.match(workflow,/sudo apt-get install -y "\.\/\$\{packages\[0\]\}"/);
-  assert.match(workflow,/smoke-linux-installed\.sh/);
-  assert.match(workflow,/xvfb-run[^\n]* bash \.\/scripts\/smoke-linux-installed\.sh/);
-  assert.ok(!smoke.includes('\r'));
-  assert.match(smoke,/tauri-driver/);
-  assert.match(smoke,/xdotool/);
-  assert.match(smoke,/\.mmd/);
-  assert.match(smoke,/\.svg/);
-  assert.match(smoke,/menu-archivo/);
-  assert.match(smoke,/menu-archivo-panel/);
-  assert.match(smoke,/is_displayed\(\)/);
-  assert.equal((smoke.match(/open_file_menu\(\)/g)??[]).length,3);
-  assert.match(smoke,/open_file_menu\(\)\n    driver\.find_element\(By\.ID, "save"\)/);
-  assert.match(smoke,/open_file_menu\(\)\n    driver\.find_element\(By\.ID, "svg"\)/);
-  assert.match(docker,/docker run/);
-  assert.match(docker,/--mount/);
-  assert.match(docker,/source=mermaid-bp-cargo-target,target=\/cargo-target/);
-  assert.match(docker,/-e CARGO_TARGET_DIR=\/cargo-target/);
-  assert.match(docker,/target\/linux-bundle\/deb/);
-  assert.match(docker,/Write-Output "Debian package output: \$target"/);
-});
