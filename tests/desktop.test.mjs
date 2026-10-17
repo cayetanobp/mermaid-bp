@@ -118,6 +118,7 @@ test('el updater Windows conserva idiomas y usa selección automática compatibl
 test('el flujo Linux publica el Debian firmado y prueba su actualización instalada',async()=>{
   const workflow=await readFile('.github/workflows/desktop-linux.yml','utf8');
   const smoke=await readFile('scripts/smoke-linux-installed.sh','utf8');
+  const updaterE2E=await readFile('scripts/linux-updater-e2e.sh','utf8');
   const docker=await readFile('scripts/build-linux-deb-docker.ps1','utf8');
   assert.ok(workflow.includes('createUpdaterArtifacts":false'));
   assert.ok(workflow.includes('createUpdaterArtifacts":true'));
@@ -133,6 +134,10 @@ test('el flujo Linux publica el Debian firmado y prueba su actualización instal
   assert.match(workflow,/xvfb-run[^\n]*dbus-run-session -- bash -c/);
   assert.match(workflow,/bash \.\/scripts\/smoke-linux-installed\.sh/);
   assert.match(workflow,/scripts\/linux-updater-e2e\.sh/);
+  assert.ok(updaterE2E.includes('candidate="$(find_deb_for_version "$candidate_version")"'));
+  assert.ok(updaterE2E.includes('dpkg-deb -f "$path" Package'));
+  assert.ok(updaterE2E.includes('exec sudo -n "$@"'));
+  assert.ok(updaterE2E.includes('[[ $# -eq 3 && "$1" == "dpkg" && "$2" == "-i" ]]'));
   assert.match(workflow,/name: mermaid-bp-linux-updater/);
   assert.match(workflow,/TAURI_SIGNING_PRIVATE_KEY/);
   assert.ok(!smoke.includes('\r'));

@@ -1,9 +1,12 @@
 //! User-installed desktop plugins live in app data, never in the bundled resources.
 
+use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
+use cap_std::{ambient_authority, fs::Dir};
 use serde_json::Value;
 use std::{
     collections::HashSet,
     fs,
+    io::Read,
     path::{Component, Path, PathBuf},
     sync::atomic::{AtomicU64, Ordering},
 };
@@ -11,7 +14,188 @@ use tauri::{AppHandle, Manager};
 
 const MAX_FILES: usize = 256;
 const MAX_TOTAL_BYTES: usize = 32 * 1024 * 1024;
+const MAX_DIRECTORY_ENTRIES: usize = 1024;
+const MAX_DIRECTORY_DEPTH: usize = 16;
 static STAGING_ID: AtomicU64 = AtomicU64::new(1);
+
+#[tauri::command]
+pub async fn choose_plugin_folder() -> Result<Option<Value>, String> {
+    tauri::async_runtime::spawn_blocking(|| {
+        let Some(folder) = rfd::FileDialog::new()
+            .set_title("Elegir carpeta de plugin")
+            .pick_folder()
+        else {
+            return Ok(None);
+        };
+        read_plugin_folder(&folder).map(Some)
+    })
+    .await
+    .map_err(|error| error.to_string())?
+}
+
+fn read_plugin_folder(folder: &Path) -> Result<Value, String> {
+    let folder_metadata = fs::symlink_metadata(folder).map_err(|error| error.to_string())?;
+    if is_reparse_point(&folder_metadata) || !folder_metadata.is_dir() {
+        return Err("La carpeta seleccionada no es un directorio válido.".into());
+    }
+    let canonical_root = fs::canonicalize(folder).map_err(|error| error.to_string())?;
+    let root = Dir::open_ambient_dir(&canonical_root, ambient_authority())
+        .map_err(|error| error.to_string())?;
+    let folder_name = folder
+        .file_name()
+        .and_then(|name| name.to_str())
+        .filter(|name| !name.is_empty())
+        .ok_or_else(|| "No se pudo leer el nombre de la carpeta seleccionada.".to_string())?;
+
+    let mut paths = Vec::new();
+    let mut contents: Vec<String> = Vec::new();
+    let mut total_bytes = 0usize;
+    let mut entry_count = 0usize;
+    collect_plugin_files(
+        &root,
+        Path::new(""),
+        0,
+        &mut entry_count,
+        &mut total_bytes,
+        &mut paths,
+        &mut contents,
+    )?;
+
+    Ok(serde_json::json!({
+        "folderName": folder_name,
+        "paths": paths,
+        "contents": contents,
+    }))
+}
+
+fn collect_plugin_files(
+    current: &Dir,
+    relative_dir: &Path,
+    depth: usize,
+    entry_count: &mut usize,
+    total_bytes: &mut usize,
+    paths: &mut Vec<String>,
+    contents: &mut Vec<String>,
+) -> Result<(), String> {
+    if depth > MAX_DIRECTORY_DEPTH {
+        return Err("La carpeta del plugin supera la profundidad permitida.".into());
+    }
+    for entry in current.entries().map_err(|error| error.to_string())? {
+        let entry = entry.map_err(|error| error.to_string())?;
+        *entry_count += 1;
+        if *entry_count > MAX_DIRECTORY_ENTRIES {
+            return Err("La carpeta del plugin contiene demasiadas entradas.".into());
+        }
+        let name = entry.file_name();
+        let name = name
+            .to_str()
+            .ok_or_else(|| "La carpeta contiene un nombre de archivo no compatible.".to_string())?;
+        let metadata = current.symlink_metadata(name).map_err(|error| error.to_string())?;
+        let file_type = metadata.file_type();
+        if file_type.is_symlink() {
+            return Err("La carpeta del plugin no puede contener enlaces simbólicos.".into());
+        }
+        let relative_path = relative_dir.join(name);
+        // Windows junctions and other reparse points are not always reported
+        // as symbolic links by portable file-type APIs. Check metadata fetched
+        // relative to the current capability handle, not an ambient path.
+        if is_cap_reparse_point(&metadata) {
+            return Err("La carpeta del plugin no puede contener enlaces simbólicos o puntos de reanálisis.".into());
+        }
+        if file_type.is_dir() {
+            let child = current.open_dir(name).map_err(|error| error.to_string())?;
+            let child_metadata = child.dir_metadata().map_err(|error| error.to_string())?;
+            if is_cap_reparse_point(&child_metadata) || !child_metadata.is_dir() {
+                return Err("La carpeta del plugin contiene un tipo de archivo no admitido.".into());
+            }
+            collect_plugin_files(
+                &child,
+                &relative_path,
+                depth + 1,
+                entry_count,
+                total_bytes,
+                paths,
+                contents,
+            )?;
+            continue;
+        }
+        if !file_type.is_file() {
+            return Err("La carpeta del plugin contiene un tipo de archivo no admitido.".into());
+        }
+        if paths.len() >= MAX_FILES {
+            return Err("La carpeta supera el límite de 256 archivos.".into());
+        }
+
+        let mut parts = Vec::new();
+        for component in relative_path.components() {
+            match component {
+                Component::Normal(part) => parts.push(
+                    part.to_str()
+                        .ok_or_else(|| "La carpeta contiene un nombre de archivo no compatible.".to_string())?,
+                ),
+                _ => return Err("La carpeta contiene una ruta de archivo no válida.".into()),
+            }
+        }
+        let relative_path = parts.join("/");
+        relative_file_path(&relative_path)?;
+
+        let mut file = current.open(name).map_err(|error| error.to_string())?;
+        let file_metadata = file.metadata().map_err(|error| error.to_string())?;
+        if is_cap_reparse_point(&file_metadata) || !file_metadata.is_file() {
+            return Err("La carpeta del plugin contiene un archivo no regular.".into());
+        }
+        let remaining = MAX_TOTAL_BYTES.saturating_sub(*total_bytes);
+        let file_size = usize::try_from(file_metadata.len())
+            .map_err(|_| "El plugin supera el límite de 32 MB.".to_string())?;
+        if file_size > remaining {
+            return Err("El plugin supera el límite de 32 MB.".into());
+        }
+        let mut bytes = Vec::with_capacity(file_size);
+        file.by_ref()
+            .take(remaining as u64 + 1)
+            .read_to_end(&mut bytes)
+            .map_err(|error| error.to_string())?;
+        if bytes.len() > remaining {
+            return Err("El plugin supera el límite de 32 MB.".into());
+        }
+        *total_bytes += bytes.len();
+        paths.push(relative_path);
+        contents.push(BASE64.encode(bytes));
+    }
+    Ok(())
+}
+
+fn is_reparse_point(metadata: &fs::Metadata) -> bool {
+    if metadata.file_type().is_symlink() {
+        return true;
+    }
+    #[cfg(windows)]
+    {
+        use std::os::windows::fs::MetadataExt;
+        const FILE_ATTRIBUTE_REPARSE_POINT: u32 = 0x400;
+        metadata.file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT != 0
+    }
+    #[cfg(not(windows))]
+    {
+        false
+    }
+}
+
+fn is_cap_reparse_point(metadata: &cap_std::fs::Metadata) -> bool {
+    if metadata.is_symlink() {
+        return true;
+    }
+    #[cfg(windows)]
+    {
+        use cap_std::fs::MetadataExt;
+        const FILE_ATTRIBUTE_REPARSE_POINT: u32 = 0x400;
+        metadata.file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT != 0
+    }
+    #[cfg(not(windows))]
+    {
+        false
+    }
+}
 
 fn valid_id(id: &str) -> bool {
     !id.is_empty()
@@ -106,9 +290,51 @@ pub fn list_plugins(app: AppHandle) -> Result<Vec<Value>, String> {
 }
 
 #[tauri::command]
-pub async fn install_plugin(app: AppHandle, id: String, paths: Vec<String>, contents: Vec<Vec<u8>>) -> Result<(), String> {
-    tauri::async_runtime::spawn_blocking(move || install_plugin_blocking(&app, &id, &paths, &contents))
+pub async fn install_plugin(app: AppHandle, id: String, paths: Vec<String>, contents: Vec<String>) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let contents = decode_contents(&contents)?;
+        install_plugin_blocking(&app, &id, &paths, &contents)
+    })
         .await.map_err(|e| e.to_string())?
+}
+
+fn decode_contents(encoded: &[String]) -> Result<Vec<Vec<u8>>, String> {
+    if encoded.len() > MAX_FILES {
+        return Err("La carpeta supera el límite de 256 archivos.".into());
+    }
+    let max_encoded_total = MAX_TOTAL_BYTES
+        .checked_add(2)
+        .and_then(|size| size.checked_div(3))
+        .and_then(|groups| groups.checked_mul(4))
+        .ok_or_else(|| "El plugin supera el límite de 32 MB.".to_string())?;
+    let encoded_total = encoded.iter().try_fold(0usize, |total, content| total.checked_add(content.len()))
+        .ok_or_else(|| "El plugin supera el límite de 32 MB.".to_string())?;
+    if encoded_total > max_encoded_total {
+        return Err("El plugin supera el límite de 32 MB.".into());
+    }
+    let mut total = 0usize;
+    let mut decoded = Vec::with_capacity(encoded.len());
+    for content in encoded {
+        let max_encoded = MAX_TOTAL_BYTES
+            .checked_add(2)
+            .and_then(|size| size.checked_div(3))
+            .and_then(|groups| groups.checked_mul(4))
+            .ok_or_else(|| "El plugin supera el límite de 32 MB.".to_string())?;
+        if content.len() > max_encoded {
+            return Err("El plugin supera el límite de 32 MB.".into());
+        }
+        let bytes = BASE64
+            .decode(content)
+            .map_err(|_| "El paquete contiene datos de archivo no válidos.".to_string())?;
+        total = total
+            .checked_add(bytes.len())
+            .ok_or_else(|| "El plugin supera el límite de 32 MB.".to_string())?;
+        if total > MAX_TOTAL_BYTES {
+            return Err("El plugin supera el límite de 32 MB.".into());
+        }
+        decoded.push(bytes);
+    }
+    Ok(decoded)
 }
 
 fn install_plugin_blocking(app: &AppHandle, id: &str, paths: &[String], contents: &[Vec<u8>]) -> Result<(), String> {
@@ -180,5 +406,13 @@ mod tests {
         let mut contents = contents;
         contents.push(vec![]);
         assert!(validate_payload("demo-plugin", &paths, &contents).is_err());
+    }
+
+    #[test]
+    fn decodes_bounded_base64_install_payloads() {
+        assert_eq!(decode_contents(&[BASE64.encode(b"plugin")]).unwrap(), vec![b"plugin".to_vec()]);
+        assert!(decode_contents(&["%%%".into()]).is_err());
+        let too_large = BASE64.encode(vec![0; MAX_TOTAL_BYTES + 1]);
+        assert!(decode_contents(&[too_large]).is_err());
     }
 }

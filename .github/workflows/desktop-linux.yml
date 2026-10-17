@@ -42,7 +42,7 @@ jobs:
       - name: Instalar dependencias Linux, WebDriver y Xvfb
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential curl wget file libssl-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev libwebkit2gtk-4.1-dev libxdo-dev webkit2gtk-driver xdotool xvfb scrot openbox x11-utils dbus-daemon dbus-x11 libglib2.0-bin xdg-desktop-portal xdg-desktop-portal-gtk python3-selenium
+          sudo apt-get install -y build-essential curl wget file libssl-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev libwebkit2gtk-4.1-dev libxdo-dev webkit2gtk-driver xdotool xvfb scrot openbox x11-utils dbus-daemon dbus-x11 libglib2.0-bin xdg-desktop-portal xdg-desktop-portal-gtk at-spi2-core python3-pyatspi python3-selenium tesseract-ocr
       - name: Exigir la clave de firma para las compilaciones de confianza
         if: (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && (github.event_name != 'workflow_dispatch' || inputs.reuse_build_run_id == '')
         env:
@@ -108,7 +108,7 @@ jobs:
           while IFS= read -r file; do
             [ -z "$file" ] && continue
             case "$file" in
-              scripts/smoke-linux-installed.sh|.github/workflows/desktop-linux.yml) ;;
+              scripts/smoke-linux-installed.sh|.github/workflows/desktop-linux.yml|.github/workflows/checks.yml|AGENTS.md|docs/agents/implementation.md|docs/agents/release.md|scripts/audit-windows-docker.ps1|scripts/build-cache.ps1|scripts/build-linux-deb-docker.ps1|tests/desktop.test.mjs) ;;
               *) echo "Cannot reuse package: app source changed at $file" >&2; exit 1 ;;
             esac
           done <<<"$changed_files"

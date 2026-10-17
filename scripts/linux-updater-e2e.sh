@@ -37,7 +37,24 @@ else
   echo "Expected a beta SemVer candidate version, found $candidate_version." >&2
   exit 1
 fi
-candidate="$bundle/mermaid-bp_${candidate_version}_amd64.deb"
+find_deb_for_version() {
+  local wanted_version="$1" path package version
+  local -a matches=()
+  while IFS= read -r -d '' path; do
+    package="$(dpkg-deb -f "$path" Package)"
+    version="$(dpkg-deb -f "$path" Version)"
+    if [[ "$package" == "mermaid-bp" && "$version" == "$wanted_version" ]]; then
+      matches+=("$path")
+    fi
+  done < <(find "$bundle" -maxdepth 1 -type f -name '*.deb' -print0)
+  if [[ "${#matches[@]}" -ne 1 ]]; then
+    echo "Expected exactly one mermaid-bp .deb for version $wanted_version; found ${#matches[@]}." >&2
+    return 1
+  fi
+  printf '%s\n' "${matches[0]}"
+}
+
+candidate="$(find_deb_for_version "$candidate_version")"
 candidate_signature="$candidate.sig"
 test -s "$candidate" || { echo "Missing candidate Debian package: $candidate" >&2; exit 1; }
 test -s "$candidate_signature" || { echo "Missing non-empty updater signature: $candidate_signature" >&2; exit 1; }
@@ -53,8 +70,6 @@ path, version, port = sys.argv[1:]
 pathlib.Path(path).write_text(json.dumps({"version":version,"plugins":{"updater":{"endpoints":[f"http://127.0.0.1:{port}/latest.json"],"dangerousInsecureTransportProtocol":True}}}), encoding="utf-8")
 PY
 
-base_deb="$bundle/mermaid-bp_${base_version}_amd64.deb"
-rm -f "$base_deb" "$base_deb.sig"
 if ! (cd "$desktop" && npm exec -- tauri build --config "$scratch/base-overlay.json" -- --locked) >"$diagnostics/base-build.log" 2>&1; then
   python3 - "$diagnostics/base-build.log" <<'PY'
 import os, pathlib, sys
@@ -64,6 +79,7 @@ PY
   cat "$diagnostics/base-build.log"
   exit 1
 fi
+base_deb="$(find_deb_for_version "$base_version")"
 test -s "$base_deb" || { cat "$diagnostics/base-build.log"; echo 'Base .deb was not produced.' >&2; exit 1; }
 test -s "$base_deb.sig" || { cat "$diagnostics/base-build.log"; echo 'Base updater signature was not produced.' >&2; exit 1; }
 test "$(dpkg-deb -f "$base_deb" Package)" = mermaid-bp

@@ -54,7 +54,7 @@ fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
-        .invoke_handler(tauri::generate_handler![save_document, open_preview, plugins::plugins_root, plugins::list_plugins, plugins::install_plugin, plugins::remove_plugin])
+        .invoke_handler(tauri::generate_handler![save_document, open_preview, plugins::plugins_root, plugins::list_plugins, plugins::choose_plugin_folder, plugins::install_plugin, plugins::remove_plugin])
         .setup(|app| {
             let builder = WebviewWindowBuilder::new(app, "main", WebviewUrl::App("index.html".into()))
                 .title("Mermaid BP")
