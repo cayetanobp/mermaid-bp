@@ -161,7 +161,7 @@ def save_from_native_dialog(button, path):
 def choose_plugin_folder(folder):
     before = active_window_title()
     before_windows = set(visible_window_titles())
-    driver.find_element(By.ID, "plugin-folder-input").click()
+    driver.find_element(By.CSS_SELECTOR, 'label[for="plugin-folder-input"]').click()
     deadline = time.time() + 15
     while time.time() < deadline:
         current = active_window_title()
