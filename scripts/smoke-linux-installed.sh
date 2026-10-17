@@ -22,7 +22,7 @@ done
 curl --silent --fail http://127.0.0.1:4444/status >/dev/null || { cat "$output_dir/tauri-driver.log"; exit 1; }
 
 python3 - "$app_bin" "$output_dir" <<'PY'
-import json, pathlib, subprocess, sys, time
+import json, pathlib, shutil, subprocess, sys, time
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
@@ -35,6 +35,7 @@ options.set_capability("browserName", "wry")
 options.set_capability("tauri:options", {"application": app})
 driver = webdriver.Remote(command_executor="http://127.0.0.1:4444", options=options)
 wait = WebDriverWait(driver, 60)
+plugin_folder = out / "fixture" / "installed-smoke"
 
 def start_driver():
     return webdriver.Remote(command_executor="http://127.0.0.1:4444", options=options)
@@ -112,6 +113,43 @@ def save_from_native_dialog(button, path):
             f"visible windows={visible_window_titles()!r}"
         )
 
+def choose_plugin_folder(folder):
+    before = active_window_title()
+    before_windows = set(visible_window_titles())
+    driver.find_element(By.ID, "plugin-folder-input").click()
+    deadline = time.time() + 15
+    while time.time() < deadline:
+        current = active_window_title()
+        current_windows = set(visible_window_titles())
+        if (current and current != before) or current_windows - before_windows:
+            break
+        time.sleep(0.1)
+    else:
+        capture_desktop("native-plugin-folder-dialog-missing.png")
+        raise AssertionError(
+            f"Native folder chooser did not take focus; active window={active_window_title()!r}; "
+            f"visible windows={visible_window_titles()!r}"
+        )
+
+    capture_desktop("native-plugin-folder-dialog.png")
+    subprocess.run(["xdotool", "key", "ctrl+l"], check=True)
+    subprocess.run(["xdotool", "type", "--clearmodifiers", "--delay", "1", str(folder)], check=True)
+    subprocess.run(["xdotool", "key", "Return"], check=True)
+    time.sleep(1)
+    if active_window_title() != before:
+        # In GTK, the first Return may navigate to the typed folder; the second
+        # activates the chooser's Select Folder action for that directory.
+        subprocess.run(["xdotool", "key", "Return"], check=True)
+    deadline = time.time() + 20
+    while time.time() < deadline and active_window_title() != before:
+        time.sleep(0.1)
+    if active_window_title() != before:
+        capture_desktop("native-plugin-folder-dialog-after-submit.png")
+        raise AssertionError(
+            f"Native folder chooser did not close after selecting {folder}; "
+            f"active window={active_window_title()!r}; visible windows={visible_window_titles()!r}"
+        )
+
 try:
     wait.until(lambda d: d.find_element(By.CSS_SELECTOR, "#editor .cm-content"))
     bridge_status = driver.execute_script(
@@ -141,30 +179,17 @@ try:
     save_from_native_dialog(driver.find_element(By.ID, "svg"), svg)
     assert svg.exists() and "<svg" in svg.read_text(encoding="utf-8")[:500], "Exported SVG is missing or invalid"
 
-    # Supply actual plugin files at the folder-input boundary. All management
-    # operations below go through the installed app's settings UI and Tauri IPC.
+    # Supply files from a real directory through the GTK folder chooser. All
+    # management operations then go through the installed app's settings UI.
     plugin_manifest = '{"id":"installed-smoke","name":"Installed smoke plugin","description":"Installed app persistence check","version":"1.0.0","apiVersion":1}'
     plugin_entry = "export default {setup(ctx){ctx.ui.addAction({id:'persisted',label:'Installed plugin action',run(){ctx.ui.notify('Installed plugin ran.');}});}};"
+    plugin_folder.mkdir(parents=True, exist_ok=True)
+    (plugin_folder / "plugin.json").write_text(plugin_manifest, encoding="utf-8")
+    (plugin_folder / "index.js").write_text(plugin_entry, encoding="utf-8")
     driver.find_element(By.ID, "plugins-button").click()
     wait.until(EC.visibility_of_element_located((By.ID, "settings-dialog")))
     wait.until(lambda d: not d.find_element(By.ID, "plugins-dialog").get_attribute("hidden"))
-    def choose_plugin_files(manifest, entry):
-        driver.execute_script("""
-          const input = document.querySelector('#plugin-folder-input');
-          const transfer = new DataTransfer();
-          for (const [name, contents, type] of [
-            ['plugin.json', arguments[0], 'application/json'],
-            ['index.js', arguments[1], 'text/javascript']
-          ]) {
-            const file = new File([contents], name, {type});
-            Object.defineProperty(file, 'webkitRelativePath', {value: `installed-smoke/${name}`});
-            transfer.items.add(file);
-          }
-          input.files = transfer.files;
-          input.dispatchEvent(new Event('change', {bubbles: true}));
-        """, manifest, entry)
-
-    choose_plugin_files(plugin_manifest, plugin_entry)
+    choose_plugin_folder(plugin_folder)
     wait.until(lambda d: "Installed smoke plugin · versión 1.0.0" in d.find_element(By.ID, "plugin-import-preview").text)
     trust = driver.find_element(By.ID, "plugin-trust-confirm")
     assert not driver.find_element(By.ID, "plugin-install").is_enabled(), "Install must require explicit trust"
@@ -194,7 +219,8 @@ try:
     wait.until(EC.presence_of_element_located((By.ID, "plugin-installed-smoke-persisted")))
 
     updated_manifest = plugin_manifest.replace('"version":"1.0.0"', '"version":"2.0.0"')
-    choose_plugin_files(updated_manifest, plugin_entry)
+    (plugin_folder / "plugin.json").write_text(updated_manifest, encoding="utf-8")
+    choose_plugin_folder(plugin_folder)
     wait.until(lambda d: "versión 2.0.0" in d.find_element(By.ID, "plugin-import-preview").text)
     driver.find_element(By.ID, "plugin-trust-confirm").click()
     driver.find_element(By.ID, "plugin-install").click()
@@ -214,4 +240,5 @@ try:
     wait.until(EC.invisibility_of_element_located((By.ID, "plugin-installed-smoke-persisted")))
 finally:
     driver.quit()
+    shutil.rmtree(plugin_folder.parent, ignore_errors=True)
 PY
