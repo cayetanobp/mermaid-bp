@@ -88,7 +88,7 @@ jobs:
           while IFS= read -r file; do
             [ -z "$file" ] && continue
             case "$file" in
-              scripts/smoke-linux-installed.sh|.github/workflows/desktop-linux.yml) ;;
+              scripts/smoke-linux-installed.sh|.github/workflows/desktop-linux.yml|.github/workflows/checks.yml|AGENTS.md|docs/agents/implementation.md|docs/agents/release.md|scripts/audit-windows-docker.ps1|scripts/build-cache.ps1|scripts/build-linux-deb-docker.ps1|tests/desktop.test.mjs) ;;
               *) echo "Cannot reuse package: app source changed at $file" >&2; exit 1 ;;
             esac
           done <<<"$changed_files"
