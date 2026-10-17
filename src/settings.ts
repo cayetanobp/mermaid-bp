@@ -1,5 +1,6 @@
 import {getPreferences,preferenceDefaults,subscribePreferences,updatePreferences,type Preferences} from './preferences';
 import {closeAppMenus} from './app-menus';
+import {setupDesktopUpdater} from './desktop-updater';
 import './settings.css';
 type Section='general'|'editor'|'diagram'|'extensions';
 const sections:Record<Section,string>={general:'General',editor:'Editor',diagram:'Diagrama',extensions:'Extensiones'};
@@ -52,7 +53,7 @@ export function setupSettings(onEditorChange:()=>void){
   for(const input of dialog.querySelectorAll<HTMLInputElement|HTMLSelectElement>('[data-preference]')){const value=preferences[input.dataset.preference as keyof Preferences];if(input instanceof HTMLInputElement)input.checked=Boolean(value);else input.value=String(value);}
   onEditorChange();
  }
- subscribePreferences(apply);apply(getPreferences());select('general');
+ subscribePreferences(apply);apply(getPreferences());setupDesktopUpdater(panel('general'));select('general');
  function open(section:Section){const current=document.activeElement as HTMLElement;const trigger=current.closest('[role="menu"]')?.getAttribute('aria-labelledby');returnFocus=trigger?document.getElementById(trigger):current;closeAppMenus();select(section);get('settings-status').textContent='Los cambios se guardan en este navegador.';if(!dialog.open)dialog.showModal();get('settings-tab-'+section).focus();}
  get('settings-button').onclick=()=>open('general');get('plugins-button').onclick=()=>open('extensions');
  get('settings-close').onclick=()=>dialog.close();get('plugins-close').onclick=()=>dialog.close();dialog.onclose=()=>returnFocus?.focus({preventScroll:true});

@@ -46,11 +46,26 @@ jobs:
       - uses: swatinem/rust-cache@v2
         with:
           workspaces: desktop-app/src-tauri -> target
+      - name: Exigir la clave de firma antes de compilar en main
+        if: github.event_name != 'pull_request'
+        shell: pwsh
+        env:
+          SIGNING_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: if ([string]::IsNullOrWhiteSpace($env:SIGNING_KEY)) { throw 'Falta TAURI_SIGNING_PRIVATE_KEY; no se compilará ni publicará un updater sin firma.' }
       - run: npm ci
       - run: npm ci --prefix desktop-app
-      - run: npm run desktop:build
+      - name: Compilar la aplicación sin empaquetar en pull requests
+        if: github.event_name == 'pull_request'
+        run: npm --prefix desktop-app exec -- tauri build --no-bundle
+      - name: Compilar y firmar el updater en main
+        if: github.event_name != 'pull_request'
+        run: npm run desktop:build
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
       - run: node --test tests/desktop.test.mjs
       - name: Verificar contenido del instalador
+        if: github.event_name != 'pull_request'
         shell: pwsh
         run: |
           $installer = @(Get-ChildItem desktop-app/src-tauri/target/release/bundle/nsis/*-setup.exe)

@@ -14,6 +14,13 @@
     "withGlobalTauri": true,
     "security": { "csp": null }
   },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEU2NDE0MDQxQURCM0U0REIKUldUYjVMT3RRVUJCNXBMbUpOcFM1OU1RdUJWelgrOXBkS2cwVVNxcnhxU1gwTUpwSkR6ZXhjblIK",
+      "endpoints": ["https://github.com/cayetanobp/mermaid-bp/releases/download/beta/latest.json"],
+      "requireSignedVersion": true
+    }
+  },
   "bundle": {
     "active": true,
     "license": "AGPL-3.0-only",
@@ -25,6 +32,7 @@
       "../../THIRD_PARTY_RUST_NOTICES.md": "THIRD_PARTY_RUST_NOTICES.md"
     },
     "targets": ["nsis"],
+    "createUpdaterArtifacts": true,
     "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.ico"],
     "windows": { "webviewInstallMode": { "type": "downloadBootstrapper" }, "nsis": { "installMode": "currentUser", "languages": ["Spanish", "English"], "displayLanguageSelector": true } }
   }

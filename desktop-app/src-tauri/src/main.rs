@@ -41,6 +41,8 @@ async fn open_preview(app: tauri::AppHandle, window: tauri::WebviewWindow, url: 
 
 fn main() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .invoke_handler(tauri::generate_handler![save_document, open_preview])
         .setup(|app| {
             WebviewWindowBuilder::new(app, "main", WebviewUrl::App("index.html".into()))

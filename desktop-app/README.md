@@ -21,8 +21,12 @@ El instalador se genera en `desktop-app/src-tauri/target/release/bundle/nsis/`. 
 
 El guardado abre un diálogo nativo y permite elegir dónde escribir cada archivo. El documento conserva el comportamiento del editor: hay que guardarlo antes de cerrar. Las extensiones se incluyen al compilar; cambiar sus archivos requiere volver a generar el instalador.
 
+En Windows, abre `Configuración > General > Actualizaciones > Buscar actualizaciones` para consultar el canal beta. La aplicación muestra la versión y las notas antes de descargarla; verifica la firma del paquete NSIS, lo instala y se reinicia. Los documentos guardados, las preferencias y los datos locales de extensiones se mantienen fuera del instalador.
+
 ## Publicación
 
-El workflow `Aplicación de escritorio Windows` compila y prueba al subir un tag `*-alpha.*`. La versión del tag debe coincidir con `package.json`, `Cargo.toml` y `tauri.conf.json` de esta carpeta. Adjunta el instalador y su SHA256 a la release del mismo nombre. También puede ejecutarse manualmente.
+El workflow `Aplicación de escritorio Windows` se ejecuta manualmente desde `main` y sube el instalador, el archivo NSIS del updater y su firma como artefacto privado de Actions. La versión publicada debe coincidir con `package.json`, `Cargo.toml` y `tauri.conf.json` de esta carpeta. `Publicar beta` usa el ID de una compilación revisada y adjunta el instalador y su SHA256, el archivo updater y su firma a la release versionada.
+
+El workflow requiere el secreto de GitHub Actions `TAURI_SIGNING_PRIVATE_KEY`, que contiene la clave privada generada por `tauri signer generate`; su contraseña está vacía. Conserva una copia protegida de esa clave: perderla impediría firmar futuras actualizaciones para las instalaciones existentes. `Publicar beta` adjunta el paquete updater NSIS firmado y actualiza `latest.json` en la release prerelease `beta`, el canal consultado por la aplicación. El instalador normal y su checksum SHA256 también se publican en la release versionada.
 
 Los instaladores no están firmados. La primera instalación puede necesitar internet para instalar WebView2 si el equipo no dispone de él. El editor y su renderizado usan recursos locales.
