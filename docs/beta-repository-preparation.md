@@ -1,5 +1,7 @@
 # Estado de los repositorios antes de separar los plugins
 
+> **Snapshot histórico.** Estas instrucciones y el estado descrito corresponden a la preparación inicial de los repositorios. El traspaso de BookStack al repositorio de plugins ya se completó; no son instrucciones de migración pendientes.
+
 Fecha de comprobación: 16 de octubre de 2026. Referencia: issue #2.
 
 ## Núcleo (`mermaid-bp`)
@@ -10,7 +12,7 @@ Fecha de comprobación: 16 de octubre de 2026. Referencia: issue #2.
   - Modificados: `.gitignore`, `src/plugin-state.ts`.
   - Sin seguimiento: `AGENTS.md`, `docs/agents/`, `docs/licencias.md`, `docs/spec-1.0.0-beta.1.md`, `tests/desktop-preview.spec.ts`.
 - `toDo.md` es local y está excluido de Git.
-- No se ha movido ni eliminado código del núcleo en este ticket. La migración de BookStack corresponde a los tickets posteriores.
+- En el momento de este snapshot no se había movido ni eliminado código del núcleo. La migración de BookStack, prevista para tickets posteriores, ya se completó.
 
 ## Repositorio de plugins (`mermaid-bp-plugins`)
 
@@ -27,9 +29,9 @@ Fecha de comprobación: 16 de octubre de 2026. Referencia: issue #2.
 - La corrección local de descubrimiento de plugins en ventanas de escritorio sigue sin comprometerse en `src/plugin-state.ts`, junto con su prueba local. La prueba de vista previa de escritorio pasó sobre la compilación local. No se incorporaron esos cambios a este ticket.
 - La revisión de derechos, licencias de terceros y otros recursos distribuidos sigue siendo una condición del ticket de licencia antes de hacer públicos los repositorios.
 
-## Pautas para los siguientes tickets
+## Pautas históricas para los siguientes tickets
 
 - Comprobar `git status` y el remoto de ambos repositorios antes de copiar o eliminar archivos.
 - Mantener separados los commits de cada repositorio. No incluir los cambios locales preexistentes del núcleo sin revisarlos con su propietario.
-- Copiar y verificar el paquete de BookStack en el repositorio de plugins antes de retirar su versión del núcleo.
+- Paso completado después de este snapshot: copiar y verificar el paquete de BookStack en el repositorio de plugins antes de retirar su versión del núcleo.
 - Evitar envíos forzados y comprobar que la rama remota no avanzó antes de publicar cambios nuevos.

@@ -1,4 +1,4 @@
-import {reopenSavedDocument,openBookStack} from './document-helpers';
+import {reopenSavedDocument} from './document-helpers';
 import {command} from './menu-helpers';
 import {test,expect,type Page}from'@playwright/test';
 import{readFile}from'node:fs/promises';
@@ -38,7 +38,7 @@ test('crear relación eligiendo origen y destino en el lienzo y completar sus da
   await page.locator('#edge-cancel').click();await command(page,'connect-nodes');await page.locator('[data-node-id="B"]').click();await page.keyboard.press('Escape');
   await expect(page.locator('#connect-nodes')).toHaveAttribute('aria-pressed','false');expect(await page.locator('.cm-content').innerText()).toBe(before);
 });
-test('dos controles Bézier cambian la curva manteniendo el mismo par y se conservan al guardar, reabrir y comprobar BS',async({page,context})=>{
+test('dos controles Bézier cambian la curva manteniendo el mismo par y se conservan al guardar y reabrir',async({page,context})=>{
   await code(page,'flowchart LR\nA["origen"] -->|texto| B["destino"]');
   await selectEdge(page,0);await attached(page,'A','B',0);
   await page.evaluate(()=>{(window as any).bezierRenders=0;new MutationObserver(changes=>changes.forEach(c=>c.addedNodes.forEach(n=>{if(n instanceof Element&&n.classList.contains('render-host'))(window as any).bezierRenders++;}))).observe(document.body,{childList:true});});
@@ -52,8 +52,6 @@ test('dos controles Bézier cambian la curva manteniendo el mismo par y se conse
   await expect(page.locator('path.flowchart-link')).toHaveAttribute('id',/L_A_B_0$/);
   await expect(page.locator('.cm-content')).toContainText('"bendFrom"');await expect(page.locator('.cm-content')).toContainText('"bendTo"');
   const source=await page.locator('.cm-content').innerText(),path=normalized(await page.locator('path.flowchart-link').getAttribute('d'));
-  const check=await openBookStack(page);await expect(check.locator('#check-state')).toContainText('posiciones del editor');
-  expect(normalized(await check.locator('path.flowchart-link').getAttribute('d'))).toBe(path);
   await reopenSavedDocument(page);await ready(page);expect(await page.locator('.cm-content').innerText()).toBe(source);expect(normalized(await page.locator('path.flowchart-link').getAttribute('d'))).toBe(path);await attached(page,'A','B',0);
   await selectEdge(page,0);
   const endpoint=(await page.locator('[data-port-end="from"]').boundingBox())!,node=(await page.locator('[data-node-id="A"]').boundingBox())!;

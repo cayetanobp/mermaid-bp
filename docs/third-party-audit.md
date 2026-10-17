@@ -8,8 +8,6 @@ El `package-lock.json` identifica 126 paquetes JavaScript de producción, direct
 
 La compilación genera `THIRD_PARTY_NOTICES.md` con la versión, licencia declarada y textos de licencia de estos 126 paquetes. Para `fastdom` y `strictdom`, que no incluyen un archivo de licencia separado, se usa el texto MIT de sus README. El archivo acompaña el ZIP web y los recursos estáticos de escritorio. Esta lista conservadora puede incluir paquetes de producción que el optimizador no incorporó al resultado final.
 
-El encabezado BookStack hace que el navegador descargue Mermaid 11.17.2 desde jsDelivr. Esa carga remota no está incrustada en el encabezado distribuido; Mermaid también figura entre las dependencias del editor y en los avisos generados.
-
 ## Instalador Windows
 
 Cargo resolvió 248 crates de terceros para `x86_64-pc-windows-msvc` con el lockfile del proyecto; todos declaran licencia. `THIRD_PARTY_RUST_NOTICES.md` recoge nombre, versión, origen, licencia declarada y textos originales. Cinco crates publicados omiten un archivo de licencia separado: `alloc-stdlib`, `selectors`, `webview2-com`, `webview2-com-macros` y `webview2-com-sys`. Para ellos se añadió el texto de licencia de sus repositorios originales o, en el caso de MPL-2.0, de Mozilla. El inventario es conservador: también puede contener crates de compilación que no forman parte del ejecutable final.

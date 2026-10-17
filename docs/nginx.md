@@ -34,7 +34,7 @@ En Nginx para Windows adapta las rutas y utiliza `nginx.exe -t` y `nginx.exe -s 
 
 La carpeta pública `site/` incluye `LICENSE`, `NOTICE.md` y `THIRD_PARTY_NOTICES.md`; mantenlos accesibles al publicar el paquete. Si ofreces una versión modificada con interacción por red, informa a sus usuarios de cómo obtener gratuitamente el código fuente correspondiente de esa versión conforme a la sección 13 de AGPL-3.0. Un enlace a la fuente original no sustituye la fuente de tus modificaciones.
 
-Abre la URL del sitio y comprueba que el ejemplo se renderiza y aparece "BS preview". Abre un `.mmd`, edítalo y descarga la copia con "Guardar .mmd". Recargar descarta el documento.
+Abre la URL del sitio y comprueba que el ejemplo se renderiza. El núcleo se sirve sin plugins; si el administrador instala alguno, aparecerá en "Extensiones". Abre un `.mmd`, edítalo y descarga la copia con "Guardar .mmd". Recargar descarta el documento.
 
 La ruta `/plugins/` debe responder con JSON, no con una página HTML ni con `index.html`. Nginx enumera únicamente ese directorio para que el editor descubra las extensiones. El resto de directorios no habilita listado. Añade plugins listos para navegador a `site/plugins/<id>/` y recarga la página; no hace falta recompilar ni reiniciar Nginx.
 

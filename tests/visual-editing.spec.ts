@@ -1,4 +1,4 @@
-import {reopenSavedDocument,openBookStack} from './document-helpers';
+import {reopenSavedDocument} from './document-helpers';
 import {command} from './menu-helpers';
 import {test,expect,type Page} from '@playwright/test';
 import {readFile} from 'node:fs/promises';
@@ -45,8 +45,6 @@ test('las relaciones tienen una zona de clic amplia y anclajes arrastrables',asy
   const source=await page.locator('.cm-content').innerText();expect(source).toMatch(/"to":/);
   const path=await page.locator('path.flowchart-link').getAttribute('d');expect(path).toContain(' C');
   await page.screenshot({path:'test-results/anclajes-conexion.png'});
-  const check=await openBookStack(page);await expect(check.locator('#check-state')).toContainText('posiciones del editor');
-  expect(normalizedPath(await check.locator('path.flowchart-link').getAttribute('d'))).toBe(normalizedPath(path));
   await reopenSavedDocument(page);await ready(page);expect(normalizedPath(await page.locator('path.flowchart-link').getAttribute('d'))).toBe(normalizedPath(path));
 });
 test('el archivo de Descargas coincide tras movimientos sucesivos y no acumula tamaños de grupos',async({page,context})=>{
@@ -56,17 +54,5 @@ test('el archivo de Descargas coincide tras movimientos sucesivos y no acumula t
   const initial=await positions(page);
   await move(page,'tag',-40,10);await move(page,'tag',40,-10);await move(page,'retry',15,-8);
   expect(Math.abs((await positions(page)).retry.x-initial.retry.x)).toBeGreaterThan(10);
-  const snapshot=async(p:Page,selector:string)=>p.locator(selector).evaluate((root:SVGSVGElement)=>({
-    nodes:[...root.querySelectorAll('g.node')].map(n=>({id:n.id.replace(n.closest('svg')!.id+'-','').replace(/-\d+$/,''),transform:n.getAttribute('transform')})),
-    labels:[...root.querySelectorAll<SVGGElement>('.edgeLabels > g.edgeLabel')].map(g=>{const p=new DOMPoint(0,0).matrixTransform(root.getCTM()!.inverse().multiply(g.getCTM()!));return {text:g.textContent,x:p.x,y:p.y};}),
-    groups:[...root.querySelectorAll<SVGRectElement>('g.cluster > rect')].map((r:SVGRectElement)=>({id:r.parentElement!.id.replace(r.closest('svg')!.id+'-',''),x:r.x.baseVal.value,y:r.y.baseVal.value,w:r.width.baseVal.value,h:r.height.baseVal.value})),
-    edges:[...root.querySelectorAll<SVGPathElement>('path.flowchart-link')].map((p:SVGPathElement)=>({id:p.id.replace(p.closest('svg')!.id+'-',''),points:Array.from({length:9},(_,i)=>{const v=p.getPointAtLength(p.getTotalLength()*i/8);return{x:v.x,y:v.y};})})),
-  }));
-  const editor=await snapshot(page,'#diagram svg'),check=await openBookStack(page);await expect(check.locator('#check-state')).toContainText('posiciones del editor');
-  const bs=await snapshot(check,'#check-output svg');expect(bs.groups).toHaveLength(editor.groups.length);
-  for(const [i,node]of editor.nodes.entries()){expect(bs.nodes[i].id).toBe(node.id);expect(normalizedPath(bs.nodes[i].transform)).toBe(normalizedPath(node.transform));}
-  for(const [i,label]of editor.labels.entries()){expect(bs.labels[i].text).toBe(label.text);expect(bs.labels[i].x).toBeCloseTo(label.x,2);expect(bs.labels[i].y).toBeCloseTo(label.y,2);}
-  for(const [i,g]of editor.groups.entries()){expect(bs.groups[i].id).toBe(g.id);for(const key of ['x','y','w','h']as const)expect(bs.groups[i][key]).toBeCloseTo(g[key],2);}
-  for(const[i,path]of editor.edges.entries()){expect(bs.edges[i].id).toBe(path.id);for(const[j,p]of path.points.entries()){expect(bs.edges[i].points[j].x).toBeCloseTo(p.x,1);expect(bs.edges[i].points[j].y).toBeCloseTo(p.y,1);}}
-  await page.screenshot({path:'test-results/large-workflow-editor-final.png'});await check.screenshot({path:'test-results/large-workflow-bs-final.png',fullPage:true});
+  await page.screenshot({path:'test-results/large-workflow-editor-final.png'});
 });

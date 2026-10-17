@@ -12,10 +12,10 @@ test('el puente conserva bytes UTF-8 y comunica la cancelación sin descargar un
   assert.equal(calls[0][0],'save_document');
   assert.deepEqual(Array.from(calls[0][1].bytes),Array.from(new Uint8Array(await blob.arrayBuffer())));
   assert.equal(alerts.length,0);
-  window.open('/plugins/bookstack/bookstack.html#draft');
+  window.open('/plugins/example/preview.html#draft');
   await new Promise(resolve=>setImmediate(resolve));
   assert.equal(calls[1][0],'open_preview');
-  assert.equal(calls[1][1].url,'http://tauri.localhost/plugins/bookstack/bookstack.html#draft');
+  assert.equal(calls[1][1].url,'http://tauri.localhost/plugins/example/preview.html#draft');
   window.__TAURI__.core.invoke=async()=>{throw Error('Disco lleno');};
   await window.__MERMAID_BP_SAVE__(blob,'diagrama.mmd');
   assert.match(alerts[0],/Disco lleno/);
@@ -28,14 +28,14 @@ test('el paquete estático permite descubrir las extensiones y resolver sus entr
   assert.match(await readFile(root+'THIRD_PARTY_NOTICES.md','utf8'),/@fontsource\/ibm-plex-sans/);
   assert.match(await readFile(root+'index.html','utf8'),/name="mermaid-bp-desktop"/);
   const entries=JSON.parse(await readFile(root+'plugins/index.json','utf8'));
-  assert.ok(entries.some(entry=>entry.name==='bookstack'));
+  assert.ok(entries.every(entry=>entry.name!=='bookstack'));
   for(const entry of entries){
     const folder=root+'plugins/'+entry.name+'/';
     const manifest=JSON.parse(await readFile(folder+'plugin.json','utf8'));
     assert.equal(manifest.id,entry.name);
     await access(folder+(manifest.entry??'index.js'));
   }
-  await access(root+'plugins/bookstack/bookstack.html');
+  await assert.rejects(access(root+'plugins/bookstack/bookstack.html'));
 });
 test('el artefacto Linux declara el paquete Debian y la versión beta publicada',async()=>{
   const config=JSON.parse(await readFile('desktop-app/src-tauri/tauri.conf.json','utf8'));

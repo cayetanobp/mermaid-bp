@@ -1,4 +1,3 @@
-import {openBookStack} from './document-helpers';
 import {command} from './menu-helpers';
 import { test, expect, type Page } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
@@ -95,28 +94,11 @@ test('exporta SVG limpio y PNG válido', async ({ page }) => {
     else { expect(bytes.subarray(1, 4).toString()).toBe('PNG'); expect(bytes.length).toBeGreaterThan(1000); }
   }
 });
-test('copiar para BookStack genera un bloque Markdown', async ({ page, context }) => {
+test('copiar Mermaid genera un bloque Markdown', async ({ page, context }) => {
   await context.grantPermissions(['clipboard-read', 'clipboard-write']);
   await command(page,'copy');
   const clipboard = (await page.evaluate(() => navigator.clipboard.readText())).replace(/\r\n/g, '\n');
   expect(clipboard.startsWith('```mermaid\nflowchart TD')).toBe(true); expect(clipboard.endsWith('\n```')).toBe(true);
-});
-test('la distribución coincide con la integración de BookStack en tres flujos', async ({ page, context }) => {
-  const samples = [
-    'flowchart TD\nA["inicio"] --> B{"¿listo?"}\nB -->|"sí"| C["fin"]\nB -->|"no"| A',
-    'flowchart LR\nA --> B\nA --> C\nB --> D\nC --> D\n%% mbp-layout:start\nB ~~~ C\n%% mbp-layout:end',
-    'flowchart TD\nInicio(["inicio"])\nA["trabajo"]\nB(("fin"))\nInicio ---> A\nA --> B\nSolo["nodo aislado"]',
-  ];
-  for (const sample of samples) {
-    await code(page, sample);
-    const first = await page.locator('#diagram svg').evaluate(svg => svg.getAttribute('viewBox'));
-    const coordinates = await page.locator('#diagram g.node').evaluateAll(nodes => nodes.map(n => ({ id: n.id.replace(n.closest('svg')!.id+'-','').replace(/-\d+$/, ''), transform: n.getAttribute('transform'), text: n.textContent })).sort((a, b) => a.id.localeCompare(b.id)));
-    const check = await openBookStack(page);
-    await expect(check.locator('#check-state')).toContainText('Renderizado con');
-    expect(await check.locator('#check-output svg').getAttribute('viewBox')).toBe(first);
-    const compared = await check.locator('#check-output g.node').evaluateAll(nodes => nodes.map(n => ({ id: n.id.replace(n.closest('svg')!.id+'-','').replace(/-\d+$/, ''), transform: n.getAttribute('transform'), text: n.textContent })).sort((a, b) => a.id.localeCompare(b.id)));
-    expect(compared).toEqual(coordinates); await check.close();
-  }
 });
 test('el arrastre ajusta un flujo y mantiene sus conexiones', async ({ page }) => {
   await code(page, 'flowchart TD\nA["inicio"] --> B["segundo"]\nB --> C["tercero"]');
@@ -147,35 +129,6 @@ test('las respuestas antiguas no sustituyen código reciente y se ve en pantalla
   await expect(page.locator('#diagram svg')).toBeVisible();
   await page.screenshot({ path: 'test-results/editor-estrecho.png', fullPage: true });
 });
-async function metrics(page: Page, selector: string) {
-  return page.locator(selector).evaluate((root: SVGSVGElement) => {
-    const round = (v: number) => Math.round(v * 1000) / 1000;
-    return {
-      viewBox: root.getAttribute('viewBox'),
-      nodes: [...root.querySelectorAll<SVGGElement>('g.node')].map(n => {
-        const shape = n.querySelector<SVGGraphicsElement>('.label-container, rect, polygon, circle, path')!;
-        const b = shape.getBBox(), matrix = root.getCTM()!.inverse().multiply(n.getCTM()!);
-        const p = new DOMPoint(b.x + b.width/2, b.y + b.height/2).matrixTransform(matrix);
-        return { id: n.id.replace(n.closest('svg')!.id+'-','').replace(/-\d+$/, ''), x: round(p.x), y: round(p.y), w: round(b.width), h: round(b.height), text: n.textContent, fill: getComputedStyle(shape).fill, stroke: getComputedStyle(shape).stroke };
-      }).sort((a,b) => a.id.localeCompare(b.id)),
-      edges: [...root.querySelectorAll('.edgePaths path.flowchart-link')].map(e => {
-        // La selección es una ayuda del editor y no forma parte del diagrama publicado.
-        const selected=e.classList.contains('selected-edge');if(selected)e.classList.remove('selected-edge');
-        const result={id:e.id.replace(root.id+'-',''),d:e.getAttribute('d'),stroke:getComputedStyle(e).stroke};
-        if(selected)e.classList.add('selected-edge');return result;
-      }).sort((a,b) => a.id.localeCompare(b.id)),
-      groups: [...root.querySelectorAll('g.cluster')].map(g => ({ id: g.id.replace(g.closest('svg')!.id+'-',''), text: g.querySelector('.cluster-label')?.textContent, transform: g.getAttribute('transform') })).sort((a,b) => a.id.localeCompare(b.id)),
-    };
-  });
-}
-async function sameAsBookStack(page: Page) {
-  const check = await openBookStack(page);
-  try {
-    await expect(check.locator('#check-state')).toContainText('Renderizado con');
-    expect(await metrics(check, '#check-output svg')).toEqual(await metrics(page, '#diagram svg'));
-    return check;
-  } catch (error) { await check.close(); throw error; }
-}
 async function centerNode(page: Page, id: string) {
   const node = page.locator(`[data-node-id="${id}"]`);
   const b = (await node.boundingBox())!, box = (await page.locator('#diagram-viewport').boundingBox())!;
