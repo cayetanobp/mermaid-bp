@@ -27,6 +27,33 @@ test('un mod con manifiesto inválido no bloquea el editor ni los otros plugins'
  const folder=join(root,'test-broken-mod');if(existsSync(folder))throw Error('La carpeta de prueba ya existe.');
  try{await mkdir(folder);await writeFile(join(folder,'plugin.json'),'json incorrecto');await page.goto('/');await ready(page);await expect(page.locator('#plugin-bookstack-preview')).toHaveCount(1);await command(page,'plugins-button');await expect(page.locator('#plugin-list')).toContainText('test-broken-mod');}finally{await remove(folder,root);}
 });
+test('un plugin del contrato público funciona en una distribución compilada y aísla paquetes defectuosos',async({page})=>{
+ const folder=await mkdtemp(join(tmpdir(),'mermaid-contract-'));await cp(join(distribution,'assets'),join(folder,'assets'),{recursive:true});await cp(join(distribution,'index.html'),join(folder,'index.html'));await mkdir(join(folder,'plugins'));
+ const types:Record<string,string>={'.html':'text/html','.js':'text/javascript','.json':'application/json','.css':'text/css','.woff2':'font/woff2','.svg':'image/svg+xml'};
+ const server=createServer(async(req,res)=>{try{const path=decodeURIComponent(new URL(req.url!,'http://localhost').pathname);const file=resolve(folder,'.'+(path==='/'?'/index.html':path));const rel=relative(folder,file);if(rel.startsWith('..')||isAbsolute(rel)){res.writeHead(403).end();return;}res.setHeader('Cache-Control','no-store');
+  if(path==='/plugins/'){const entries=await readdir(file,{withFileTypes:true});res.setHeader('Content-Type','application/json');res.end(JSON.stringify(entries.filter(e=>e.isDirectory()).map(e=>({type:'directory',name:e.name}))));return;}
+  if(!(await stat(file)).isFile())throw Error();res.setHeader('Content-Type',types[extname(file)]??'application/octet-stream');res.end(await readFile(file));
+ }catch{res.writeHead(404).end();}});
+ await new Promise<void>(done=>server.listen(0,'127.0.0.1',done));const address=server.address() as {port:number},url=`http://127.0.0.1:${address.port}`;
+ try{
+  await page.goto(url);await ready(page);await expect(page.locator('#plugin-actions')).toBeEmpty();
+  await cp(resolve('examples/plugin-contract'),join(folder,'plugins/contract-example'),{recursive:true});
+  await mkdir(join(folder,'plugins/test-broken-manifest'));await writeFile(join(folder,'plugins/test-broken-manifest/plugin.json'),'not json');
+  await mkdir(join(folder,'plugins/test-invalid-entry'));await writeFile(join(folder,'plugins/test-invalid-entry/plugin.json'),JSON.stringify({id:'test-invalid-entry',name:'Entrada inválida',description:'Prueba',version:'1.0.0',apiVersion:1,entry:'../outside.js'}));
+  await mkdir(join(folder,'plugins/test-incompatible-api'));await writeFile(join(folder,'plugins/test-incompatible-api/plugin.json'),JSON.stringify({id:'test-incompatible-api',name:'API futura',description:'Prueba',version:'1.0.0',apiVersion:2,enabledByDefault:false}));
+  await mkdir(join(folder,'plugins/test-broken-activation'));await writeFile(join(folder,'plugins/test-broken-activation/plugin.json'),JSON.stringify({id:'test-broken-activation',name:'Activación defectuosa',description:'Prueba',version:'1.0.0',apiVersion:1}));await writeFile(join(folder,'plugins/test-broken-activation/index.js'),`export default {setup(editor){editor.ui.addAction({id:'partial',label:'No debe quedar'});throw Error('Fallo de prueba');}};`);
+  await page.reload();await ready(page);await expect(page.locator('#plugin-contract-example-show')).toHaveCount(1);
+  const resource=page.locator('#plugin-contract-example-resource');await expect(resource).toHaveCount(1);const resourceHref=await resource.getAttribute('href');expect(resourceHref).toBe(url+'/plugins/contract-example/resource.html');const resourceResponse=await page.request.get(resourceHref!);expect(resourceResponse.ok()).toBe(true);expect(await resourceResponse.text()).toContain('Este recurso pertenece al paquete del plugin.');
+  await expect(page.locator('#plugin-test-broken-activation-partial')).toHaveCount(0);
+  await command(page,'plugin-contract-example-show');await expect(page.locator('#message')).toContainText('Líneas:');
+  const editor=page.getByRole('textbox',{name:'Código Mermaid'});await editor.click();await editor.press('ControlOrMeta+a');await page.keyboard.insertText('flowchart TD\nA-->B\nB-->C');await ready(page);await expect(page.locator('#message')).toContainText('Documento actualizado:');
+  await command(page,'tour-button');for(let i=0;i<4;i++)await page.locator('#tour-next').click();await expect(page.locator('#tour-title')).toHaveText('Plugin de contrato público');await page.locator('#tour-close').click();
+  await command(page,'plugins-button');await expect(page.locator('#plugin-list')).toContainText('test-broken-manifest');await expect(page.locator('#plugin-list')).toContainText('JSON válido');await expect(page.locator('#plugin-list')).toContainText('test-invalid-entry');await expect(page.locator('#plugin-list')).toContainText('ruta de entrada');await expect(page.locator('[data-plugin-status="test-incompatible-api"]')).toContainText('incompatible');await expect(page.locator('[data-plugin-status="test-broken-activation"]')).toContainText('No se pudo activar');
+  await page.getByRole('checkbox',{name:'Activar Plugin de contrato público'}).uncheck();await page.locator('#plugins-close').click();await expect(page.locator('#plugin-contract-example-show')).toHaveCount(0);
+  const lastMessage=await page.locator('#message').innerText();expect(lastMessage).toBe('Plugin de contrato público desactivado.');await editor.click();await editor.press('ControlOrMeta+a');await page.keyboard.insertText('flowchart LR\nC-->D');await ready(page);await expect(page.locator('#message')).toHaveText(lastMessage);await expect(page.locator('#diagram svg')).toHaveCount(1);
+  await remove(join(folder,'plugins/contract-example'),join(folder,'plugins'));await page.goto(url);await ready(page);await expect(page.locator('#plugin-actions')).toBeEmpty();
+ }finally{await new Promise<void>((done,reject)=>server.close(error=>error?reject(error):done()));await remove(folder,tmpdir());}
+});
 test('BookStack es un paquete autónomo que se añade y retira de una distribución ya construida',async({page})=>{
  const folder=await mkdtemp(join(tmpdir(),'mermaid-mods-'));await cp(join(distribution,'assets'),join(folder,'assets'),{recursive:true});await cp(join(distribution,'index.html'),join(folder,'index.html'));await mkdir(join(folder,'plugins'));
  const types:Record<string,string>={'.html':'text/html','.js':'text/javascript','.json':'application/json','.css':'text/css','.woff2':'font/woff2','.svg':'image/svg+xml'};
@@ -37,9 +64,10 @@ test('BookStack es un paquete autónomo que se añade y retira de una distribuci
  await new Promise<void>(done=>server.listen(0,'127.0.0.1',done));const address=server.address() as {port:number},url=`http://127.0.0.1:${address.port}`;
  try{
   await page.goto(url);await ready(page);await expect(page.locator('#plugin-actions')).toBeEmpty();
-  await cp(join(distribution,'plugins/bookstack'),join(folder,'plugins/bookstack'),{recursive:true});await page.reload();await ready(page);const link=page.locator('#plugin-bookstack-preview');await expect(link).toHaveCount(1);const href=await link.getAttribute('href');expect(href).toBe(url+'/plugins/bookstack/bookstack.html');
-  await page.goto(href!);await expect(page.locator('#check-output svg')).toHaveCount(1);await expect(page.locator('#check-state')).toContainText('Renderizado con Mermaid');
-  expect(await page.locator('.check-layout>header>a').first().getAttribute('href')).toBe(url+'/');
+  await cp(join(distribution,'plugins/bookstack'),join(folder,'plugins/bookstack'),{recursive:true});await page.reload();await ready(page);const preview=page.locator('#plugin-bookstack-preview');await expect(preview).toHaveCount(1);
+  const previewPromise=page.context().waitForEvent('page');await command(page,'plugin-bookstack-preview');const bookstack=await previewPromise;await bookstack.waitForLoadState();await expect(bookstack.locator('#check-output svg')).toHaveCount(1);await expect(bookstack.locator('#check-state')).toContainText('Renderizado con Mermaid');
+
+  expect(await bookstack.locator('.check-layout>header>a').first().getAttribute('href')).toBe(url+'/');
   const header=await page.request.get(url+'/plugins/bookstack/bookstack-header.html');expect(header.ok()).toBe(true);expect(await header.text()).toContain('<script type="module">');
   await remove(join(folder,'plugins/bookstack'),join(folder,'plugins'));await page.goto(url);await ready(page);await expect(page.locator('#plugin-actions')).toBeEmpty();
  }finally{await new Promise<void>((done,reject)=>server.close(error=>error?reject(error):done()));await remove(folder,tmpdir());}

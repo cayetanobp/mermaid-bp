@@ -7,22 +7,28 @@ const key='mermaid-bp:plugins:v1';
 export function discoverPlugins(base=new URL('./plugins/',document.baseURI)):Promise<void>{
  return discovery??=(async()=>{
   try{
-   const index=document.querySelector('meta[name="mermaid-bp-desktop"]')?new URL('index.json',base):base;
-   const response=await fetch(index,{cache:'no-store'});if(response.status===404)return;if(!response.ok)throw Error();
-   const entries:unknown=await response.json();if(!Array.isArray(entries))throw Error();
+   const desktop=document.querySelector('meta[name="mermaid-bp-desktop"]')||Object.hasOwn(window,'__TAURI__');
+   const index=desktop?new URL('index.json',base):base;
+   const response=await fetch(index,{cache:'no-store'});if(response.status===404)return;if(!response.ok)throw Error('No se pudo consultar la carpeta de extensiones.');
+   const entries:unknown=await response.json();if(!Array.isArray(entries))throw Error('El listado de extensiones no es válido.');
    const names=[...new Set(entries.filter(e=>e?.type==='directory'&&typeof e.name==='string').map(e=>e.name.replace(/\/$/,'')))].filter(name=>/^[a-z][a-z0-9-]*$/.test(name)).sort();
    const found=await Promise.all(names.map(async id=>{
     try{
-     const folder=new URL(id+'/',base),response=await fetch(new URL('plugin.json',folder),{cache:'no-store'});if(!response.ok)throw Error();
-     const manifest:PluginManifest&{entry?:string}=await response.json();
-     if(manifest.id!==id||typeof manifest.name!=='string'||!manifest.name||typeof manifest.description!=='string'||typeof manifest.version!=='string'||!Number.isInteger(manifest.apiVersion))throw Error();
-     const entry=manifest.entry??'index.js';if(!/^[a-zA-Z0-9_./-]+\.(?:m?js)$/.test(entry)||entry.split('/').includes('..')||entry.startsWith('/'))throw Error();
-     const url=new URL(entry,folder).href;
+     const folder=new URL(id+'/',base),response=await fetch(new URL('plugin.json',folder),{cache:'no-store'});if(!response.ok)throw Error('No se pudo leer plugin.json.');
+     let parsed:unknown;
+     try{parsed=await response.json();}catch{throw Error('El manifiesto no contiene JSON válido.');}
+     if(!parsed||typeof parsed!=='object'||Array.isArray(parsed))throw Error('El manifiesto no cumple el contrato público.');
+     const manifest=parsed as PluginManifest;
+     if(manifest.id!==id||typeof manifest.name!=='string'||!manifest.name.trim()||typeof manifest.description!=='string'||!manifest.description.trim()||typeof manifest.version!=='string'||!manifest.version.trim()||!Number.isInteger(manifest.apiVersion))throw Error('El manifiesto no cumple el contrato público.');
+     const entry=manifest.entry===undefined?'index.js':manifest.entry;
+     if(typeof entry!=='string'||!/^[a-zA-Z0-9_./-]+\.(?:m?js)$/.test(entry)||entry.split('/').includes('..')||entry.startsWith('/'))throw Error('La ruta de entrada no es válida.');
+     const entryUrl=new URL(entry,folder);if(entryUrl.origin!==folder.origin||!entryUrl.pathname.startsWith(folder.pathname))throw Error('La ruta de entrada debe permanecer dentro de la carpeta del plugin.');
+     const url=entryUrl.href;
      return{manifest,load:()=>import(/* @vite-ignore */ url)} satisfies PluginDescriptor;
-    }catch{discoveryErrors.push(`No se ha podido cargar la extensión ${id}.`);return null;}
+    }catch(error){const reason=error instanceof Error&&error.message?error.message:'Error de manifiesto o entrada.';discoveryErrors.push('No se ha podido cargar la extensión '+id+': '+reason);return null;}
    }));
    descriptors.push(...found.filter((p):p is NonNullable<typeof p>=>p!==null));
-  }catch{discoveryErrors.push('No se ha podido consultar la carpeta de extensiones.');}
+  }catch(error){discoveryErrors.push(error instanceof Error&&error.message?error.message:'No se ha podido consultar la carpeta de extensiones.');}
  })();
 }
 export function enabledPreference(id:string,fallback:boolean):boolean{

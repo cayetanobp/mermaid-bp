@@ -51,13 +51,25 @@ export default {
 
 Guarda los archivos y recarga. El botón "Contar líneas" estará disponible. Este ejemplo no necesita herramientas de compilación ni dependencias.
 
-## Otras funciones
+## Contrato público v1
 
-La API v1, descrita en `src/plugin-api.ts`, permite leer el documento, suscribirse a sus cambios, añadir acciones y añadir pasos a la guía. `setup` puede devolver una función para limpiar recursos propios al desactivar el plugin. El editor retira automáticamente sus acciones, suscripciones y pasos.
+El manifiesto `plugin.json` contiene los campos `id`, `name`, `description`, `version` y `apiVersion`. El identificador debe coincidir con el nombre de la carpeta y usar letras minúsculas, números y guiones. `name`, `description` y `version` deben ser textos no vacíos; `apiVersion` debe ser un entero. `enabledByDefault` es opcional y, si se omite, el plugin queda activado por defecto. La versión 1 del editor activa plugins que declaran `apiVersion: 1`; las demás versiones se muestran como incompatibles y no se ejecutan. `entry` es opcional y señala el módulo de entrada relativo a la carpeta; por defecto es `index.js`. Se admiten archivos `.js` y `.mjs` que permanecen dentro de la carpeta del plugin.
+
+El módulo de entrada exporta por defecto un objeto con `setup(context)`. `setup` puede devolver una función de limpieza y puede ser asíncrona. La versión actual del contexto expone:
+
+- `context.apiVersion`, la versión del contrato disponible.
+- `context.document.read()`, que devuelve una instantánea inmutable con el código fuente y el nombre del documento.
+- `context.document.subscribe(listener)`, que llama al listener cuando cambia el documento y devuelve una función para retirar esa suscripción.
+- `context.ui.addAction(action)`, que registra un botón o enlace y devuelve una función para retirarlo. La acción requiere `id` y `label`; `title` es opcional. Define `run` para un botón o `href` con una URL HTTP(S) para abrir un enlace.
+- `context.ui.addGuideStep(step)`, que incorpora un paso a la guía y devuelve una función para retirarlo. El paso declara `id`, `title`, `description` y `target`; `pane` es opcional.
+- `context.ui.notify(message)`, que muestra un aviso en el editor.
+
+El ejemplo completo y autónomo de la API v1 está en `examples/plugin-contract/`. Comprueba el documento, registra una acción, una suscripción y un paso de guía, y sirve como fixture para cargar el plugin desde una distribución compilada.
+
+Al desactivar un plugin, el editor retira sus acciones, suscripciones y pasos de guía, además de ejecutar las funciones de limpieza. Si falla una limpieza, el editor continúa con las demás. Si el manifiesto, la entrada o la activación fallan, el editor identifica el plugin en Extensiones y permanece disponible junto con los demás plugins. Las extensiones ejecutan código con los permisos de la aplicación: esta API organiza sus aportaciones, pero no es un aislamiento de seguridad.
 
 Para un recurso propio, usa `new URL('./mi-pagina.html', import.meta.url).href`. Puedes distribuir otros módulos JavaScript, hojas de estilo e imágenes dentro de la misma carpeta. El paquete entregado al usuario debe contener JavaScript listo para el navegador; si como autor utilizas TypeScript o dependencias npm, prepara esos archivos antes de distribuirlo.
 
-Los errores de manifiesto o activación se muestran sin detener el editor. Una versión de API incompatible no se activa. Los plugins ejecutan código con los permisos de la aplicación; la API organiza sus aportaciones, pero no es un aislamiento de seguridad.
 
 ## BookStack
 
@@ -73,4 +85,4 @@ Los plugins incluidos que necesitan preparar recursos pueden definir `build.scri
 
 ## Pruebas
 
-`tests/runtime-plugins.spec.ts` verifica la instalación y retirada de carpetas con el servidor ya abierto, la persistencia al desactivar, los manifiestos inválidos y la instalación de BookStack en una distribución independiente sin recompilar. `tests/plugin-host.spec.ts` comprueba errores y limpieza durante cargas pendientes.
+`tests/runtime-plugins.spec.ts` verifica la instalación y retirada de carpetas con el servidor ya abierto, la persistencia al desactivar, los manifiestos inválidos, el plugin de ejemplo del contrato público en una distribución independiente y la instalación de BookStack sin recompilar. `tests/plugin-host.spec.ts` comprueba errores y limpieza durante cargas pendientes.

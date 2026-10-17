@@ -11,7 +11,8 @@ export class PluginHost {
   async start() {
     this.createManager();
     if(this.installed===descriptors)await discoverPlugins();
-    await Promise.all(this.installed.filter(d=>enabledPreference(d.manifest.id,d.manifest.enabledByDefault!==false)).map(d=>this.setEnabled(d.manifest.id,true,false)));
+    for(const descriptor of this.installed)if(descriptor.manifest.apiVersion!==1)this.statuses.set(descriptor.manifest.id,'Versión de API incompatible');
+    await Promise.all(this.installed.filter(d=>d.manifest.apiVersion===1&&enabledPreference(d.manifest.id,d.manifest.enabledByDefault!==false)).map(d=>this.setEnabled(d.manifest.id,true,false)));
     this.refreshManager();
   }
   documentChanged() {
@@ -62,7 +63,7 @@ export class PluginHost {
       this.pending.delete(id);this.active.set(id,owned);this.statuses.set(id,'Activo');
     } catch {
       this.cleanup(owned);if(this.versions.get(id)!==token)return;this.pending.delete(id);this.statuses.set(id,'No se pudo activar');
-      this.notify('No se ha podido activar una extensión. El editor sigue disponible.');
+      this.notify('No se ha podido activar la extensión '+descriptor.manifest.name+'. Comprueba el módulo de entrada y la función setup; el editor sigue disponible.');
     }
     this.refreshManager();
   }

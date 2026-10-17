@@ -1,0 +1,9 @@
+{
+  "id": "contract-example",
+  "name": "Plugin de contrato público",
+  "description": "Ejemplo autónomo que consume únicamente la API pública v1.",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "entry": "index.js",
+  "enabledByDefault": true
+}
