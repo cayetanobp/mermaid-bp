@@ -141,35 +141,77 @@ try:
     save_from_native_dialog(driver.find_element(By.ID, "svg"), svg)
     assert svg.exists() and "<svg" in svg.read_text(encoding="utf-8")[:500], "Exported SVG is missing or invalid"
 
-    # Use the real Tauri invoke bridge and app-data directory in the installed app.
-    # Restarting WebKit proves the plugin survives process lifetime and still loads
-    # its module through the scoped asset protocol.
+    # Supply actual plugin files at the folder-input boundary. All management
+    # operations below go through the installed app's settings UI and Tauri IPC.
     plugin_manifest = '{"id":"installed-smoke","name":"Installed smoke plugin","description":"Installed app persistence check","version":"1.0.0","apiVersion":1}'
     plugin_entry = "export default {setup(ctx){ctx.ui.addAction({id:'persisted',label:'Installed plugin action',run(){ctx.ui.notify('Installed plugin ran.');}});}};"
-    result = driver.execute_async_script("""
-      const done = arguments[2];
-      const encode = value => Array.from(new TextEncoder().encode(value));
-      window.__TAURI__.core.invoke('install_plugin', {
-        id: 'installed-smoke',
-        paths: ['plugin.json', 'index.js'],
-        contents: [encode(arguments[0]), encode(arguments[1])]
-      }).then(() => window.__TAURI__.core.invoke('list_plugins'))
-        .then(plugins => done(plugins.some(plugin => plugin.id === 'installed-smoke')))
-        .catch(error => done({error: String(error)}));
-    """, plugin_manifest, plugin_entry)
-    assert result is True, f"Tauri backend did not persist the plugin: {result}"
+    driver.find_element(By.ID, "plugins-button").click()
+    wait.until(EC.visibility_of_element_located((By.ID, "settings-dialog")))
+    wait.until(lambda d: not d.find_element(By.ID, "plugins-dialog").get_attribute("hidden"))
+    def choose_plugin_files(manifest, entry):
+        driver.execute_script("""
+          const input = document.querySelector('#plugin-folder-input');
+          const transfer = new DataTransfer();
+          for (const [name, contents, type] of [
+            ['plugin.json', arguments[0], 'application/json'],
+            ['index.js', arguments[1], 'text/javascript']
+          ]) {
+            const file = new File([contents], name, {type});
+            Object.defineProperty(file, 'webkitRelativePath', {value: `installed-smoke/${name}`});
+            transfer.items.add(file);
+          }
+          input.files = transfer.files;
+          input.dispatchEvent(new Event('change', {bubbles: true}));
+        """, manifest, entry)
+
+    choose_plugin_files(plugin_manifest, plugin_entry)
+    wait.until(lambda d: "Installed smoke plugin · versión 1.0.0" in d.find_element(By.ID, "plugin-import-preview").text)
+    trust = driver.find_element(By.ID, "plugin-trust-confirm")
+    assert not driver.find_element(By.ID, "plugin-install").is_enabled(), "Install must require explicit trust"
+    trust.click()
+    driver.find_element(By.ID, "plugin-install").click()
+    wait.until(lambda d: "instalado o actualizado" in d.find_element(By.ID, "plugin-local-status").text)
+    wait.until(EC.presence_of_element_located((By.ID, "plugin-installed-smoke-persisted")))
+
+    # A WebKit restart proves persistence and module loading through the scoped
+    # asset protocol in the installed native application.
     driver.quit()
     driver = start_driver()
     wait = WebDriverWait(driver, 60)
+    wait.until(lambda d: d.find_element(By.CSS_SELECTOR, "#editor .cm-content"))
     wait.until(EC.presence_of_element_located((By.ID, "plugin-installed-smoke-persisted")))
     driver.find_element(By.ID, "plugin-installed-smoke-persisted").click()
     wait.until(lambda d: d.find_element(By.ID, "message").text == "Installed plugin ran.")
-    removed = driver.execute_async_script("""
-      const done = arguments[0];
-      window.__TAURI__.core.invoke('remove_plugin', {id: 'installed-smoke'})
-        .then(done).catch(error => done({error: String(error)}));
-    """)
-    assert removed is True, f"Tauri backend did not remove the plugin: {removed}"
+
+    driver.find_element(By.ID, "plugins-button").click()
+    wait.until(EC.visibility_of_element_located((By.ID, "settings-dialog")))
+    toggle = driver.find_element(By.CSS_SELECTOR, '[data-plugin-toggle="installed-smoke"]')
+    toggle.click()
+    wait.until(lambda d: "Desactivado" in d.find_element(By.CSS_SELECTOR, '[data-plugin-status="installed-smoke"]').text)
+    wait.until(EC.invisibility_of_element_located((By.ID, "plugin-installed-smoke-persisted")))
+    toggle = driver.find_element(By.CSS_SELECTOR, '[data-plugin-toggle="installed-smoke"]')
+    toggle.click()
+    wait.until(EC.presence_of_element_located((By.ID, "plugin-installed-smoke-persisted")))
+
+    updated_manifest = plugin_manifest.replace('"version":"1.0.0"', '"version":"2.0.0"')
+    choose_plugin_files(updated_manifest, plugin_entry)
+    wait.until(lambda d: "versión 2.0.0" in d.find_element(By.ID, "plugin-import-preview").text)
+    driver.find_element(By.ID, "plugin-trust-confirm").click()
+    driver.find_element(By.ID, "plugin-install").click()
+    wait.until(lambda d: "instalado o actualizado" in d.find_element(By.ID, "plugin-local-status").text)
+    wait.until(lambda d: "2.0.0" in d.find_element(By.CSS_SELECTOR, '[data-plugin-status="installed-smoke"]').text)
+
+    driver.find_element(By.ID, "plugins-close").click()
+    wait.until(EC.invisibility_of_element_located((By.ID, "settings-dialog")))
+    driver.find_element(By.ID, "plugin-installed-smoke-persisted").click()
+    wait.until(lambda d: d.find_element(By.ID, "message").text == "Installed plugin ran.")
+    driver.find_element(By.ID, "plugins-button").click()
+    wait.until(EC.visibility_of_element_located((By.ID, "settings-dialog")))
+    driver.find_element(By.ID, "plugin-installed-smoke-remove").click()
+    driver.switch_to.alert.accept()
+    wait.until(lambda d: "retirado" in d.find_element(By.ID, "plugin-local-status").text)
+    wait.until(EC.invisibility_of_element_located((By.CSS_SELECTOR, '[data-plugin-toggle="installed-smoke"]')))
+    wait.until(EC.invisibility_of_element_located((By.ID, "plugin-installed-smoke-persisted")))
 finally:
     driver.quit()
 PY
