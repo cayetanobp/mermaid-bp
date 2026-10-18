@@ -71,7 +71,7 @@ const server=createServer(async(req,res)=>{
 await new Promise((resolveListen,reject)=>server.once('error',reject).listen(0,'127.0.0.1',resolveListen));
 const endpoint=`http://127.0.0.1:${server.address().port}/latest.json`;
 function run(command,args,options={}){
-  const result=spawnSync(command,args,{cwd:options.cwd??root,env:options.env??process.env,encoding:'utf8',windowsHide:true,maxBuffer:16*1024*1024,timeout:options.timeout});
+  const result=spawnSync(command,args,{cwd:options.cwd??root,env:options.env??process.env,encoding:'utf8',windowsHide:true,maxBuffer:16*1024*1024});
   const output=(result.stdout??'')+(result.stderr??'');
   const safe=key?output.split(key).join('[redacted signing key]'):output;
   if(result.error){if(safe){process.stderr.write(safe);diagnosticLog.write(safe);}throw Error(`${command} no se pudo iniciar (${result.error.code??'error de proceso'}).`);}
@@ -236,6 +236,18 @@ async function assertPluginAndPreference(page){
   await expect(page.locator('#plugin-updater-persistence-test-alive')).toHaveText('Plugin persistente activo');
   await page.locator('#plugins-close').click();
 }
+async function installPluginThroughNativeCommand(page){
+  const paths=['plugin.json','index.js'];
+  const manifest=JSON.parse(await readFile(join(pluginFolder,'plugin.json'),'utf8'));
+  const contents=await Promise.all(paths.map(async path=>(await readFile(join(pluginFolder,path))).toString('base64')));
+  const installed=await page.evaluate(async payload=>{
+    const bridge=window.__TAURI__?.core;
+    if(!bridge)throw Error('La aplicación no expone el bridge nativo de escritorio.');
+    await bridge.invoke('install_plugin',payload);
+    return bridge.invoke('list_plugins');
+  },{id:manifest.id,paths,contents});
+  expect(installed.some(item=>item.id===manifest.id)).toBe(true);
+}
 
 try{
   await preflight();
@@ -279,15 +291,24 @@ try{
   await page.locator('#setting-editorFontSize').selectOption('18');
   await expect(page.locator('#settings-status')).toContainText('Cambios guardados');
   await page.locator('#settings-tab-extensions').click();
-  phase='select the local plugin folder through the native Windows dialog';
-  await page.locator('#plugin-folder-select').click();
-  run('pwsh',['-NoProfile','-ExecutionPolicy','Bypass','-File',join(root,'scripts','select-windows-folder.ps1'),'-FolderPath',pluginFolder,'-DialogTitle','Elegir carpeta de plugin'],{timeout:45000});
-  await expect(page.locator('#plugin-install')).toBeVisible();
-  await page.locator('#plugin-trust-confirm').check();
-  await page.locator('#plugin-install').click();
-  await expect(page.locator('#plugin-local-status')).toContainText('instalado o actualizado');
+  phase='install the local plugin through the native desktop command';
+  await installPluginThroughNativeCommand(page);
+  phase='restart base application with native plugin persisted';
+  await browser.close();
+  browser=undefined;
+  if(appProcess&&appProcess.exitCode===null&&appProcess.signalCode===null){
+    appProcess.kill();
+    await Promise.race([once(appProcess,'exit'),delay(10000)]);
+  }
+  appProcess=startApp(executable);
+  ({browser,page}=await attachApp());
+  for(const pid of runningAppPids(executable))spawnedAppPids.add(pid);
+  phase='verify native plugin activation and preserved editor preference after base restart';
+  await assertPluginAndPreference(page);
   await expect(page.locator('#plugin-updater-persistence-test-alive')).toHaveText('Plugin persistente activo');
-  await page.locator('#plugins-close').click();
+  phase='reopen local document before updater validation';
+  await importDocument(page,documentPath,'Documento conservado');
+  await expect(page.locator('#render-state')).toHaveText('Actualizado');
 
   phase='verify invalid updater signature is rejected';
   mode='bad-signature';
