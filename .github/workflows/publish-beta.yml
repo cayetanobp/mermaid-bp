@@ -110,17 +110,46 @@ jobs:
           if ($linuxPackage.Count -ne 1 -or $linuxPackage[0].Name -cne $expectedLinuxName) { throw 'El paquete Debian no coincide con el producto y metadatos de esta versión.' }
           $linuxSignaturePath = "$($linuxPackage[0].FullName).sig"
           if (!(Test-Path -LiteralPath $linuxSignaturePath) -or (Get-Item -LiteralPath $linuxSignaturePath).Length -eq 0) { throw 'Falta la firma minisign del paquete Debian updater.' }
-          $hash = (Get-FileHash $installer[0].FullName -Algorithm SHA256).Hash.ToLower()
-          "$hash  $($installer[0].Name)" | Set-Content "$($installer[0].FullName).sha256" -Encoding utf8
-          $linuxHash = (Get-FileHash $linuxPackage[0].FullName -Algorithm SHA256).Hash.ToLower()
-          "$linuxHash  $($linuxPackage[0].Name)" | Set-Content "$($linuxPackage[0].FullName).sha256" -Encoding utf8
-          $manifestPath = Join-Path $folder 'latest.json'
-          $assetUrl = "https://github.com/$env:GITHUB_REPOSITORY/releases/download/$tag/$($installer[0].Name)"
-          $linuxAssetUrl = "https://github.com/$env:GITHUB_REPOSITORY/releases/download/$tag/$($linuxPackage[0].Name)"
-          node scripts/create-updater-manifest.mjs --version $tag --notes-file desktop-app/RELEASE.md --artifact-url $assetUrl --signature-file $signaturePath --linux-artifact-url $linuxAssetUrl --linux-signature-file $linuxSignaturePath --output $manifestPath
+          $staging = Join-Path $env:RUNNER_TEMP 'beta-release-assets'
+          if (Test-Path -LiteralPath $staging) { throw 'La carpeta temporal de publicación ya existe.' }
+          $preparedMetadataPath = Join-Path $env:RUNNER_TEMP 'beta-release-assets.json'
+          $preparationArgs = @(
+            'scripts/prepare-beta-release-assets.mjs',
+            '--windows-file', $installer[0].FullName,
+            '--windows-signature', $signaturePath,
+            '--linux-file', $linuxPackage[0].FullName,
+            '--linux-signature', $linuxSignaturePath,
+            '--output-directory', $staging,
+            '--metadata-file', $preparedMetadataPath
+          )
+          node @preparationArgs
+          if ($LASTEXITCODE -ne 0) { throw 'No se pudieron preparar los assets firmados para la release.' }
+          $preparedAssets = Get-Content -LiteralPath $preparedMetadataPath -Raw | ConvertFrom-Json
+          $windowsReleaseName = $preparedAssets.windows.name
+          $linuxReleaseName = $preparedAssets.linux.name
+          $stagedInstaller = $preparedAssets.windows.path
+          $stagedInstallerSignature = $preparedAssets.windows.signaturePath
+          $stagedLinuxPackage = $preparedAssets.linux.path
+          $stagedLinuxSignature = $preparedAssets.linux.signaturePath
+          $manifestPath = Join-Path $staging 'latest.json'
+          $assetUrl = "https://github.com/$env:GITHUB_REPOSITORY/releases/download/$tag/$windowsReleaseName"
+          $linuxAssetUrl = "https://github.com/$env:GITHUB_REPOSITORY/releases/download/$tag/$linuxReleaseName"
+          node scripts/create-updater-manifest.mjs --version $tag --notes-file desktop-app/RELEASE.md --artifact-url $assetUrl --signature-file $stagedInstallerSignature --linux-artifact-url $linuxAssetUrl --linux-signature-file $stagedLinuxSignature --output $manifestPath
           if ($LASTEXITCODE -ne 0) { throw 'No se pudo crear el manifiesto firmado del canal beta.' }
-          gh release create $tag $installer[0].FullName "$($installer[0].FullName).sha256" $signaturePath $linuxPackage[0].FullName "$($linuxPackage[0].FullName).sha256" $linuxSignaturePath $manifestPath --target $env:GITHUB_SHA --title $tag --prerelease --notes-file desktop-app/RELEASE.md
+          gh release create $tag $stagedInstaller "$stagedInstaller.sha256" $stagedInstallerSignature $stagedLinuxPackage "$stagedLinuxPackage.sha256" $stagedLinuxSignature $manifestPath --target $env:GITHUB_SHA --title $tag --prerelease --notes-file desktop-app/RELEASE.md
           if ($LASTEXITCODE -ne 0) { throw 'No se pudo publicar la beta.' }
+          $publishedVersion = gh api "repos/$env:GITHUB_REPOSITORY/releases/tags/$tag" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0) { throw 'No se pudo verificar la release de versión recién publicada.' }
+          if ($publishedVersion.target_commitish -ne $env:GITHUB_SHA -or $publishedVersion.tag_name -ne $tag -or !$publishedVersion.prerelease -or $publishedVersion.draft) { throw 'La release publicada no coincide con la beta solicitada.' }
+          $expectedAssetNames = @($windowsReleaseName, "$windowsReleaseName.sha256", "$windowsReleaseName.sig", $linuxReleaseName, "$linuxReleaseName.sha256", "$linuxReleaseName.sig", 'latest.json') | Sort-Object
+          $publishedAssetNames = @($publishedVersion.assets | ForEach-Object { $_.name }) | Sort-Object
+          if (Compare-Object -ReferenceObject $expectedAssetNames -DifferenceObject $publishedAssetNames) { throw 'GitHub publicó nombres de assets distintos a los nombres seguros esperados.' }
+          $publishedManifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
+          foreach ($asset in @(@{ platform = 'windows-x86_64'; name = $windowsReleaseName }, @{ platform = 'linux-x86_64-deb'; name = $linuxReleaseName })) {
+            $publishedUrl = ($publishedVersion.assets | Where-Object { $_.name -ceq $asset.name }).browser_download_url
+            $manifestUrl = $publishedManifest.platforms.PSObject.Properties[$asset.platform].Value.url
+            if (!$publishedUrl -or $manifestUrl -cne $publishedUrl) { throw "La URL del manifiesto no coincide con el asset servido por GitHub: $($asset.name)." }
+          }
           $releaseJson = Join-Path $env:RUNNER_TEMP 'beta-releases.json'
           $tagsJson = Join-Path $env:RUNNER_TEMP 'beta-tags.json'
           $releaseOutput = gh api --paginate --slurp "repos/$env:GITHUB_REPOSITORY/releases?per_page=100"
