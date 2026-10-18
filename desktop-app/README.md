@@ -33,7 +33,7 @@ En Ubuntu, el mismo flujo está disponible para instalaciones del paquete Debian
 
 ## Publicación
 
-El workflow `Aplicación de escritorio Linux` construye el paquete Debian firmado y comprueba una actualización instalada en Ubuntu 24.04. `Publicar beta` exige ejecuciones satisfactorias de Windows y Linux sobre el HEAD actual de `main`; adjunta ambos paquetes, sus firmas y SHA256 a la release versionada y publica los dos destinos en `latest.json`.
+El workflow `Aplicación de escritorio Linux` construye el paquete Debian firmado y comprueba una actualización instalada en Ubuntu 24.04. `Publicar beta` exige ejecuciones satisfactorias de Windows y Linux sobre el HEAD actual de `main`; verifica que `package.json` y su lockfile raíz coincidan con los metadatos de Tauri y Cargo, adjunta ambos paquetes, sus firmas y SHA256 a la release versionada y publica los dos destinos en `latest.json`. BookStack 1.0.0 declara la API pública v1 y se instala desde la [release compatible del plugin](https://github.com/cayetanobp/mermaid-bp-plugins/releases/tag/bookstack-v1.0.0), con SHA256 y [pasos de instalación](https://github.com/cayetanobp/mermaid-bp-plugins/blob/main/bookstack/README.md).
 
 Los workflows requieren el secreto de GitHub Actions `TAURI_SIGNING_PRIVATE_KEY`, que contiene la clave privada generada por `tauri signer generate`; su contraseña está vacía. Conserva una copia protegida de esa clave: perderla impediría firmar futuras actualizaciones para las instalaciones existentes. Tauri 2 firma el instalador NSIS `.exe` y el paquete Debian `.deb`. `Publicar beta` adjunta ambos paquetes, sus firmas, sus checksums SHA256 y `latest.json` a la release prerelease `beta`, el canal consultado por la aplicación.
 

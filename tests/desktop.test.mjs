@@ -5,6 +5,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {spawnSync} from 'node:child_process';
 import vm from 'node:vm';
+import {inspectBetaChannel} from '../scripts/validate-beta-channel.mjs';
 
 test('el puente conserva bytes UTF-8 y comunica la cancelación sin descargar una segunda copia',async()=>{
   const calls=[],alerts=[];
@@ -97,9 +98,14 @@ test('el manifiesto rechaza una URL HTTP o un artefacto sin firma',async()=>{
 test('el artefacto Linux declara el paquete Debian y la versión beta publicada',async()=>{
   const config=JSON.parse(await readFile('desktop-app/src-tauri/tauri.conf.json','utf8'));
   const packageJson=JSON.parse(await readFile('desktop-app/package.json','utf8'));
+  const corePackage=JSON.parse(await readFile('package.json','utf8'));
+  const coreLock=JSON.parse(await readFile('package-lock.json','utf8'));
   const cargo=await readFile('desktop-app/src-tauri/Cargo.toml','utf8');
   assert.equal(config.version,'1.0.0-beta.1');
   assert.equal(packageJson.version,'1.0.0-beta.1');
+  assert.equal(corePackage.version,config.version);
+  assert.equal(coreLock.version,config.version);
+  assert.equal(coreLock.packages[''].version,config.version);
   assert.match(cargo,/version = "1\.0\.0-beta\.1"/);
   assert.ok(config.bundle.targets.includes('deb'));
   assert.ok(config.bundle.createUpdaterArtifacts);
@@ -175,4 +181,24 @@ test('la publicación beta exige y adjunta el paquete Debian de la misma compila
   assert.match(workflow,/mermaid-bp-linux-updater/);
   assert.match(workflow,/linux-artifact-url/);
   assert.match(workflow,/linuxSignaturePath/);
+  assert.match(workflow,/coreLock\['packages'\]\[''\]\['version'\]/);
+  assert.match(workflow,/validate-beta-channel\.mjs/);
+  assert.doesNotMatch(workflow,/gh issue list/);
+  assert.match(workflow,/cancel-in-progress: false/);
+  const releaseNotes=await readFile('desktop-app/RELEASE.md','utf8');
+  assert.match(releaseNotes,/mermaid-bp-plugins\/releases/);
+  assert.match(releaseNotes,/Seleccionar carpeta/);
+});
+
+test('la política del canal beta solo permite actualizar su manifiesto propietario',()=>{
+  const tag=[{ref:'refs/tags/beta'}];
+  const ownRelease={tag_name:'beta',name:'Canal beta de Mermaid BP',draft:false,prerelease:true,assets:[{name:'latest.json'}]};
+  assert.equal(inspectBetaChannel([],[]),'empty');
+  assert.equal(inspectBetaChannel([{...ownRelease,assets:[]}],tag),'owned-empty');
+  assert.equal(inspectBetaChannel([ownRelease],tag),'owned-with-manifest');
+  assert.equal(inspectBetaChannel([ownRelease],[tag]),'owned-with-manifest');
+  assert.throws(()=>inspectBetaChannel([],tag),/sin una release propietaria/);
+  assert.throws(()=>inspectBetaChannel([{...ownRelease,name:'Release estable'}],tag),/no pertenece/);
+  assert.throws(()=>inspectBetaChannel([{...ownRelease,prerelease:false}],tag),/no pertenece/);
+  assert.throws(()=>inspectBetaChannel([{...ownRelease,assets:[{name:'latest.json'},{name:'installer.exe'}]}],tag),/assets ajenos/);
 });
