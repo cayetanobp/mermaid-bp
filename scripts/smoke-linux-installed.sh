@@ -22,7 +22,7 @@ done
 curl --silent --fail http://127.0.0.1:4444/status >/dev/null || { cat "$output_dir/tauri-driver.log"; exit 1; }
 
 python3 - "$app_bin" "$output_dir" <<'PY'
-import json, pathlib, re, shutil, subprocess, sys, time
+import hashlib, json, os, pathlib, re, shutil, subprocess, sys, time
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
@@ -340,18 +340,25 @@ try:
     editor.send_keys(Keys.CONTROL, "a")
     # WebDriver sends embedded newlines as whitespace to contenteditable.
     # Send Enter as its own key so CodeMirror stores a real Mermaid line break.
-    source = "flowchart TD\n  Linux[Ubuntu instalado] --> SVG[Exportado]"
+    marker = "LinuxUpdaterPersist-" + os.environ.get("GITHUB_RUN_ID", "local")
+    source = f"flowchart TD\n  Linux[{marker}] --> SVG[Exportado]"
     editor.send_keys("flowchart TD")
     editor.send_keys(Keys.ENTER)
-    editor.send_keys("  Linux[Ubuntu instalado] --> SVG[Exportado]")
+    editor.send_keys(f"  Linux[{marker}] --> SVG[Exportado]")
     wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "#diagram svg")))
     driver.save_screenshot(str(out / "editor.png"))
 
     open_file_menu()
-    mmd = out / "installed-smoke.mmd"
+    mmd = pathlib.Path.home() / "Documents" / "updater-persistence-document.mmd"
+    mmd.parent.mkdir(parents=True, exist_ok=True)
     save_from_native_dialog(driver.find_element(By.ID, "save"), mmd)
     saved_source = mmd.read_text(encoding="utf-8") if mmd.exists() else "<missing>"
     assert source in saved_source, f"Saved .mmd is missing or incorrect: {saved_source!r}"
+    (out / "updater-persistence-document.json").write_text(json.dumps({
+        "path": str(mmd),
+        "marker": marker,
+        "sha256": hashlib.sha256(mmd.read_bytes()).hexdigest(),
+    }), encoding="utf-8")
 
     open_file_menu()
     svg = out / "installed-smoke.svg"

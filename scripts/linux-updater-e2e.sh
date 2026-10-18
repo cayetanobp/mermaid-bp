@@ -107,14 +107,23 @@ for _ in $(seq 1 60); do if curl --silent --fail http://127.0.0.1:4444/status >/
 curl --silent --fail http://127.0.0.1:4444/status >/dev/null || { cat "$diagnostics/tauri-driver.log"; exit 1; }
 
 python3 - "$candidate" "$candidate_signature" "$candidate_version" "$base_version" "$diagnostics" "$server_port" "$app_bin" <<'PY'
-import base64, http.server, json, pathlib, subprocess, sys, threading, time
+import base64, hashlib, http.server, json, os, pathlib, subprocess, sys, threading, time
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait, Select
+from selenium.webdriver.support import expected_conditions as EC
 
 candidate, signature_path, target, base, diagnostics, port, app_bin = sys.argv[1:]
 candidate, out = pathlib.Path(candidate), pathlib.Path(diagnostics)
 signature = pathlib.Path(signature_path).read_text(encoding="utf-8").strip()
+marker = "LinuxUpdaterPersist-" + os.environ.get("GITHUB_RUN_ID", "local")
+document_manifest = json.loads((pathlib.Path(os.environ["MERMAID_BP_SMOKE_DIR"]) / "updater-persistence-document.json").read_text(encoding="utf-8"))
+document = pathlib.Path(document_manifest["path"])
+assert document.exists(), f"Installed smoke did not save the persistence document: {document}"
+assert document_manifest["marker"] == marker, "Installed smoke document belongs to a different run"
+assert marker in document.read_text(encoding="utf-8"), "Installed smoke document is missing this run's marker"
+initial_document_hash = hashlib.sha256(document.read_bytes()).hexdigest()
+assert initial_document_hash == document_manifest["sha256"], "Saved user document changed after the installed smoke"
 mode = {"value":"offline"}
 class Feed(http.server.BaseHTTPRequestHandler):
     def log_message(self, fmt, *args):
@@ -147,76 +156,23 @@ def check(d):
     d.find_element(By.ID,"check-updates").click(); wait(d,lambda x:x.find_element(By.ID,"check-updates").is_enabled()); return d.find_element(By.ID,"update-status").text
 def install_plugin(d):
     manifest=base64.b64encode(json.dumps({"id":"updater-persistence-test","name":"Plugin persistente","description":"Comprueba persistencia tras actualizar.","version":"1.0.0","apiVersion":1,"enabledByDefault":True,"entry":"index.js"}).encode()).decode()
-    module="export default {setup(context){context.ui.addAction({id:'alive',label:'Plugin persistente activo',run(){}});}};"
+    module="export default {setup(context){context.ui.addAction({id:'alive',label:'Plugin persistente activo',run(){context.ui.notify('Acción del plugin persistente ejecutada.');}});}};"
     module=base64.b64encode(module.encode()).decode()
     result=d.execute_async_script("const done=arguments[arguments.length-1];window.__TAURI__.core.invoke('install_plugin',{id:'updater-persistence-test',paths:['plugin.json','index.js'],contents:[arguments[0],arguments[1]]}).then(()=>done('ok'),e=>done(String(e)));",manifest,module)
     assert result=="ok",f"Plugin install bridge failed: {result}"
     d.refresh(); wait(d,lambda x:x.find_element(By.CSS_SELECTOR,"#editor .cm-content").is_displayed())
+def click_plugin_action(d):
+    d.find_element(By.ID,"menu-ver").click()
+    wait(d,lambda x:x.find_element(By.ID,"menu-ver-panel").is_displayed())
+    action=wait(d,EC.element_to_be_clickable((By.ID,"plugin-updater-persistence-test-alive")))
+    action.click()
 def verify_persistence(d):
-    open_settings(d,"Editor"); assert d.find_element(By.ID,"setting-editorFontSize").get_attribute("value")=="18","Editor preference did not persist"
+    open_settings(d,"Editor"); assert d.find_element(By.ID,"setting-editorFontSize").get_attribute("value")=="18","Editor font size preference did not persist"
     open_settings(d,"Extensiones"); wait(d,lambda x:"Plugin persistente" in x.find_element(By.ID,"plugin-list").text)
-    assert "Activo · 1.0.0" in d.find_element(By.CSS_SELECTOR,"[data-plugin-status='updater-persistence-test']").text
-    assert d.find_element(By.ID,"plugin-updater-persistence-test-alive").text=="Plugin persistente activo"
+    assert "Activo · 1.0.0" in d.find_element(By.CSS_SELECTOR,"[data-plugin-status='updater-persistence-test']").text,"Plugin remained installed and active after update"
     d.find_element(By.ID,"plugins-close").click()
-def visible_windows():
-    result=subprocess.run(["xdotool","search","--onlyvisible","--name",".*"],capture_output=True,text=True)
-    windows={}
-    if result.returncode not in (0,1):
-        raise AssertionError(f"Could not inspect visible native windows: {result.stderr.strip()}")
-    for window_id in result.stdout.splitlines():
-        title=subprocess.run(["xdotool","getwindowname",window_id],capture_output=True,text=True)
-        windows[window_id]=title.stdout.strip() if title.returncode==0 else ""
-    return windows
-def active_window_title():
-    active=subprocess.run(["xdotool","getactivewindow","getwindowname"],capture_output=True,text=True)
-    return active.stdout.strip() if active.returncode==0 else ""
-def import_document(d, document):
-    settings=d.find_element(By.ID,"settings-dialog")
-    if settings.get_attribute("open"):
-        d.find_element(By.ID,"plugins-close").click()
-        wait(d,lambda x:not x.find_element(By.ID,"settings-dialog").get_attribute("open"))
-    before_title=active_window_title()
-    before_windows=visible_windows()
-    d.find_element(By.ID,"menu-archivo").click()
-    wait(d,lambda x:x.find_element(By.ID,"menu-archivo-panel").is_displayed())
-    d.find_element(By.ID,"open").click()
-    deadline=time.time()+15
-    while time.time()<deadline:
-        current_title=active_window_title()
-        current_windows=visible_windows()
-        new_windows=current_windows.keys()-before_windows.keys()
-        if new_windows:
-            dialog_id=max(new_windows,key=int)
-            subprocess.run(["xdotool","windowactivate","--sync",dialog_id],check=True)
-            break
-        if current_title and current_title!=before_title: break
-        time.sleep(.1)
-    else:
-        subprocess.run(["scrot","-o",str(out/"linux-updater-document-chooser-missing.png")],check=True)
-        (out/"linux-updater-document-chooser-missing.windows.txt").write_text(
-            f"Before active window: {before_title!r}\nCurrent active window: {active_window_title()!r}\n"
-            f"Before visible windows: {before_windows!r}\nCurrent visible windows: {visible_windows()!r}\n",
-            encoding="utf-8",
-        )
-        raise AssertionError(
-            f"Native document chooser did not take focus; active window={active_window_title()!r}; "
-            f"visible windows={visible_windows()!r}"
-        )
-    subprocess.run(["xdotool","key","ctrl+l"],check=True)
-    time.sleep(.3)
-    subprocess.run(["xdotool","type","--clearmodifiers","--delay","1",str(document)],check=True)
-    subprocess.run(["xdotool","key","Return"],check=True)
-    deadline=time.time()+30
-    while time.time()<deadline:
-        confirm=d.find_element(By.ID,"confirm-dialog")
-        if confirm.get_attribute("open"):
-            next(button for button in confirm.find_elements(By.TAG_NAME,"button") if button.text.strip()=="Continuar sin descargar").click()
-            break
-        if "updater-persistence-document.mmd" in d.find_element(By.ID,"message").text: break
-        time.sleep(.2)
-    wait(d,lambda x:"updater-persistence-document.mmd" in x.find_element(By.ID,"message").text,30)
-    assert "Documento disponible tras actualizar" in d.find_element(By.CSS_SELECTOR,"#editor .cm-content").text
-
+    click_plugin_action(d)
+    wait(d,lambda x:x.find_element(By.ID,"message").text=="Acción del plugin persistente ejecutada.")
 driver=None
 try:
     driver=connect(); wait(driver,lambda d:d.find_element(By.CSS_SELECTOR,"#editor .cm-content").is_displayed())
@@ -224,14 +180,12 @@ try:
     mode["value"]="none"; assert check(driver)=="No hay actualizaciones disponibles.","No-update response was not reported"
     open_settings(driver,"Editor"); Select(driver.find_element(By.ID,"setting-editorFontSize")).select_by_value("18")
     wait(driver,lambda d:"Cambios guardados" in d.find_element(By.ID,"settings-status").text); install_plugin(driver)
-    document=out/"updater-persistence-document.mmd"
-    document.write_text("flowchart LR\nA[Documento disponible tras actualizar] --> B[Se puede reabrir]\n",encoding="utf-8")
-    import_document(driver,document)
     mode["value"]="bad-signature"; open_updater(driver); driver.find_element(By.ID,"check-updates").click()
     wait(driver,lambda d:f"Nueva versión: {target}" in d.find_element(By.ID,"update-version").text)
     driver.find_element(By.ID,"install-update").click(); wait(driver,lambda d:"No se pudo instalar" in d.find_element(By.ID,"update-status").text,120)
     assert installed_version()==base,"Invalid signature changed the installed package"
-    assert "Documento disponible tras actualizar" in driver.find_element(By.CSS_SELECTOR,"#editor .cm-content").text,"Signature rejection damaged the open document"
+    assert hashlib.sha256(document.read_bytes()).hexdigest()==initial_document_hash,"Saved user document changed after signature rejection"
+    assert marker in document.read_text(encoding="utf-8"),"Saved user document marker disappeared after signature rejection"
     verify_persistence(driver)
     open_updater(driver); mode["value"]="candidate"; driver.find_element(By.ID,"check-updates").click()
     wait(driver,lambda d:f"Nueva versión: {target}" in d.find_element(By.ID,"update-version").text)
@@ -243,12 +197,13 @@ try:
     except Exception: pass
     driver=None; time.sleep(3); driver=connect()
     wait(driver,lambda d:d.find_element(By.CSS_SELECTOR,"#editor .cm-content").is_displayed(),120)
-    open_updater(driver); mode["value"]="none"; assert check(driver)=="No hay actualizaciones disponibles."
-    assert f"Versión instalada: {target}" in driver.find_element(By.ID,"update-current-version").text
+    assert hashlib.sha256(document.read_bytes()).hexdigest()==initial_document_hash,"Saved user document changed during the signed update"
+    assert marker in document.read_text(encoding="utf-8"),"Saved user document marker disappeared during the signed update"
+    open_updater(driver)
+    assert f"Versión instalada: {target}" in driver.find_element(By.ID,"update-current-version").text,"Installed version was not reported after the signed update restart"
     verify_persistence(driver)
-    import_document(driver,document)
     driver.save_screenshot(str(out/"linux-updater-after-install.png"))
-    print(f"Linux updater E2E passed: {base} -> {target}; network error, no update, bad signature, signed install/restart, preference/plugin persistence and document reopen verified.")
+    print(f"Linux updater E2E passed: {base} -> {target}; network error, no update, bad signature, signed install/restart, preference/plugin persistence, and unchanged SHA-256/marker for the real smoke-saved user document verified.")
 except Exception:
     if driver is not None:
         try:
