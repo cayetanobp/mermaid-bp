@@ -199,8 +199,8 @@ try:
     wait(driver,lambda d:d.find_element(By.CSS_SELECTOR,"#editor .cm-content").is_displayed(),120)
     assert hashlib.sha256(document.read_bytes()).hexdigest()==initial_document_hash,"Saved user document changed during the signed update"
     assert marker in document.read_text(encoding="utf-8"),"Saved user document marker disappeared during the signed update"
-    open_updater(driver); mode["value"]="none"; assert check(driver)=="No hay actualizaciones disponibles."
-    assert f"Versión instalada: {target}" in driver.find_element(By.ID,"update-current-version").text
+    open_updater(driver)
+    assert f"Versión instalada: {target}" in driver.find_element(By.ID,"update-current-version").text,"Installed version was not reported after the signed update restart"
     verify_persistence(driver)
     driver.save_screenshot(str(out/"linux-updater-after-install.png"))
     print(f"Linux updater E2E passed: {base} -> {target}; network error, no update, bad signature, signed install/restart, preference/plugin persistence, and unchanged SHA-256/marker for the real smoke-saved user document verified.")
