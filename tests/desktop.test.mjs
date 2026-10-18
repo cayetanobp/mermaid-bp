@@ -6,6 +6,7 @@ import {join} from 'node:path';
 import {spawnSync} from 'node:child_process';
 import vm from 'node:vm';
 import {inspectBetaChannel} from '../scripts/validate-beta-channel.mjs';
+import {validateBetaVersionTagRefs} from '../scripts/validate-beta-version-tag.mjs';
 import {validateLinuxUpdaterAssetNames} from '../scripts/validate-linux-updater-asset.mjs';
 
 test('el puente conserva bytes UTF-8 y comunica la cancelación sin descargar una segunda copia',async()=>{
@@ -189,6 +190,12 @@ test('la política del canal beta solo permite actualizar su manifiesto propieta
   assert.throws(()=>inspectBetaChannel([{...ownRelease,name:'Release estable'}],tag),/no pertenece/);
   assert.throws(()=>inspectBetaChannel([{...ownRelease,prerelease:false}],tag),/no pertenece/);
   assert.throws(()=>inspectBetaChannel([{...ownRelease,assets:[{name:'latest.json'},{name:'installer.exe'}]}],tag),/assets ajenos/);
+});
+
+test('la etiqueta beta exacta debe estar libre y no confunde versiones con el mismo prefijo',()=>{
+  assert.equal(validateBetaVersionTagRefs([[{ref:'refs/tags/1.0.0-beta.10'}]],'1.0.0-beta.1'),'available');
+  assert.equal(validateBetaVersionTagRefs([[]],'1.0.0-beta.1'),'available');
+  assert.throws(()=>validateBetaVersionTagRefs([[{ref:'refs/tags/1.0.0-beta.1'}]],'1.0.0-beta.1'),/Ya existe una etiqueta/);
 });
 
 test('la selección del paquete Debian usa el nombre real de Tauri y rechaza otras versiones o arquitecturas',()=>{
