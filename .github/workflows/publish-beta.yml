@@ -88,7 +88,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $tag = (Get-Content desktop-app/src-tauri/tauri.conf.json | ConvertFrom-Json).version
+          $tauriConfig = Get-Content desktop-app/src-tauri/tauri.conf.json | ConvertFrom-Json
+          $tag = $tauriConfig.version
           $folder = 'desktop-app/src-tauri/target/release/bundle/nsis'
           $installer = @(Get-ChildItem "$folder/*-setup.exe")
           if ($installer.Count -ne 1) { throw 'Se esperaba un instalador NSIS.' }
@@ -96,7 +97,11 @@ jobs:
           if (!(Test-Path -LiteralPath $signaturePath) -or (Get-Item -LiteralPath $signaturePath).Length -eq 0) { throw 'Falta la firma minisign del instalador updater.' }
           $debFolder = 'desktop-app/src-tauri/target/release/bundle/deb'
           $linuxPackage = @(Get-ChildItem "$debFolder/*.deb")
-          if ($linuxPackage.Count -ne 1 -or $linuxPackage[0].Name -notmatch "^mermaid-bp_$([regex]::Escape($tag))_amd64\.deb$") { throw 'El artefacto Linux debe ser el paquete Debian amd64 de esta versión.' }
+          $linuxNamesPath = Join-Path $env:RUNNER_TEMP 'linux-updater-package-names.json'
+          @($linuxPackage.Name) | ConvertTo-Json | Set-Content -Encoding utf8 $linuxNamesPath
+          $expectedLinuxName = node scripts/validate-linux-updater-asset.mjs --names-file $linuxNamesPath --product-name $tauriConfig.productName --version $tag --architecture amd64
+          if ($LASTEXITCODE -ne 0) { throw 'El artefacto Linux debe ser el paquete Debian amd64 de esta versión.' }
+          if ($linuxPackage.Count -ne 1 -or $linuxPackage[0].Name -cne $expectedLinuxName) { throw 'El paquete Debian no coincide con el producto y metadatos de esta versión.' }
           $linuxSignaturePath = "$($linuxPackage[0].FullName).sig"
           if (!(Test-Path -LiteralPath $linuxSignaturePath) -or (Get-Item -LiteralPath $linuxSignaturePath).Length -eq 0) { throw 'Falta la firma minisign del paquete Debian updater.' }
           $hash = (Get-FileHash $installer[0].FullName -Algorithm SHA256).Hash.ToLower()
