@@ -158,22 +158,50 @@ def verify_persistence(d):
     assert "Activo · 1.0.0" in d.find_element(By.CSS_SELECTOR,"[data-plugin-status='updater-persistence-test']").text
     assert d.find_element(By.ID,"plugin-updater-persistence-test-alive").text=="Plugin persistente activo"
     d.find_element(By.ID,"plugins-close").click()
+def visible_windows():
+    result=subprocess.run(["xdotool","search","--onlyvisible","--name",".*"],capture_output=True,text=True)
+    windows={}
+    if result.returncode not in (0,1):
+        raise AssertionError(f"Could not inspect visible native windows: {result.stderr.strip()}")
+    for window_id in result.stdout.splitlines():
+        title=subprocess.run(["xdotool","getwindowname",window_id],capture_output=True,text=True)
+        windows[window_id]=title.stdout.strip() if title.returncode==0 else ""
+    return windows
+def active_window_title():
+    active=subprocess.run(["xdotool","getactivewindow","getwindowname"],capture_output=True,text=True)
+    return active.stdout.strip() if active.returncode==0 else ""
 def import_document(d, document):
     settings=d.find_element(By.ID,"settings-dialog")
     if settings.get_attribute("open"):
         d.find_element(By.ID,"plugins-close").click()
         wait(d,lambda x:not x.find_element(By.ID,"settings-dialog").get_attribute("open"))
-    before=subprocess.run(["xdotool","getactivewindow","getwindowname"],capture_output=True,text=True)
-    before_title=before.stdout.strip() if before.returncode==0 else ""
+    before_title=active_window_title()
+    before_windows=visible_windows()
     d.find_element(By.ID,"menu-archivo").click()
     wait(d,lambda x:x.find_element(By.ID,"menu-archivo-panel").is_displayed())
     d.find_element(By.ID,"open").click()
     deadline=time.time()+15
     while time.time()<deadline:
-        active=subprocess.run(["xdotool","getactivewindow","getwindowname"],capture_output=True,text=True)
-        if active.returncode==0 and active.stdout.strip() and active.stdout.strip()!=before_title: break
+        current_title=active_window_title()
+        current_windows=visible_windows()
+        new_windows=current_windows.keys()-before_windows.keys()
+        if new_windows:
+            dialog_id=max(new_windows,key=int)
+            subprocess.run(["xdotool","windowactivate","--sync",dialog_id],check=True)
+            break
+        if current_title and current_title!=before_title: break
         time.sleep(.1)
-    else: raise AssertionError("Native document chooser did not take focus")
+    else:
+        subprocess.run(["scrot","-o",str(out/"linux-updater-document-chooser-missing.png")],check=True)
+        (out/"linux-updater-document-chooser-missing.windows.txt").write_text(
+            f"Before active window: {before_title!r}\nCurrent active window: {active_window_title()!r}\n"
+            f"Before visible windows: {before_windows!r}\nCurrent visible windows: {visible_windows()!r}\n",
+            encoding="utf-8",
+        )
+        raise AssertionError(
+            f"Native document chooser did not take focus; active window={active_window_title()!r}; "
+            f"visible windows={visible_windows()!r}"
+        )
     subprocess.run(["xdotool","key","ctrl+l"],check=True)
     time.sleep(.3)
     subprocess.run(["xdotool","type","--clearmodifiers","--delay","1",str(document)],check=True)
