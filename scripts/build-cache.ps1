@@ -147,7 +147,10 @@ function Invoke-BuildCacheCleanup {
   [CmdletBinding(SupportsShouldProcess)]
   param([Parameter(Mandatory)][string]$RepositoryRoot, [switch]$DockerVolumes)
   $inventory = Get-BuildCacheInventory $RepositoryRoot
-  $activeBuild = @(Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.ProcessName -match '^(cargo|rustc|node|npm|docker)$' })
+  # Only Rust processes can write Cargo target intermediates. Node/npm and the
+  # Docker daemon are unrelated to this path; live Docker bind mounts are
+  # checked separately below.
+  $activeBuild = @(Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.ProcessName -match '^(cargo|rustc)$' })
   $preserved = @($inventory.outputs | Where-Object { $_.retention -eq 'preserved' } | ForEach-Object { Assert-BuildPathInRepository $RepositoryRoot $_.path })
   foreach ($entry in @($inventory.outputs | Where-Object { $_.retention -eq 'regenerable' })) {
     $path = Assert-RegenerableBuildOutputPath $RepositoryRoot $entry.path
