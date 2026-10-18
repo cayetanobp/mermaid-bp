@@ -22,7 +22,7 @@ done
 curl --silent --fail http://127.0.0.1:4444/status >/dev/null || { cat "$output_dir/tauri-driver.log"; exit 1; }
 
 python3 - "$app_bin" "$output_dir" <<'PY'
-import json, os, pathlib, re, shutil, subprocess, sys, time
+import hashlib, json, os, pathlib, re, shutil, subprocess, sys, time
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
@@ -349,10 +349,16 @@ try:
     driver.save_screenshot(str(out / "editor.png"))
 
     open_file_menu()
-    mmd = out / "updater-persistence-document.mmd"
+    mmd = pathlib.Path.home() / "Documents" / "updater-persistence-document.mmd"
+    mmd.parent.mkdir(parents=True, exist_ok=True)
     save_from_native_dialog(driver.find_element(By.ID, "save"), mmd)
     saved_source = mmd.read_text(encoding="utf-8") if mmd.exists() else "<missing>"
     assert source in saved_source, f"Saved .mmd is missing or incorrect: {saved_source!r}"
+    (out / "updater-persistence-document.json").write_text(json.dumps({
+        "path": str(mmd),
+        "marker": marker,
+        "sha256": hashlib.sha256(mmd.read_bytes()).hexdigest(),
+    }), encoding="utf-8")
 
     open_file_menu()
     svg = out / "installed-smoke.svg"

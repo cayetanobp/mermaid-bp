@@ -107,7 +107,7 @@ for _ in $(seq 1 60); do if curl --silent --fail http://127.0.0.1:4444/status >/
 curl --silent --fail http://127.0.0.1:4444/status >/dev/null || { cat "$diagnostics/tauri-driver.log"; exit 1; }
 
 python3 - "$candidate" "$candidate_signature" "$candidate_version" "$base_version" "$diagnostics" "$server_port" "$app_bin" <<'PY'
-import base64, http.server, json, os, pathlib, subprocess, sys, threading, time
+import base64, hashlib, http.server, json, os, pathlib, subprocess, sys, threading, time
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait, Select
@@ -116,9 +116,13 @@ candidate, signature_path, target, base, diagnostics, port, app_bin = sys.argv[1
 candidate, out = pathlib.Path(candidate), pathlib.Path(diagnostics)
 signature = pathlib.Path(signature_path).read_text(encoding="utf-8").strip()
 marker = "LinuxUpdaterPersist-" + os.environ.get("GITHUB_RUN_ID", "local")
-document = pathlib.Path(os.environ["MERMAID_BP_SMOKE_DIR"]) / "updater-persistence-document.mmd"
+document_manifest = json.loads((pathlib.Path(os.environ["MERMAID_BP_SMOKE_DIR"]) / "updater-persistence-document.json").read_text(encoding="utf-8"))
+document = pathlib.Path(document_manifest["path"])
 assert document.exists(), f"Installed smoke did not save the persistence document: {document}"
+assert document_manifest["marker"] == marker, "Installed smoke document belongs to a different run"
 assert marker in document.read_text(encoding="utf-8"), "Installed smoke document is missing this run's marker"
+initial_document_hash = hashlib.sha256(document.read_bytes()).hexdigest()
+assert initial_document_hash == document_manifest["sha256"], "Saved user document changed after the installed smoke"
 mode = {"value":"offline"}
 class Feed(http.server.BaseHTTPRequestHandler):
     def log_message(self, fmt, *args):
@@ -165,7 +169,6 @@ def verify_persistence(d):
 driver=None
 try:
     driver=connect(); wait(driver,lambda d:d.find_element(By.CSS_SELECTOR,"#editor .cm-content").is_displayed())
-    assert marker in driver.find_element(By.CSS_SELECTOR,"#editor .cm-content").text,"Updater did not reopen the same smoke-installed app profile/document"
     open_updater(driver); mode["value"]="offline"; assert "No se pudo buscar" in check(driver),"Network error was not reported"
     mode["value"]="none"; assert check(driver)=="No hay actualizaciones disponibles.","No-update response was not reported"
     open_settings(driver,"Editor"); Select(driver.find_element(By.ID,"setting-editorFontSize")).select_by_value("18")
@@ -174,7 +177,8 @@ try:
     wait(driver,lambda d:f"Nueva versión: {target}" in d.find_element(By.ID,"update-version").text)
     driver.find_element(By.ID,"install-update").click(); wait(driver,lambda d:"No se pudo instalar" in d.find_element(By.ID,"update-status").text,120)
     assert installed_version()==base,"Invalid signature changed the installed package"
-    assert marker in driver.find_element(By.CSS_SELECTOR,"#editor .cm-content").text,"Signature rejection damaged the open document"
+    assert hashlib.sha256(document.read_bytes()).hexdigest()==initial_document_hash,"Saved user document changed after signature rejection"
+    assert marker in document.read_text(encoding="utf-8"),"Saved user document marker disappeared after signature rejection"
     verify_persistence(driver)
     open_updater(driver); mode["value"]="candidate"; driver.find_element(By.ID,"check-updates").click()
     wait(driver,lambda d:f"Nueva versión: {target}" in d.find_element(By.ID,"update-version").text)
@@ -186,13 +190,13 @@ try:
     except Exception: pass
     driver=None; time.sleep(3); driver=connect()
     wait(driver,lambda d:d.find_element(By.CSS_SELECTOR,"#editor .cm-content").is_displayed(),120)
-    assert marker in driver.find_element(By.CSS_SELECTOR,"#editor .cm-content").text,"Document was not recovered after the signed update restart"
-    assert marker in document.read_text(encoding="utf-8"),"Saved document contents changed during update"
+    assert hashlib.sha256(document.read_bytes()).hexdigest()==initial_document_hash,"Saved user document changed during the signed update"
+    assert marker in document.read_text(encoding="utf-8"),"Saved user document marker disappeared during the signed update"
     open_updater(driver); mode["value"]="none"; assert check(driver)=="No hay actualizaciones disponibles."
     assert f"Versión instalada: {target}" in driver.find_element(By.ID,"update-current-version").text
     verify_persistence(driver)
     driver.save_screenshot(str(out/"linux-updater-after-install.png"))
-    print(f"Linux updater E2E passed: {base} -> {target}; network error, no update, bad signature, signed install/restart, preference/plugin persistence and smoke-saved document recovery verified.")
+    print(f"Linux updater E2E passed: {base} -> {target}; network error, no update, bad signature, signed install/restart, preference/plugin persistence, and unchanged SHA-256/marker for the real smoke-saved user document verified.")
 except Exception:
     if driver is not None:
         try:
