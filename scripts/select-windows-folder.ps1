@@ -30,40 +30,42 @@ if ($null -eq $dialog) {
 }
 
 $dialogBounds = $dialog.Current.BoundingRectangle
-$editCondition = [System.Windows.Automation.PropertyCondition]::new(
-    [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
-    [System.Windows.Automation.ControlType]::Edit
+$controls = $dialog.FindAll(
+    [System.Windows.Automation.TreeScope]::Descendants,
+    [System.Windows.Automation.Condition]::TrueCondition
 )
-$edits = $dialog.FindAll([System.Windows.Automation.TreeScope]::Descendants, $editCondition)
 $folderField = $null
-foreach ($edit in $edits) {
-    $bounds = $edit.Current.BoundingRectangle
-    if ($edit.Current.IsEnabled -and $bounds.Height -gt 0 -and $bounds.Y -gt ($dialogBounds.Y + $dialogBounds.Height * 0.65)) {
-        if ($null -eq $folderField -or $bounds.Y -gt $folderField.Current.BoundingRectangle.Y) {
-            $folderField = $edit
+foreach ($control in $controls) {
+    $bounds = $control.Current.BoundingRectangle
+    if ($control.Current.IsEnabled -and $bounds.Height -gt 0 -and $bounds.Y -gt ($dialogBounds.Y + $dialogBounds.Height * 0.65)) {
+        try {
+            $pattern = $control.GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern)
+            if (-not $pattern.Current.IsReadOnly -and ($null -eq $folderField -or $bounds.Y -gt $folderField.Bounds.Y)) {
+                $folderField = [pscustomobject]@{ Element = $control; Pattern = $pattern; Bounds = $bounds }
+            }
+        } catch { }
+        if ($null -eq $folderField -and $control.Current.ControlType -eq [System.Windows.Automation.ControlType]::ComboBox) {
+            $folderField = [pscustomobject]@{ Element = $control; Pattern = $null; Bounds = $bounds }
         }
     }
 }
 
 if ($null -eq $folderField) {
-    $editDetails = @($edits | ForEach-Object {
+    $controlDetails = @($controls | ForEach-Object {
         $current = $_.Current
-        "name='$($current.Name)' id='$($current.AutomationId)' class='$($current.ClassName)' bounds=$($current.BoundingRectangle)"
+        "type='$($current.ControlType.ProgrammaticName)' name='$($current.Name)' id='$($current.AutomationId)' class='$($current.ClassName)' focusable=$($current.IsKeyboardFocusable) bounds=$($current.BoundingRectangle)"
     }) -join ' | '
-    throw "No se encontró el campo Folder del selector nativo. Edits: $editDetails"
+    throw "No se encontró el campo Folder del selector nativo. Controles: $controlDetails"
 }
 
-$valuePattern = $null
-try {
-    $valuePattern = $folderField.GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern)
-} catch { }
-if ($null -ne $valuePattern -and -not $valuePattern.Current.IsReadOnly) {
-    $valuePattern.SetValue($FolderPath)
+if ($null -ne $folderField.Pattern) {
+    $folderField.Pattern.SetValue($FolderPath)
 } else {
-    $folderField.SetFocus()
+    $folderField.Element.SetFocus()
     [System.Windows.Forms.SendKeys]::SendWait('^a')
     [System.Windows.Forms.SendKeys]::SendWait($FolderPath)
 }
+try { $folderField.Element.SetFocus() } catch { }
 [System.Windows.Forms.SendKeys]::SendWait('{ENTER}')
 
 $buttonCondition = [System.Windows.Automation.PropertyCondition]::new(
