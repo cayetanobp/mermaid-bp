@@ -1,4 +1,4 @@
-import {reopenSavedDocument,openBookStack} from './document-helpers';
+import {reopenSavedDocument} from './document-helpers';
 import {command} from './menu-helpers';
 import {test,expect,type Page} from '@playwright/test';
 const ready=(p:Page)=>expect(p.locator('#render-state')).toHaveText('Actualizado');
@@ -20,7 +20,7 @@ async function drag(p:Page,x:number,y:number,dx:number,dy:number,cancel=false) {
   await p.mouse.up();await ready(p);
 }
 const example='%% mermaid-bp:manual-layout\nflowchart TD\nsubgraph G["Grupo de prueba"]\nA[Uno] --> B[Dos]\nend\nC[Fuera]\nstyle G fill:#ffffdd';
-test('el fondo se mueve y redimensiona sin mover nodos, se fija y coincide al recargar y comprobar BS',async({page,context})=>{
+test('el fondo se mueve y redimensiona sin mover nodos y coincide al recargar',async({page,context})=>{
   page.on('dialog',d=>d.accept());await open(page,example);
   const rect=page.locator('g.cluster:is(#G,[id$="-G"]) > rect'),r=(await rect.boundingBox())!,before=await scene(page);
   await drag(page,r.x+8,r.y+r.height/2,30,15);
@@ -37,11 +37,6 @@ test('el fondo se mueve y redimensiona sin mover nodos, se fija y coincide al re
   await drag(page,a.x+a.width/2,a.y+a.height/2,-90,-70);
   const nodeMoved=await scene(page);expect(nodeMoved.box).toEqual(resized.box);expect(nodeMoved.nodes).not.toEqual(resized.nodes);
   await reopenSavedDocument(page);await ready(page);expect(await scene(page)).toEqual(nodeMoved);
-  const check=await openBookStack(page);
-  await expect(check.locator('#check-state')).toContainText('posiciones del editor');
-  const bs=await scene(check,'#check-output svg');
-  for(const k of ['x','y','width','height']as const)expect(bs.box[k]).toBeCloseTo(nodeMoved.box[k],3);
-  expect(bs.nodes).toEqual(nodeMoved.nodes);expect(bs.title).toEqual(nodeMoved.title);
   await page.screenshot({path:'test-results/fondo-independiente.png'});
 });
 test('ajustar al contenido reduce un fondo sobredimensionado y permite deshacer',async({page})=>{

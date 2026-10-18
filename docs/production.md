@@ -75,7 +75,7 @@ Establece el origen de la web principal en `EMBED_ORIGIN`. Si tu web usa CSP, pe
 
 En producción, el documento y su nombre permanecen en memoria del navegador. No se escriben en localStorage, sessionStorage, un backend ni el servidor. Recargar pierde los cambios no descargados. Guardar y exportar descargan archivos solo a petición del usuario.
 
-La vista previa de BookStack recibe el texto mediante un canal temporal del navegador. No se envía el documento al servidor ni se introduce en la URL. También en desarrollo local, `npm.cmd run dev` o `scripts/iniciar.cmd` mantienen el documento únicamente en memoria; recargar lo descarta.
+El documento permanece únicamente en memoria; recargar lo descarta. Las extensiones pueden usar sus propios canales para recibir datos, según sus políticas y documentación.
 
 Solo se admiten `.mmd` UTF-8, de hasta 200 kB, con comprobación de sintaxis. Se bloquean contenido activo, callbacks y recursos externos; el SVG se sanitiza antes de mostrarlo o exportarlo. La configuración de etiquetas HTML se desactiva sin modificar el archivo original.
 

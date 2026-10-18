@@ -9,7 +9,6 @@ export function runtimePlugins():Plugin{
  const root=process.cwd(),pluginsRoot=resolve(root,'plugins');
  const middleware=(dev?:ViteDevServer)=>async(req:any,res:any,next:()=>void)=>{
   let path:string;try{path=decodeURIComponent(new URL(req.url??'','http://localhost').pathname);}catch{res.statusCode=400;res.end();return;}
-  if(dev&&path==='/bookstack.html'){res.statusCode=302;res.setHeader('Location','/plugins/bookstack/bookstack.html');res.end();return;}
   if(!path.startsWith('/plugins/')){next();return;}
   res.setHeader('Cache-Control','no-store');res.setHeader('X-Content-Type-Options','nosniff');
   if(path==='/plugins/'){

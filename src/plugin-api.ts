@@ -14,5 +14,5 @@ export interface PluginContext {
   };
 }
 export interface EditorPlugin { setup(context: PluginContext): void|(() => void)|Promise<void|(() => void)> }
-export interface PluginManifest { id: string; name: string; description: string; version: string; apiVersion: number; enabledByDefault?: boolean }
-export interface PluginDescriptor { manifest: PluginManifest; load(): Promise<{ default: EditorPlugin }> }
+export interface PluginManifest { id: string; name: string; description: string; version: string; apiVersion: number; entry?: string; enabledByDefault?: boolean }
+export interface PluginDescriptor { manifest: PluginManifest; managed?: boolean; load(): Promise<{ default: EditorPlugin }> }

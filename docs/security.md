@@ -47,7 +47,7 @@ El resultado de las pruebas del perfil de producción se registra junto a la ent
 
 La primera imagen tenía dos avisos altos de libexpat, una dependencia de los módulos de procesamiento de imágenes que no utiliza este servidor estático. Se retiraron esos módulos y sus dependencias, se actualizaron los paquetes de la imagen base y se repitieron el análisis y las pruebas sobre la imagen final. No se ocultaron esos avisos mediante filtros o excepciones.
 
-Las pruebas de navegador verifican selección, arrastre, deshacer y rehacer, creación y edición de nodos, archivo real de 27 nodos, exportación sanitizada y entrega a BookStack sin persistencia. Los casos de ataque se mantuvieron como datos de prueba locales.
+Las pruebas de navegador verifican selección, arrastre, deshacer y rehacer, creación y edición de nodos, archivo real de 27 nodos y exportación sanitizada. Los casos de ataque se mantuvieron como datos de prueba locales.
 
 ## Despliegue integrado en Git
 

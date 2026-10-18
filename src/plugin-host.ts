@@ -1,4 +1,5 @@
-import { descriptors, discoverPlugins, discoveryErrors, enabledPreference, savePluginPreference } from './plugin-state';
+import { descriptors, discoverPlugins, discoveryErrors, enabledPreference, resetPluginDiscovery, savePluginPreference } from './plugin-state';
+import {removeLocalPlugin} from './desktop-plugin-bridge';
 import type { DocumentSnapshot, GuideStep, PluginContext, PluginDescriptor } from './plugin-api';
 interface Active { cleanups: Array<()=>void>; listeners: Set<(snapshot:Readonly<DocumentSnapshot>)=>void>; steps: GuideStep[] }
 export class PluginHost {
@@ -7,11 +8,20 @@ export class PluginHost {
   private versions=new Map<string,number>();
   private lastDocument='';
   private statuses=new Map<string,string>();
-  constructor(private read:()=>DocumentSnapshot,private notify:(message:string)=>void,private installed:PluginDescriptor[]=descriptors) {}
+  private readonly usesDiscovery:boolean;
+  constructor(private read:()=>DocumentSnapshot,private notify:(message:string)=>void,private installed:PluginDescriptor[]=descriptors) {this.usesDiscovery=installed===descriptors;}
   async start() {
     this.createManager();
     if(this.installed===descriptors)await discoverPlugins();
-    await Promise.all(this.installed.filter(d=>enabledPreference(d.manifest.id,d.manifest.enabledByDefault!==false)).map(d=>this.setEnabled(d.manifest.id,true,false)));
+    for(const descriptor of this.installed)if(descriptor.manifest.apiVersion!==1)this.statuses.set(descriptor.manifest.id,'Versión de API incompatible');
+    await Promise.all(this.installed.filter(d=>d.manifest.apiVersion===1&&enabledPreference(d.manifest.id,d.manifest.enabledByDefault!==false)).map(d=>this.setEnabled(d.manifest.id,true,false)));
+    this.refreshManager();
+  }
+  async reloadInstalled() {
+    if(!this.usesDiscovery)return;
+    for(const descriptor of this.installed)this.dispose(descriptor.manifest.id);
+    resetPluginDiscovery();this.statuses.clear();await discoverPlugins();this.installed=descriptors;
+    await Promise.all(this.installed.filter(d=>d.manifest.apiVersion===1&&enabledPreference(d.manifest.id,d.manifest.enabledByDefault!==false)).map(d=>this.setEnabled(d.manifest.id,true,false)));
     this.refreshManager();
   }
   documentChanged() {
@@ -62,7 +72,7 @@ export class PluginHost {
       this.pending.delete(id);this.active.set(id,owned);this.statuses.set(id,'Activo');
     } catch {
       this.cleanup(owned);if(this.versions.get(id)!==token)return;this.pending.delete(id);this.statuses.set(id,'No se pudo activar');
-      this.notify('No se ha podido activar una extensión. El editor sigue disponible.');
+      this.notify('No se ha podido activar la extensión '+descriptor.manifest.name+'. Comprueba el módulo de entrada y la función setup; el editor sigue disponible.');
     }
     this.refreshManager();
   }
@@ -89,7 +99,9 @@ export class PluginHost {
       const name=document.createElement('span');name.textContent=m.name;label.append(input,name);
       const description=document.createElement('p');description.textContent=m.description;
       const status=document.createElement('small');status.dataset.pluginStatus=m.id;status.textContent=`${this.statuses.get(m.id)??'Desactivado'} · ${m.version}`;
-      row.append(label,description,status);list.append(row);
+      row.append(label,description,status);
+      if(descriptor.managed){const remove=document.createElement('button');remove.type='button';remove.id=`plugin-${m.id}-remove`;remove.className='plugin-remove';remove.textContent='Retirar';remove.setAttribute('aria-label',`Retirar ${m.name}`);remove.onclick=async()=>{if(!window.confirm(`Se retirará ${m.name} del almacenamiento de esta aplicación. Los documentos no se modificarán.`))return;const localStatus=document.getElementById('plugin-local-status');if(localStatus)localStatus.textContent=`Retirando ${m.name}…`;try{await removeLocalPlugin(m.id);await this.reloadInstalled();if(localStatus)localStatus.textContent=`Plugin ${m.name} retirado.`;}catch(error){if(localStatus)localStatus.textContent='No se pudo retirar: '+(error instanceof Error?error.message:String(error));}};row.append(remove);}
+      list.append(row);
     }
   }
 }

@@ -1,4 +1,4 @@
-import {reopenSavedDocument,openBookStack} from './document-helpers';
+import {reopenSavedDocument} from './document-helpers';
 import {command} from './menu-helpers';
 import {test,expect,type Page} from '@playwright/test';
 const ready=(p:Page)=>expect(p.locator('#render-state')).toHaveText('Actualizado');
@@ -27,8 +27,6 @@ test('crear subgrupo vacío, asignar nodos, renombrar, anidar, sacar nodos y eli
  await page.locator('[data-node-id="A"]').click();await page.locator('#selection').getByRole('button',{name:'Editar',exact:true}).click();await page.locator('#node-group').selectOption('');
  await page.locator('#node-form').getByRole('button',{name:'Aplicar'}).click();await ready(page);await expect(page.locator('#error')).toBeHidden();
  await reopenSavedDocument(page);await ready(page);expect(await positions(page)).toEqual(initial);
- const check=await openBookStack(page);await expect(check.locator('#check-state')).toContainText('posiciones del editor');await expect(check.locator('#check-output g.node')).toHaveCount(await page.locator('#diagram g.node').count());
- for(const id of ['A','B','C'])await expect(check.locator('#check-output [id*="-flowchart-'+id+'-"]')).toHaveCount(1);
 });
 test('crear una conexión por clics conserva posiciones manuales inmediatamente y al reabrir el archivo',async({page})=>{
  page.on('dialog',d=>d.accept());await open(page,source);const before=await positions(page);

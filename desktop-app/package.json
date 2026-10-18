@@ -1,15 +1,19 @@
 {
   "name": "mermaid-bp-desktop",
-  "version": "1.0.0-alpha.2",
+  "version": "1.0.0-beta.1",
   "license": "AGPL-3.0-only",
   "private": true,
   "scripts": {
     "dev": "tauri dev",
-    "build": "tauri build",
+    "build": "tauri build -- --locked",
     "build:frontend": "node build.mjs",
     "test": "cd .. && node --test tests/desktop.test.mjs"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.0.0"
+  },
+  "dependencies": {
+    "@tauri-apps/plugin-process": "^2.4.0",
+    "@tauri-apps/plugin-updater": "^2.14.0"
   }
 }

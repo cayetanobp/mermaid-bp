@@ -1,18 +1,20 @@
 import {getPreferences,preferenceDefaults,subscribePreferences,updatePreferences,type Preferences} from './preferences';
 import {closeAppMenus} from './app-menus';
+import {chooseLocalPluginFolder,desktopPluginBridge,installLocalPlugin} from './desktop-plugin-bridge';
+import {setupDesktopUpdater} from './desktop-updater';
 import './settings.css';
 type Section='general'|'editor'|'diagram'|'extensions';
 const sections:Record<Section,string>={general:'General',editor:'Editor',diagram:'Diagrama',extensions:'Extensiones'};
 const fields:Record<Section,Array<keyof Preferences>>={general:['defaultPane','showHints','motion'],editor:['editorFontSize','lineWrapping','lineNumbers','highlightActiveLine'],diagram:['showGrid','zoomSpeed'],extensions:[]};
 
-export function setupSettings(onEditorChange:()=>void){
+export function setupSettings(onEditorChange:()=>void,reloadPlugins:()=>Promise<void>=async()=>{}){
  const dialog=document.createElement('dialog');dialog.id='settings-dialog';dialog.setAttribute('aria-labelledby','settings-title');
  dialog.innerHTML=`<header class="settings-heading"><h1 id="settings-title">Configuración</h1><button id="settings-close" type="button" aria-label="Cerrar configuración">×</button></header>
  <div class="settings-layout"><nav class="settings-sidebar" role="tablist" aria-label="Secciones de configuración" aria-orientation="vertical"></nav><div class="settings-content">
  <section id="settings-general" role="tabpanel" aria-labelledby="settings-tab-general"><h2>General</h2><p class="settings-intro">Preferencias para este navegador. Tus archivos y posiciones se conservan.</p></section>
  <section id="settings-editor" role="tabpanel" aria-labelledby="settings-tab-editor" hidden><h2>Editor</h2><p class="settings-intro">Ajusta la lectura y escritura del código Mermaid.</p></section>
  <section id="settings-diagram" role="tabpanel" aria-labelledby="settings-tab-diagram" hidden><h2>Diagrama</h2><p class="settings-intro">Cambia el lienzo y sus controles. Los estilos del archivo y de las exportaciones se conservan.</p></section>
- <section id="plugins-dialog" role="tabpanel" aria-labelledby="settings-tab-extensions" hidden><h2 id="plugins-title">Extensiones</h2><p class="settings-intro">Activa las funciones que necesitas. Para instalar un plugin, copia su carpeta en plugins y recarga la web.</p><div id="plugin-list"></div></section>
+ <section id="plugins-dialog" role="tabpanel" aria-labelledby="settings-tab-extensions" hidden><h2 id="plugins-title">Extensiones</h2><p class="settings-intro">Activa o desactiva plugins disponibles. La edición y el documento permanecen abiertos al gestionar extensiones.</p><div id="plugin-list"></div></section>
  </div></div><footer class="settings-footer"><p id="settings-status" role="status">Los cambios se guardan en este navegador.</p><button id="settings-reset" type="button">Restablecer sección</button><button id="plugins-close" type="button">Cerrar</button></footer>`;
  document.getElementById('app')!.append(dialog);
  // Espacio activa los controles del panel, sin iniciar el desplazamiento del lienzo.
@@ -52,7 +54,40 @@ export function setupSettings(onEditorChange:()=>void){
   for(const input of dialog.querySelectorAll<HTMLInputElement|HTMLSelectElement>('[data-preference]')){const value=preferences[input.dataset.preference as keyof Preferences];if(input instanceof HTMLInputElement)input.checked=Boolean(value);else input.value=String(value);}
   onEditorChange();
  }
- subscribePreferences(apply);apply(getPreferences());select('general');
+ if(desktopPluginBridge())get('plugins-dialog').insertAdjacentHTML('beforeend',`<div id="plugin-import-controls"><p>Instala una carpeta de plugin en el almacenamiento privado de esta aplicación.</p><label class="plugin-folder-label" for="plugin-folder-select">Elegir carpeta de plugin</label><button id="plugin-folder-select" type="button">Seleccionar carpeta</button><p id="plugin-import-error" role="alert" hidden></p><div id="plugin-import-preview" hidden></div><p id="plugin-trust-warning" hidden>El plugin ejecuta código local con los permisos de la aplicación. La API de plugins organiza sus funciones, pero no aísla ni limita ese código.</p><label id="plugin-trust-label" hidden><input id="plugin-trust-confirm" type="checkbox"> Entiendo que el plugin ejecutará código local con los permisos de la aplicación</label><button id="plugin-install" type="button" hidden disabled>Instalar plugin</button><p id="plugin-local-status" role="status" aria-live="polite"></p></div>`);
+ const importControls=dialog.querySelector<HTMLElement>('#plugin-import-controls');
+ if(importControls){
+ const choose=dialog.querySelector<HTMLButtonElement>('#plugin-folder-select')!,preview=get('plugin-import-preview'),error=get('plugin-import-error'),warning=get('plugin-trust-warning'),trustLabel=get('plugin-trust-label') as HTMLElement,trust=get('plugin-trust-confirm') as HTMLInputElement,install=get('plugin-install') as HTMLButtonElement,status=get('plugin-local-status');
+ let pending:{id:string;paths:string[];contents:string[];name:string}|null=null;
+ const showImportError=(message:string)=>{error.textContent=message;error.hidden=false;pending=null;preview.hidden=true;warning.hidden=true;trustLabel.hidden=true;install.hidden=true;};
+ choose.onclick=async()=>{
+  error.hidden=true;preview.hidden=true;warning.hidden=true;trustLabel.hidden=true;install.hidden=true;trust.checked=false;pending=null;status.textContent='';
+  choose.disabled=true;
+  try{
+   const selection=await chooseLocalPluginFolder();if(!selection)return;
+   const max=32*1024*1024;if(!selection.folderName||selection.paths.length===0||selection.paths.length!==selection.contents.length||selection.paths.length>256||selection.contents.some(content=>typeof content!=='string'||!/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(content))||selection.contents.reduce((sum,content)=>sum+Math.floor(content.length/4)*3-(content.endsWith('==')?2:content.endsWith('=')?1:0),0)>max)throw Error('La carpeta supera los límites de archivos o tamaño (256 archivos y 32 MB), o no contiene archivos.');
+   const paths:string[]=[],contents:string[]=[],decodeBase64=(text:string)=>Uint8Array.from(atob(text),char=>char.charCodeAt(0));let manifest:Record<string,unknown>|null=null;
+   for(let i=0;i<selection.paths.length;i++){const path=selection.paths[i],raw=selection.contents[i];if(typeof path!=='string'||!path||path.startsWith('/')||path.split('/').some(part=>!part||part==='.'||part==='..')||path.includes('\\'))throw Error('La carpeta contiene una ruta de archivo no válida.');paths.push(path);contents.push(raw);if(path==='plugin.json'){try{manifest=JSON.parse(new TextDecoder().decode(decodeBase64(raw)));}catch{throw Error('plugin.json no contiene JSON válido.');}}}
+   if(!manifest||typeof manifest!=='object'||Array.isArray(manifest))throw Error('La carpeta debe incluir plugin.json en su raíz.');
+   const id=manifest.id,name=manifest.name,description=manifest.description,version=manifest.version,apiVersion=manifest.apiVersion,entry=manifest.entry??'index.js';
+   if(typeof id!=='string'||!/^[a-z][a-z0-9-]*$/.test(id)||typeof name!=='string'||!name.trim()||typeof description!=='string'||!description.trim()||typeof version!=='string'||!version.trim()||!Number.isInteger(apiVersion))throw Error('plugin.json debe incluir id, name, description, version y apiVersion válidos.');
+   if(selection.folderName!==id)throw Error('El nombre de la carpeta debe coincidir con el id de plugin.json.');
+   if(manifest.enabledByDefault!==undefined&&typeof manifest.enabledByDefault!=='boolean')throw Error('El campo enabledByDefault debe ser booleano.');
+   if(apiVersion!==1)throw Error(`La API ${apiVersion} no es compatible; esta aplicación admite la API 1.`);
+   if(typeof entry!=='string'||!/^[a-zA-Z0-9_./-]+\.(?:m?js)$/.test(entry)||entry.startsWith('/')||entry.split('/').some(part=>part==='..'||part===''))throw Error('La ruta de entrada no es válida.');
+   if(!paths.includes(entry))throw Error(`No se encontró el archivo de entrada ${entry}.`);
+   pending={id,paths,contents,name};preview.textContent=`${name} · versión ${version} · API 1 compatible`;preview.hidden=false;warning.hidden=false;trustLabel.hidden=false;install.textContent='Instalar o actualizar plugin';install.hidden=false;install.disabled=true;
+  }catch(reason){showImportError(reason instanceof Error?reason.message:'No se pudo validar la carpeta del plugin.');}
+  finally{choose.disabled=false;}
+ };
+ trust.onchange=()=>{install.disabled=!trust.checked;};
+ install.onclick=async()=>{
+  if(!pending||!trust.checked)return;install.disabled=true;status.textContent='Instalando plugin…';
+  try{const current=pending;const message=await installLocalPlugin(current.id,current.paths,current.contents);await reloadPlugins();status.textContent=message;pending=null;preview.hidden=true;warning.hidden=true;trustLabel.hidden=true;install.hidden=true;trust.checked=false;}
+  catch(reason){status.textContent='No se pudo instalar: '+(reason instanceof Error?reason.message:String(reason));install.disabled=false;}
+ };
+ }
+ subscribePreferences(apply);apply(getPreferences());setupDesktopUpdater(panel('general'));select('general');
  function open(section:Section){const current=document.activeElement as HTMLElement;const trigger=current.closest('[role="menu"]')?.getAttribute('aria-labelledby');returnFocus=trigger?document.getElementById(trigger):current;closeAppMenus();select(section);get('settings-status').textContent='Los cambios se guardan en este navegador.';if(!dialog.open)dialog.showModal();get('settings-tab-'+section).focus();}
  get('settings-button').onclick=()=>open('general');get('plugins-button').onclick=()=>open('extensions');
  get('settings-close').onclick=()=>dialog.close();get('plugins-close').onclick=()=>dialog.close();dialog.onclose=()=>returnFocus?.focus({preventScroll:true});

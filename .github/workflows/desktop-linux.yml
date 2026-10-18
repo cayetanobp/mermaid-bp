@@ -1,0 +1,216 @@
+name: Aplicación de escritorio Linux
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      reuse_build_run_id:
+        description: Prior Linux build run whose artifact can be reused for a smoke-only check
+        required: false
+        type: string
+      reuse_deb_sha256:
+        description: SHA256 of the .deb artifact from reuse_build_run_id
+        required: false
+        type: string
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+permissions:
+  contents: read
+  actions: read
+jobs:
+  deb-installed-smoke:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            desktop-app/package-lock.json
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+        if: inputs.reuse_build_run_id == ''
+        with:
+          workspaces: desktop-app/src-tauri -> target
+          cache-on-failure: true
+      - name: Instalar dependencias Linux, WebDriver y Xvfb
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential curl wget file libssl-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev libwebkit2gtk-4.1-dev libxdo-dev webkit2gtk-driver xdotool xvfb scrot openbox x11-utils dbus-daemon dbus-x11 libglib2.0-bin xdg-desktop-portal xdg-desktop-portal-gtk at-spi2-core python3-pyatspi python3-selenium tesseract-ocr
+      - name: Exigir la clave de firma para las compilaciones de confianza
+        if: (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && (github.event_name != 'workflow_dispatch' || inputs.reuse_build_run_id == '')
+        env:
+          SIGNING_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: test -n "$SIGNING_KEY" || { echo 'Missing TAURI_SIGNING_PRIVATE_KEY; the Linux updater package must be signed.' >&2; exit 1; }
+      - name: Instalar tauri-driver
+        run: cargo install tauri-driver --locked
+      - run: npm ci
+        if: inputs.reuse_build_run_id == ''
+      - run: npm ci --prefix desktop-app
+        if: inputs.reuse_build_run_id == ''
+      - name: Preparar configuración Debian con artefactos updater cuando hay firma
+        if: inputs.reuse_build_run_id == ''
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          if [[ -n "$TAURI_SIGNING_PRIVATE_KEY" ]]; then
+            printf '{"bundle":{"createUpdaterArtifacts":true}}' > "$RUNNER_TEMP/tauri-linux.json"
+          else
+            printf '{"bundle":{"createUpdaterArtifacts":false}}' > "$RUNNER_TEMP/tauri-linux.json"
+          fi
+      - name: Compilar el paquete Debian con Cargo bloqueado
+        if: inputs.reuse_build_run_id == ''
+        working-directory: desktop-app
+        run: npm exec -- tauri build --config "$RUNNER_TEMP/tauri-linux.json" -- --locked
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
+      - name: Reutilizar .deb de una compilación Linux verificada
+        if: inputs.reuse_build_run_id != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN_ID: ${{ inputs.reuse_build_run_id }}
+          SOURCE_DEB_SHA256: ${{ inputs.reuse_deb_sha256 }}
+        run: |
+          set -euo pipefail
+          test -n "$SOURCE_RUN_ID"
+          test -n "$SOURCE_DEB_SHA256"
+          expected_sha="${SOURCE_DEB_SHA256,,}"
+          if [[ ! "$expected_sha" =~ ^[[:xdigit:]]{64}$ ]]; then
+            echo "Expected a 64-character hexadecimal SHA256; received length ${#SOURCE_DEB_SHA256}." >&2
+            exit 1
+          fi
+          run_json="$(gh run view "$SOURCE_RUN_ID" --repo "$GITHUB_REPOSITORY" --json workflowName,headBranch,headSha,status,conclusion)"
+          source_workflow="$(jq -r .workflowName <<<"$run_json")"
+          source_branch="$(jq -r .headBranch <<<"$run_json")"
+          source_status="$(jq -r .status <<<"$run_json")"
+          if [[ "$source_workflow" != "Aplicación de escritorio Linux" || "$source_status" != completed ]]; then
+            echo "Source run $SOURCE_RUN_ID is not a completed Linux build (workflow=$source_workflow, status=$source_status)." >&2
+            exit 1
+          fi
+          if [[ "$source_branch" != "$GITHUB_REF_NAME" ]]; then
+            echo "Source run branch $source_branch does not match requested branch $GITHUB_REF_NAME." >&2
+            exit 1
+          fi
+          source_sha="$(jq -r .headSha <<<"$run_json")"
+          if ! git merge-base --is-ancestor "$source_sha" "$GITHUB_SHA"; then
+            echo "Source SHA $source_sha is not an ancestor of current SHA $GITHUB_SHA." >&2
+            exit 1
+          fi
+          changed_files="$(git diff --name-only "$source_sha" "$GITHUB_SHA")"
+          printf 'Files changed since source package build:\n%s\n' "${changed_files:-<none>}"
+          while IFS= read -r file; do
+            [ -z "$file" ] && continue
+            case "$file" in
+              scripts/smoke-linux-installed.sh|.github/workflows/desktop-linux.yml|.github/workflows/checks.yml|AGENTS.md|docs/agents/implementation.md|docs/agents/release.md|scripts/audit-windows-docker.ps1|scripts/build-cache.ps1|scripts/build-linux-deb-docker.ps1|tests/desktop.test.mjs) ;;
+              *) echo "Cannot reuse package: app source changed at $file" >&2; exit 1 ;;
+            esac
+          done <<<"$changed_files"
+          mkdir -p "$RUNNER_TEMP/reused-deb" desktop-app/src-tauri/target/release/bundle/deb
+          gh run download "$SOURCE_RUN_ID" --repo "$GITHUB_REPOSITORY" --name mermaid-bp-linux-deb --dir "$RUNNER_TEMP/reused-deb"
+          shopt -s nullglob
+          packages=("$RUNNER_TEMP/reused-deb"/*.deb)
+          if [ "${#packages[@]}" -ne 1 ]; then
+            echo "Expected one .deb from run $SOURCE_RUN_ID, found ${#packages[@]}." >&2
+            exit 1
+          fi
+          actual_sha="$(sha256sum "${packages[0]}" | cut -d' ' -f1)"
+          if [[ "$actual_sha" != "$expected_sha" ]]; then
+            echo "Downloaded .deb SHA256 mismatch: expected $expected_sha, got $actual_sha." >&2
+            exit 1
+          fi
+          echo "Verified .deb SHA256 $actual_sha from source run $SOURCE_RUN_ID ($source_sha)."
+          cp "${packages[0]}" desktop-app/src-tauri/target/release/bundle/deb/
+      - name: Verificar nombre, versión y arquitectura del paquete
+        run: |
+          shopt -s nullglob
+          packages=(desktop-app/src-tauri/target/release/bundle/deb/*.deb)
+          if [ "${#packages[@]}" -ne 1 ]; then
+            printf 'Expected exactly one .deb package, found %s\n' "${#packages[@]}"
+            exit 1
+          fi
+          package="${packages[0]}"
+          dpkg-deb --info "$package"
+          test "$(dpkg-deb -f "$package" Package)" = mermaid-bp
+          test "$(dpkg-deb -f "$package" Version)" = 1.0.0-beta.1
+          test "$(dpkg-deb -f "$package" Architecture)" = amd64
+      - name: Instalar paquete en el runner y probar edición y exportación
+        run: |
+          shopt -s nullglob
+          packages=(desktop-app/src-tauri/target/release/bundle/deb/*.deb)
+          test "${#packages[@]}" -eq 1
+          sudo apt-get install -y "./${packages[0]}"
+          mkdir -p "$RUNNER_TEMP/xdg-runtime"
+          chmod 700 "$RUNNER_TEMP/xdg-runtime"
+          XDG_CURRENT_DESKTOP=GNOME XDG_RUNTIME_DIR="$RUNNER_TEMP/xdg-runtime" xvfb-run --auto-servernum --server-args='-screen 0 1440x1000x24' dbus-run-session -- bash -c '
+            set -euo pipefail
+            mkdir -p "$MERMAID_BP_SMOKE_DIR"
+            openbox --sm-disable >"$MERMAID_BP_SMOKE_DIR/openbox.log" 2>&1 &
+            wm_pid=$!
+            cleanup() { kill "$wm_pid" 2>/dev/null || true; }
+            trap cleanup EXIT
+            for _ in $(seq 1 100); do
+              if xprop -root _NET_SUPPORTING_WM_CHECK | grep -q "window id"; then break; fi
+              sleep 0.1
+            done
+            xprop -root _NET_SUPPORTING_WM_CHECK | grep -q "window id" || { cat "$MERMAID_BP_SMOKE_DIR/openbox.log"; exit 1; }
+            gdbus introspect --session --dest org.freedesktop.portal.Desktop --object-path /org/freedesktop/portal/desktop >"$MERMAID_BP_SMOKE_DIR/portal-introspection.txt" 2>"$MERMAID_BP_SMOKE_DIR/portal-introspection.stderr"
+            bash ./scripts/smoke-linux-installed.sh
+          '
+        env:
+          MERMAID_BP_SMOKE_DIR: ${{ runner.temp }}/mermaid-bp-linux-smoke
+      - name: Probar la actualización Debian firmada en una aplicación instalada
+        if: inputs.reuse_build_run_id == '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        run: |
+          mkdir -p "$RUNNER_TEMP/mermaid-bp-linux-updater-diagnostics" "$RUNNER_TEMP/xdg-runtime"
+          chmod 700 "$RUNNER_TEMP/xdg-runtime"
+          XDG_CURRENT_DESKTOP=GNOME XDG_RUNTIME_DIR="$RUNNER_TEMP/xdg-runtime" xvfb-run --auto-servernum --server-args='-screen 0 1440x1000x24' dbus-run-session -- bash -c '
+            set -euo pipefail
+            openbox --sm-disable >"$MERMAID_BP_LINUX_UPDATER_DIAGNOSTICS/openbox.log" 2>&1 &
+            wm_pid=$!
+            trap "kill $wm_pid 2>/dev/null || true" EXIT
+            for _ in $(seq 1 100); do
+              if xprop -root _NET_SUPPORTING_WM_CHECK | grep -q "window id"; then break; fi
+              sleep 0.1
+            done
+            xprop -root _NET_SUPPORTING_WM_CHECK | grep -q "window id"
+            bash ./scripts/linux-updater-e2e.sh
+          '
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
+          MERMAID_BP_LINUX_UPDATER_OUT: ${{ runner.temp }}/mermaid-bp-linux-updater
+          MERMAID_BP_LINUX_UPDATER_DIAGNOSTICS: ${{ runner.temp }}/mermaid-bp-linux-updater-diagnostics
+          MERMAID_BP_SMOKE_DIR: ${{ runner.temp }}/mermaid-bp-linux-smoke
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mermaid-bp-linux-smoke
+          path: ${{ runner.temp }}/mermaid-bp-linux-smoke
+          if-no-files-found: ignore
+      - uses: actions/upload-artifact@v4
+        if: inputs.reuse_build_run_id == '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        with:
+          name: mermaid-bp-linux-updater
+          path: ${{ runner.temp }}/mermaid-bp-linux-updater/*
+          if-no-files-found: error
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: failure() && inputs.reuse_build_run_id == '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        with:
+          name: mermaid-bp-linux-updater-diagnostics
+          path: ${{ runner.temp }}/mermaid-bp-linux-updater-diagnostics/*
+          if-no-files-found: ignore
+          retention-days: 3
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mermaid-bp-linux-deb
+          path: desktop-app/src-tauri/target/release/bundle/deb/*.deb
+          if-no-files-found: error

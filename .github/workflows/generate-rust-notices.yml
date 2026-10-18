@@ -1,0 +1,34 @@
+name: Generar avisos Rust para revisión
+on:
+  pull_request:
+    paths:
+      - 'desktop-app/src-tauri/Cargo.toml'
+      - 'desktop-app/src-tauri/Cargo.lock'
+      - 'scripts/write-rust-third-party-notices.mjs'
+      - 'licenses/upstream/**'
+      - '.github/workflows/generate-rust-notices.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  generate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Resolver las features de producción Windows y generar lock y avisos
+        shell: bash
+        run: |
+          cargo metadata --format-version 1 --filter-platform x86_64-pc-windows-msvc --features tauri/custom-protocol,tauri/protocol-asset --manifest-path desktop-app/src-tauri/Cargo.toml > "$RUNNER_TEMP/rust-metadata.json"
+          cp desktop-app/src-tauri/Cargo.lock "$RUNNER_TEMP/Cargo.lock"
+          node scripts/write-rust-third-party-notices.mjs "$RUNNER_TEMP/rust-metadata.json" "$RUNNER_TEMP/THIRD_PARTY_RUST_NOTICES.md"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: third-party-rust-notices
+          path: |
+            ${{ runner.temp }}/Cargo.lock
+            ${{ runner.temp }}/THIRD_PARTY_RUST_NOTICES.md
+          if-no-files-found: error

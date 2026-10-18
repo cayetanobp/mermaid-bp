@@ -4,7 +4,12 @@ import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
 import { parseFlow, serializeFlow, encodeLabel, decodeLabel, example, removeNode, nextId, edgePathMap } from '../src/flow.ts';
 import { layoutCandidates, scoreLayout } from '../src/layout.ts';
+import { pluginAssetPath } from '../src/desktop-plugin-bridge.ts';
 function parsed(text: string) { const p = parseFlow(text); assert.ok(p.ok, p.ok ? '' : p.reason); return p.flow; }
+test('construye rutas de assets de plugins con los separadores nativos', () => {
+  assert.equal(pluginAssetPath('/home/user/.local/share/app/plugins/', 'demo', 'nested\\entry.js'), '/home/user/.local/share/app/plugins/demo/nested/entry.js');
+  assert.equal(pluginAssetPath('C:\\Users\\user\\AppData\\plugins\\', 'demo', 'nested/entry.js'), 'C:\\Users\\user\\AppData\\plugins\\demo\\nested\\entry.js');
+});
 test('el ejemplo conserva nodos, conexiones, formas y etiquetas', () => {
   const flow = parsed(example);
   assert.equal(flow.nodes.length, 4); assert.equal(flow.edges.length, 4);

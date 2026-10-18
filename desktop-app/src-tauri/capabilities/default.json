@@ -3,5 +3,5 @@
   "identifier": "main",
   "description": "Ventanas locales del editor y vistas previas",
   "windows": ["main", "preview-*"],
-  "permissions": ["core:default"]
+  "permissions": ["core:default", "updater:default", "process:allow-restart"]
 }

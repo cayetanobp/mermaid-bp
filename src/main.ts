@@ -91,6 +91,7 @@ let current: Rendered | null = null;
 let renderedSource = '';
 let flow: Flow | null = null;
 let valid = false;
+let recoverableLayout = false;
 let busy = false;
 let selected: { node?: string; edge?: number } = {};
 let selectedGroup:string|null=null;
@@ -166,7 +167,8 @@ function applyFlow(next: Flow) {
 }
 function updateControls() {
   const enabled = !!flow && valid && !busy;
-  for (const id of ['add-node', 'add-edge', 'connect-nodes', 'manage-groups', 'relayout', 'direction']) ($<HTMLButtonElement>(id)).disabled = !enabled || (['add-edge','connect-nodes'].includes(id) && flow!.nodes.length === 0);
+  for (const id of ['add-node', 'add-edge', 'connect-nodes', 'manage-groups', 'direction']) ($<HTMLButtonElement>(id)).disabled = !enabled || (['add-edge','connect-nodes'].includes(id) && flow!.nodes.length === 0);
+  $<HTMLButtonElement>('relayout').disabled = !(!!flow && !busy && (valid || recoverableLayout));
   for (const id of ['svg', 'png']) $<HTMLButtonElement>(id).disabled = !valid || !current || busy;
   $<HTMLButtonElement>('fit-view').disabled=!current||!valid||busy;
   $('selection').hidden = true;
@@ -177,6 +179,7 @@ function updateControls() {
 }
 async function render() {
   const token = generation, text = source();
+  recoverableLayout = false;
   try{assertSourceSafe(text);}catch(error){valid=false;flow=null;$('error').hidden=false;$('error').textContent=(error as Error).message;$('render-state').textContent='No se puede renderizar';updateControls();return;}
   const previousBox=$('diagram').querySelector('svg')?.viewBox.baseVal;
   const previousOrigin=previousBox?{x:previousBox.x,y:previousBox.y}:null;
@@ -218,6 +221,7 @@ async function render() {
     updateControls(); $('render-state').textContent = 'Actualizado';
   } catch (error) {
     if (token !== generation) return;
+    recoverableLayout = !!flow && hasManualLayout(text) && error instanceof Error && error.message === 'El diagrama supera los límites de complejidad o tamaño.';
     valid = false; $('error').hidden = false;
     $('error').textContent = `Revisa el código. ${error instanceof Error ? error.message : String(error)}`;
     $('render-state').textContent = current ? 'Vista anterior · código con errores' : 'Código con errores';
@@ -709,7 +713,7 @@ $('undo').onclick = () => undo(editor); $('redo').onclick = () => redo(editor);
 $('add-node').onclick = () => openNode(); $('add-edge').onclick = () => openEdge();
 $('fit-view').onclick=()=>{cancelDragPreview();fit();paintPortHandles();message('Diagrama encajado en pantalla.');};
 $('relayout').onclick=()=>{
-  if(!flow||!valid||busy)return;
+  if(!flow||(!valid&&!recoverableLayout)||busy)return;
   cancelDragPreview();cancelConnectionPick(false);pendingSelection=null;needsFit=true;
   const text=resetLayout(source());
   if(text===source()){fit();needsFit=false;}else setSource(text);
@@ -957,7 +961,7 @@ const initialPane=getPreferences().defaultPane;
 try{setPaneMode(initialPane==='remember'?(localStorage.getItem('mermaid-bp:pane-mode')==='cascade'?'cascade':'code'):initialPane);}catch{setPaneMode(initialPane==='cascade'?'cascade':'code');}
 persist();
 setupInspectorResize(()=>editor.requestMeasure());
-setupSettings(()=>{editor.dispatch({effects:codeAppearance.reconfigure(codeAppearanceExtensions())});editor.requestMeasure();});
+setupSettings(()=>{editor.dispatch({effects:codeAppearance.reconfigure(codeAppearanceExtensions())});editor.requestMeasure();},async()=>{await pluginHost?.reloadInstalled();});
 pluginHost=new PluginHost(()=>({source:source(),fileName:filename}),message);
 void pluginHost.start();
 setupTour(()=>pluginHost!.guideSteps(),()=>paneMode,setPaneMode);
