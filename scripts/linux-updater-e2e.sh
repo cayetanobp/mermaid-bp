@@ -170,16 +170,27 @@ def visible_windows():
 def active_window_title():
     active=subprocess.run(["xdotool","getactivewindow","getwindowname"],capture_output=True,text=True)
     return active.stdout.strip() if active.returncode==0 else ""
+def click_native_element(d,element):
+    point=d.execute_script("""
+        const r=arguments[0].getBoundingClientRect();
+        const scale=window.devicePixelRatio||1;
+        return {
+            x:Math.round((window.screenX+(window.outerWidth-window.innerWidth)/2+r.left+r.width/2)*scale),
+            y:Math.round((window.screenY+(window.outerHeight-window.innerHeight)+r.top+r.height/2)*scale)
+        };
+    """,element)
+    subprocess.run(["xdotool","mousemove","--sync",str(point["x"]),str(point["y"]),"click","1"],check=True)
 def import_document(d, document):
     settings=d.find_element(By.ID,"settings-dialog")
     if settings.get_attribute("open"):
         d.find_element(By.ID,"plugins-close").click()
         wait(d,lambda x:not x.find_element(By.ID,"settings-dialog").get_attribute("open"))
+    assert not d.find_element(By.ID,"confirm-dialog").get_attribute("open"),"An unsaved-document confirmation was already blocking the file menu"
     before_title=active_window_title()
     before_windows=visible_windows()
     d.find_element(By.ID,"menu-archivo").click()
     wait(d,lambda x:x.find_element(By.ID,"menu-archivo-panel").is_displayed())
-    d.find_element(By.ID,"open").click()
+    click_native_element(d,d.find_element(By.ID,"open"))
     deadline=time.time()+15
     while time.time()<deadline:
         current_title=active_window_title()
