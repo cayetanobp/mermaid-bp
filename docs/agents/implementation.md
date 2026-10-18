@@ -12,7 +12,9 @@ Antes de lanzar una compilación nativa larga, comprueba espacio libre, ubicaci�
 
 Captura desde el primer fallo el log del proceso, la ventana nativa completa y la vista web. Para diálogos del sistema, usa una captura del escritorio; una captura WebDriver puede omitirlos. Adjunta al run los archivos de diagnóstico y señala el paso exacto que falló.
 
-Las pruebas del contrato de distribución deben inspeccionar el artefacto producido o ejecutar su comportamiento. Evita aserciones sobre fragmentos literales de scripts cuando no demuestran el resultado. Detén la repetición de pruebas opcionales cuando la evidencia necesaria ya está obtenida.
+Las pruebas del contrato de distribución deben inspeccionar el artefacto producido o ejecutar su comportamiento. Evita aserciones sobre fragmentos literales de scripts cuando no demuestran el resultado: en la issue #14 una aserción de ese tipo esperaba un comando Linux obsoleto y hacía fallar el job Windows aunque el workflow ejecutara el smoke real. Detén la repetición de pruebas opcionales cuando la evidencia necesaria ya está obtenida.
+
+En pruebas nativas Windows, cierra la aplicación, el navegador y los procesos auxiliares antes de borrar el directorio temporal. Si Windows devuelve `EBUSY`, conserva los logs y el artefacto de diagnóstico; un error de limpieza no debe ocultar el primer fallo del escenario.
 
 ## Espacio y retención de compilaciones
 
@@ -22,4 +24,6 @@ El coordinador mantiene un inventario de los directorios `target`, cachés y vol
 
 Tras verificar e integrar un ticket, conserva el instalador necesario, su hash y los logs útiles; elimina sus salidas intermedias regenerables cuando ninguna ejecución activa las use. Antes de borrar, resuelve las rutas absolutas y comprueba que pertenecen al inventario de la tarea. Para volúmenes Docker comprueba nombre y consumidores. Las limpiezas globales de Docker, Cargo o npm pueden afectar a otros proyectos y requieren un alcance acordado.
 
-La revisión de scripts de compilación debe comprobar también su retención: `docker run --rm` elimina el contenedor, pero conserva los volúmenes, imágenes, capas de build y archivos escritos en el bind mount. Una compilación no termina operativamente hasta registrar qué se conserva y limpiar sus resultados prescindibles.
+La revisión de scripts de compilación debe comprobar también su retención: `docker run --rm` elimina el contenedor, pero conserva los volúmenes, imágenes, capas de build y archivos escritos en el bind mount. Una compilación no termina operativamente hasta registrar qué se conserva y limpiar sus resultados prescindibles. Al proteger `target`, comprueba procesos Rust y consumidores de la ruta; la presencia global de Node/npm o del daemon Docker no demuestra que usen esa salida y puede bloquear la limpieza sin motivo.
+
+Al esperar CI o agentes, usa una espera acotada de 30–60 segundos y retoma el trabajo independiente mientras corre. Evita repetir consultas breves sin cambios; vuelve a consultar al recibir un evento o al vencer la espera.
