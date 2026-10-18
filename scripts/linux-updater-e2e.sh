@@ -111,6 +111,7 @@ import base64, http.server, json, pathlib, subprocess, sys, threading, time
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait, Select
+from selenium.webdriver.common.action_chains import ActionChains
 
 candidate, signature_path, target, base, diagnostics, port, app_bin = sys.argv[1:]
 candidate, out = pathlib.Path(candidate), pathlib.Path(diagnostics)
@@ -171,15 +172,16 @@ def active_window_title():
     active=subprocess.run(["xdotool","getactivewindow","getwindowname"],capture_output=True,text=True)
     return active.stdout.strip() if active.returncode==0 else ""
 def click_native_element(d,element):
-    point=d.execute_script("""
-        const r=arguments[0].getBoundingClientRect();
-        const scale=window.devicePixelRatio||1;
-        return {
-            x:Math.round((window.screenX+(window.outerWidth-window.innerWidth)/2+r.left+r.width/2)*scale),
-            y:Math.round((window.screenY+(window.outerHeight-window.innerHeight)+r.top+r.height/2)*scale)
-        };
-    """,element)
-    subprocess.run(["xdotool","mousemove","--sync",str(point["x"]),str(point["y"]),"click","1"],check=True)
+    ActionChains(d).move_to_element(element).perform()
+    time.sleep(.2)
+    hover=d.execute_script("return arguments[0].matches(':hover')",element)
+    assert hover,"WebDriver pointer did not reach the visible Open menu item"
+    pointer=subprocess.run(["xdotool","getmouselocation","--shell"],check=True,capture_output=True,text=True).stdout
+    rect=d.execute_script("const r=arguments[0].getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height};",element)
+    (out/"linux-updater-open-menu-hover.json").write_text(json.dumps({"rect":rect,"pointer":pointer,"hover":hover}),encoding="utf-8")
+    subprocess.run(["scrot","-p","-o",str(out/"linux-updater-open-menu-hover.png")],check=True)
+    subprocess.run(["xdotool","click","1"],check=True)
+    subprocess.run(["scrot","-p","-o",str(out/"linux-updater-open-menu-after-click.png")],check=True)
 def import_document(d, document):
     settings=d.find_element(By.ID,"settings-dialog")
     if settings.get_attribute("open"):
