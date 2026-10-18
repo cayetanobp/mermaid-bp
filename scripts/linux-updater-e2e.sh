@@ -110,12 +110,15 @@ python3 - "$candidate" "$candidate_signature" "$candidate_version" "$base_versio
 import base64, http.server, json, os, pathlib, subprocess, sys, threading, time
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait, Select
 
 candidate, signature_path, target, base, diagnostics, port, app_bin = sys.argv[1:]
 candidate, out = pathlib.Path(candidate), pathlib.Path(diagnostics)
 signature = pathlib.Path(signature_path).read_text(encoding="utf-8").strip()
+marker = "LinuxUpdaterPersist-" + os.environ.get("GITHUB_RUN_ID", "local")
+document = pathlib.Path(os.environ["MERMAID_BP_SMOKE_DIR"]) / "updater-persistence-document.mmd"
+assert document.exists(), f"Installed smoke did not save the persistence document: {document}"
+assert marker in document.read_text(encoding="utf-8"), "Installed smoke document is missing this run's marker"
 mode = {"value":"offline"}
 class Feed(http.server.BaseHTTPRequestHandler):
     def log_message(self, fmt, *args):
@@ -159,70 +162,14 @@ def verify_persistence(d):
     assert "Activo · 1.0.0" in d.find_element(By.CSS_SELECTOR,"[data-plugin-status='updater-persistence-test']").text
     assert d.find_element(By.ID,"plugin-updater-persistence-test-alive").text=="Plugin persistente activo"
     d.find_element(By.ID,"plugins-close").click()
-def open_file_menu(d):
-    d.find_element(By.ID,"menu-archivo").click()
-    wait(d,lambda x:x.find_element(By.ID,"menu-archivo-panel").is_displayed())
-def visible_windows():
-    result=subprocess.run(["xdotool","search","--onlyvisible","--name",".*"],capture_output=True,text=True)
-    windows={}
-    if result.returncode not in (0,1):
-        raise AssertionError(f"Could not inspect visible native windows: {result.stderr.strip()}")
-    for window_id in result.stdout.splitlines():
-        title=subprocess.run(["xdotool","getwindowname",window_id],capture_output=True,text=True)
-        windows[window_id]=title.stdout.strip() if title.returncode==0 else ""
-    return windows
-def active_window_title():
-    active=subprocess.run(["xdotool","getactivewindow","getwindowname"],capture_output=True,text=True)
-    return active.stdout.strip() if active.returncode==0 else ""
-def save_document(d, document):
-    before_title=active_window_title()
-    before_windows=visible_windows()
-    open_file_menu(d)
-    d.find_element(By.ID,"save").click()
-    deadline=time.time()+15
-    while time.time()<deadline:
-        current_title=active_window_title()
-        current_windows=visible_windows()
-        new_windows=current_windows.keys()-before_windows.keys()
-        if new_windows:
-            break
-        if current_title and current_title!=before_title: break
-        time.sleep(.1)
-    else:
-        subprocess.run(["scrot","-o",str(out/"linux-updater-document-save-dialog-missing.png")],check=True)
-        raise AssertionError(f"Native save dialog did not take focus; active window={active_window_title()!r}; visible windows={visible_windows()!r}")
-    subprocess.run(["scrot","-o",str(out/"linux-updater-document-save-dialog.png")],check=True)
-    # Match the GTK portal navigation already proven by smoke-linux-installed.sh.
-    subprocess.run(["xdotool","mousemove","1100","800","click","1"],check=True)
-    subprocess.run(["xdotool","key","ctrl+l"],check=True)
-    time.sleep(.3)
-    subprocess.run(["xdotool","key","ctrl+a"],check=True)
-    subprocess.run(["xdotool","type","--clearmodifiers","--delay","1",str(document.parent)],check=True)
-    subprocess.run(["xdotool","key","Return"],check=True)
-    time.sleep(.5)
-    subprocess.run(["xdotool","mousemove","600","123","click","1"],check=True)
-    subprocess.run(["xdotool","key","ctrl+a"],check=True)
-    subprocess.run(["xdotool","type","--clearmodifiers","--delay","1",document.name],check=True)
-    subprocess.run(["xdotool","key","Return"],check=True)
-
 driver=None
 try:
     driver=connect(); wait(driver,lambda d:d.find_element(By.CSS_SELECTOR,"#editor .cm-content").is_displayed())
+    assert marker in driver.find_element(By.CSS_SELECTOR,"#editor .cm-content").text,"Updater did not reopen the same smoke-installed app profile/document"
     open_updater(driver); mode["value"]="offline"; assert "No se pudo buscar" in check(driver),"Network error was not reported"
     mode["value"]="none"; assert check(driver)=="No hay actualizaciones disponibles.","No-update response was not reported"
     open_settings(driver,"Editor"); Select(driver.find_element(By.ID,"setting-editorFontSize")).select_by_value("18")
     wait(driver,lambda d:"Cambios guardados" in d.find_element(By.ID,"settings-status").text); install_plugin(driver)
-    document=out/"updater-persistence-document.mmd"
-    marker="LinuxUpdaterPersist-"+os.environ.get("GITHUB_RUN_ID","local")
-    editor=driver.find_element(By.CSS_SELECTOR,"#editor .cm-content")
-    editor.click(); editor.send_keys(Keys.CONTROL,"a"); editor.send_keys("flowchart LR"); editor.send_keys(Keys.ENTER)
-    editor.send_keys(f"  A[{marker}] --> B[Recovery check]")
-    wait(driver,lambda d:marker in d.find_element(By.CSS_SELECTOR,"#editor .cm-content").text)
-    save_document(driver,document)
-    deadline=time.time()+20
-    while time.time()<deadline and not document.exists(): time.sleep(.1)
-    assert document.exists(),f"Native save did not create {document}"
-    assert marker in document.read_text(encoding="utf-8"),"Saved document did not contain the unique persistence marker"
     mode["value"]="bad-signature"; open_updater(driver); driver.find_element(By.ID,"check-updates").click()
     wait(driver,lambda d:f"Nueva versión: {target}" in d.find_element(By.ID,"update-version").text)
     driver.find_element(By.ID,"install-update").click(); wait(driver,lambda d:"No se pudo instalar" in d.find_element(By.ID,"update-status").text,120)
@@ -245,7 +192,7 @@ try:
     assert f"Versión instalada: {target}" in driver.find_element(By.ID,"update-current-version").text
     verify_persistence(driver)
     driver.save_screenshot(str(out/"linux-updater-after-install.png"))
-    print(f"Linux updater E2E passed: {base} -> {target}; network error, no update, bad signature, signed install/restart, preference/plugin persistence and saved-document recovery verified.")
+    print(f"Linux updater E2E passed: {base} -> {target}; network error, no update, bad signature, signed install/restart, preference/plugin persistence and smoke-saved document recovery verified.")
 except Exception:
     if driver is not None:
         try:

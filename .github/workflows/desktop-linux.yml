@@ -187,6 +187,7 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
           MERMAID_BP_LINUX_UPDATER_OUT: ${{ runner.temp }}/mermaid-bp-linux-updater
           MERMAID_BP_LINUX_UPDATER_DIAGNOSTICS: ${{ runner.temp }}/mermaid-bp-linux-updater-diagnostics
+          MERMAID_BP_SMOKE_DIR: ${{ runner.temp }}/mermaid-bp-linux-smoke
       - uses: actions/upload-artifact@v4
         if: always()
         with:
