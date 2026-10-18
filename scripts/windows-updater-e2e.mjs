@@ -71,7 +71,7 @@ const server=createServer(async(req,res)=>{
 await new Promise((resolveListen,reject)=>server.once('error',reject).listen(0,'127.0.0.1',resolveListen));
 const endpoint=`http://127.0.0.1:${server.address().port}/latest.json`;
 function run(command,args,options={}){
-  const result=spawnSync(command,args,{cwd:options.cwd??root,env:options.env??process.env,encoding:'utf8',windowsHide:true,maxBuffer:16*1024*1024});
+  const result=spawnSync(command,args,{cwd:options.cwd??root,env:options.env??process.env,encoding:'utf8',windowsHide:true,maxBuffer:16*1024*1024,timeout:options.timeout});
   const output=(result.stdout??'')+(result.stderr??'');
   const safe=key?output.split(key).join('[redacted signing key]'):output;
   if(result.error){if(safe){process.stderr.write(safe);diagnosticLog.write(safe);}throw Error(`${command} no se pudo iniciar (${result.error.code??'error de proceso'}).`);}
@@ -279,7 +279,9 @@ try{
   await page.locator('#setting-editorFontSize').selectOption('18');
   await expect(page.locator('#settings-status')).toContainText('Cambios guardados');
   await page.locator('#settings-tab-extensions').click();
-  await page.locator('#plugin-folder-input').setInputFiles(pluginFolder);
+  phase='select the local plugin folder through the native Windows dialog';
+  await page.locator('#plugin-folder-select').click();
+  run('pwsh',['-NoProfile','-ExecutionPolicy','Bypass','-File',join(root,'scripts','select-windows-folder.ps1'),'-FolderPath',pluginFolder,'-DialogTitle','Elegir carpeta de plugin'],{timeout:45000});
   await expect(page.locator('#plugin-install')).toBeVisible();
   await page.locator('#plugin-trust-confirm').check();
   await page.locator('#plugin-install').click();
