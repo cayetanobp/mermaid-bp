@@ -65,9 +65,11 @@ app_bin="${MERMAID_BP_BIN:-$(dpkg-query -L mermaid-bp | awk '/^\/usr\/bin\// { p
 test -x "$app_bin" || { echo "Installed app executable not found: $app_bin" >&2; exit 1; }
 
 python3 - "$scratch/base-overlay.json" "$base_version" "$server_port" <<'PY'
-import json, pathlib, sys
+import json, os, pathlib, sys
 path, version, port = sys.argv[1:]
-pathlib.Path(path).write_text(json.dumps({"version":version,"plugins":{"updater":{"endpoints":[f"http://127.0.0.1:{port}/latest.json"],"dangerousInsecureTransportProtocol":True}}}), encoding="utf-8")
+pubkey = os.environ.get("MERMAID_BP_CI_UPDATER_PUBKEY")
+if not pubkey: raise SystemExit("Missing per-run CI updater public key.")
+pathlib.Path(path).write_text(json.dumps({"version":version,"plugins":{"updater":{"pubkey":pubkey,"endpoints":[f"http://127.0.0.1:{port}/latest.json"],"dangerousInsecureTransportProtocol":True}}}), encoding="utf-8")
 PY
 
 if ! (cd "$desktop" && npm exec -- tauri build --config "$scratch/base-overlay.json" -- --locked) >"$diagnostics/base-build.log" 2>&1; then

@@ -22,7 +22,9 @@ concurrency:
   cancel-in-progress: false
 jobs:
   publish:
+    if: github.ref == 'refs/heads/main'
     runs-on: windows-2025
+    environment: release-signing
     steps:
       - uses: actions/checkout@v4
       - name: Comprobar autorización, versiones y compilaciones
@@ -50,13 +52,13 @@ jobs:
           if ($version -notmatch '-beta\.\d+$') { throw 'La publicación requiere una versión beta.' }
           $build = gh api "repos/$env:GITHUB_REPOSITORY/actions/runs/$env:BUILD_RUN_ID" | ConvertFrom-Json
           if ($LASTEXITCODE -ne 0) { throw 'No se pudo consultar la ejecución de compilación.' }
-          if ($build.name -ne 'Aplicación de escritorio Windows' -or $build.conclusion -ne 'success' -or $build.head_branch -ne 'main' -or $build.head_sha -ne $env:GITHUB_SHA) {
+          if ($build.name -ne 'Aplicación de escritorio Windows' -or $build.event -ne 'workflow_dispatch' -or $build.conclusion -ne 'success' -or $build.head_branch -ne 'main' -or $build.head_sha -ne $env:GITHUB_SHA) {
             throw 'La compilación debe haber terminado correctamente sobre el HEAD actual de main.'
           }
           if ($env:LINUX_BUILD_RUN_ID -notmatch '^\d+$') { throw 'El ID de ejecución Linux debe ser numérico.' }
           $linuxBuild = gh api "repos/$env:GITHUB_REPOSITORY/actions/runs/$env:LINUX_BUILD_RUN_ID" | ConvertFrom-Json
           if ($LASTEXITCODE -ne 0) { throw 'No se pudo consultar la ejecución Linux.' }
-          if ($linuxBuild.name -ne 'Aplicación de escritorio Linux' -or $linuxBuild.conclusion -ne 'success' -or $linuxBuild.head_branch -ne 'main' -or $linuxBuild.head_sha -ne $env:GITHUB_SHA) {
+          if ($linuxBuild.name -ne 'Aplicación de escritorio Linux' -or $linuxBuild.event -ne 'workflow_dispatch' -or $linuxBuild.conclusion -ne 'success' -or $linuxBuild.head_branch -ne 'main' -or $linuxBuild.head_sha -ne $env:GITHUB_SHA) {
             throw 'La compilación Linux debe haber terminado correctamente sobre el HEAD actual de main.'
           }
           $releaseJson = Join-Path $env:RUNNER_TEMP 'beta-releases.json'
