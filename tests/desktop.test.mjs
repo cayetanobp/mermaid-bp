@@ -6,6 +6,7 @@ import {join} from 'node:path';
 import {spawnSync} from 'node:child_process';
 import vm from 'node:vm';
 import {inspectBetaChannel} from '../scripts/validate-beta-channel.mjs';
+import {validateLinuxUpdaterAssetNames} from '../scripts/validate-linux-updater-asset.mjs';
 
 test('el puente conserva bytes UTF-8 y comunica la cancelación sin descargar una segunda copia',async()=>{
   const calls=[],alerts=[];
@@ -50,7 +51,7 @@ test('el manifiesto del canal beta publica artefactos firmados de Windows y Debi
     await writeFile(signature,signedFixture);
     await writeFile(linuxSignature,signedFixture);
     // The fixture checks signature serialization; production publishes Tauri NSIS and Debian artifacts.
-    const generated=spawnSync(process.execPath,['scripts/create-updater-manifest.mjs','--version','1.0.0-beta.1','--notes-file',notes,'--artifact-url','https://github.com/cayetanobp/mermaid-bp/releases/download/1.0.0-beta.1/Mermaid-BP-setup.exe','--signature-file',signature,'--linux-artifact-url','https://github.com/cayetanobp/mermaid-bp/releases/download/1.0.0-beta.1/mermaid-bp_1.0.0-beta.1_amd64.deb','--linux-signature-file',linuxSignature,'--output',output],{encoding:'utf8'});
+    const generated=spawnSync(process.execPath,['scripts/create-updater-manifest.mjs','--version','1.0.0-beta.1','--notes-file',notes,'--artifact-url','https://github.com/cayetanobp/mermaid-bp/releases/download/1.0.0-beta.1/Mermaid-BP-setup.exe','--signature-file',signature,'--linux-artifact-url','https://github.com/cayetanobp/mermaid-bp/releases/download/1.0.0-beta.1/Mermaid%20BP_1.0.0-beta.1_amd64.deb','--linux-signature-file',linuxSignature,'--output',output],{encoding:'utf8'});
     assert.equal(generated.status,0,generated.stderr);
     const manifest=JSON.parse(await readFile(output,'utf8'));
     assert.match(Buffer.from(manifest.platforms['windows-x86_64'].signature,'base64').toString('utf8'),/trusted comment: timestamp:.*version:1\.0\.0-beta\.1/);
@@ -63,7 +64,7 @@ test('el manifiesto del canal beta publica artefactos firmados de Windows y Debi
     });
     assert.deepEqual(manifest.platforms['linux-x86_64-deb'],{
       signature:signedFixture.trim(),
-      url:'https://github.com/cayetanobp/mermaid-bp/releases/download/1.0.0-beta.1/mermaid-bp_1.0.0-beta.1_amd64.deb',
+      url:'https://github.com/cayetanobp/mermaid-bp/releases/download/1.0.0-beta.1/Mermaid%20BP_1.0.0-beta.1_amd64.deb',
     });
   }finally{await rm(folder,{recursive:true,force:true});}
 });
@@ -188,4 +189,16 @@ test('la política del canal beta solo permite actualizar su manifiesto propieta
   assert.throws(()=>inspectBetaChannel([{...ownRelease,name:'Release estable'}],tag),/no pertenece/);
   assert.throws(()=>inspectBetaChannel([{...ownRelease,prerelease:false}],tag),/no pertenece/);
   assert.throws(()=>inspectBetaChannel([{...ownRelease,assets:[{name:'latest.json'},{name:'installer.exe'}]}],tag),/assets ajenos/);
+});
+
+test('la selección del paquete Debian usa el nombre real de Tauri y rechaza otras versiones o arquitecturas',()=>{
+  assert.equal(validateLinuxUpdaterAssetNames(['Mermaid BP_1.0.0-beta.1_amd64.deb'],{
+    productName:'Mermaid BP',version:'1.0.0-beta.1',architecture:'amd64',
+  }),'Mermaid BP_1.0.0-beta.1_amd64.deb');
+  assert.throws(()=>validateLinuxUpdaterAssetNames(['Mermaid BP_1.0.0-beta.2_amd64.deb'],{
+    productName:'Mermaid BP',version:'1.0.0-beta.1',architecture:'amd64',
+  }),/1\.0\.0-beta\.1/);
+  assert.throws(()=>validateLinuxUpdaterAssetNames(['Mermaid BP_1.0.0-beta.1_arm64.deb'],{
+    productName:'Mermaid BP',version:'1.0.0-beta.1',architecture:'amd64',
+  }),/amd64/);
 });
