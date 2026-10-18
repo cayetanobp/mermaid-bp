@@ -172,15 +172,16 @@ def active_window_title():
     active=subprocess.run(["xdotool","getactivewindow","getwindowname"],capture_output=True,text=True)
     return active.stdout.strip() if active.returncode==0 else ""
 def click_native_element(d,element):
-    ActionChains(d).move_to_element(element).perform()
-    time.sleep(.2)
-    hover=d.execute_script("return arguments[0].matches(':hover')",element)
-    assert hover,"WebDriver pointer did not reach the visible Open menu item"
-    pointer=subprocess.run(["xdotool","getmouselocation","--shell"],check=True,capture_output=True,text=True).stdout
-    rect=d.execute_script("const r=arguments[0].getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height};",element)
-    (out/"linux-updater-open-menu-hover.json").write_text(json.dumps({"rect":rect,"pointer":pointer,"hover":hover}),encoding="utf-8")
+    focused=d.execute_script("arguments[0].focus();return document.activeElement===arguments[0]",element)
+    assert focused,"Open menu item did not accept keyboard focus"
+    active_window=active_window_title()
+    assert active_window=="Mermaid BP",f"Desktop app lost focus before opening the native chooser: {active_window!r}"
+    (out/"linux-updater-open-menu-hover.json").write_text(
+        json.dumps({"focusedElement":d.execute_script("return document.activeElement.id"),"activeWindow":active_window}),
+        encoding="utf-8",
+    )
     subprocess.run(["scrot","-p","-o",str(out/"linux-updater-open-menu-hover.png")],check=True)
-    subprocess.run(["xdotool","click","1"],check=True)
+    subprocess.run(["xdotool","key","--clearmodifiers","Return"],check=True)
     subprocess.run(["scrot","-p","-o",str(out/"linux-updater-open-menu-after-click.png")],check=True)
 def import_document(d, document):
     settings=d.find_element(By.ID,"settings-dialog")
