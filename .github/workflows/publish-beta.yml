@@ -61,6 +61,7 @@ jobs:
           }
           $releaseJson = Join-Path $env:RUNNER_TEMP 'beta-releases.json'
           $tagsJson = Join-Path $env:RUNNER_TEMP 'beta-tags.json'
+          $versionTagsJson = Join-Path $env:RUNNER_TEMP 'beta-version-tags.json'
           $releaseOutput = gh api --paginate --slurp "repos/$env:GITHUB_REPOSITORY/releases?per_page=100"
           if ($LASTEXITCODE -ne 0) { throw 'No se pudieron consultar las releases existentes.' }
           $releaseOutput | Set-Content -Encoding utf8 $releaseJson
@@ -70,8 +71,12 @@ jobs:
           $channelState = node scripts/validate-beta-channel.mjs --releases-file $releaseJson --tags-file $tagsJson
           if ($LASTEXITCODE -ne 0) { throw 'El destino beta ya existe y no pertenece exclusivamente al canal de Mermaid BP.' }
           "Canal beta: $channelState"
-          gh api "repos/$env:GITHUB_REPOSITORY/git/ref/tags/$version" *> $null
-          if ($LASTEXITCODE -eq 0) { throw 'Ya existe una etiqueta para esta versión.' }
+          $versionTagsOutput = gh api --paginate --slurp "repos/$env:GITHUB_REPOSITORY/git/matching-refs/tags/$version"
+          if ($LASTEXITCODE -ne 0) { throw 'No se pudieron consultar las etiquetas de esta versión.' }
+          $versionTagsOutput | Set-Content -Encoding utf8 $versionTagsJson
+          $versionTagState = node scripts/validate-beta-version-tag.mjs --tags-file $versionTagsJson --version $version
+          if ($LASTEXITCODE -ne 0) { throw 'Ya existe una etiqueta para esta versión.' }
+          "Etiqueta de versión: $versionTagState"
       - name: Descargar instalador aprobado
         shell: pwsh
         env:
