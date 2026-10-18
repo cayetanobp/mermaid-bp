@@ -54,6 +54,7 @@ let installedExecutable='';
 let primaryError;
 let appProcess;
 let browser;
+let fixtureInstalledByTest=false;
 const spawnedAppPids=new Set();
 const server=createServer(async(req,res)=>{
   const pathname=new URL(req.url??'/',`http://127.0.0.1`).pathname;
@@ -240,12 +241,15 @@ async function installPluginThroughNativeCommand(page){
   const paths=['plugin.json','index.js'];
   const manifest=JSON.parse(await readFile(join(pluginFolder,'plugin.json'),'utf8'));
   const contents=await Promise.all(paths.map(async path=>(await readFile(join(pluginFolder,path))).toString('base64')));
-  const installed=await page.evaluate(async payload=>{
+  await page.evaluate(async payload=>{
     const bridge=window.__TAURI__?.core;
     if(!bridge)throw Error('La aplicación no expone el bridge nativo de escritorio.');
+    const before=await bridge.invoke('list_plugins');
+    if(before.some(item=>item.id===payload.id))throw Error(`El plugin ${payload.id} ya existe; se cancela para no sobrescribir datos del usuario.`);
     await bridge.invoke('install_plugin',payload);
-    return bridge.invoke('list_plugins');
   },{id:manifest.id,paths,contents});
+  fixtureInstalledByTest=true;
+  const installed=await page.evaluate(()=>window.__TAURI__.core.invoke('list_plugins'));
   expect(installed.some(item=>item.id===manifest.id)).toBe(true);
 }
 
@@ -350,6 +354,27 @@ try{
   throw error;
 }finally{
   const cleanupErrors=[];
+  if(fixtureInstalledByTest){
+    try{
+      if(!browser){
+        const pids=installedExecutable?runningAppPids(installedExecutable):[];
+        if(!pids.length){
+          if(!installedExecutable)throw Error('No hay una ruta de aplicación instalada para retirar el plugin fixture.');
+          appProcess=startApp(installedExecutable);
+        }
+        ({browser}=await attachApp());
+      }
+      const page=browser.contexts().flatMap(context=>context.pages()).find(item=>item.url().includes('tauri.localhost')||item.url().startsWith('tauri://'));
+      if(!page)throw Error('No se encontró la ventana de la aplicación para retirar el plugin fixture.');
+      const removed=await page.evaluate(async id=>{
+        const bridge=window.__TAURI__?.core;
+        if(!bridge)throw Error('La aplicación no expone el bridge nativo para retirar el plugin fixture.');
+        return bridge.invoke('remove_plugin',{id});
+      },'updater-persistence-test');
+      if(!removed)throw Error('El comando nativo remove_plugin no confirmó la retirada del plugin fixture.');
+      fixtureInstalledByTest=false;
+    }catch(error){cleanupErrors.push(error);}
+  }
   try{await browser?.close();}catch(error){cleanupErrors.push(error);}
   if(appProcess&&appProcess.exitCode===null&&appProcess.signalCode===null){
     try{appProcess.kill();await Promise.race([once(appProcess,'exit'),delay(5000)]);}catch(error){cleanupErrors.push(error);}
