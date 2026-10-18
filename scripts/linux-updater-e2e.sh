@@ -111,6 +111,7 @@ import base64, hashlib, http.server, json, os, pathlib, subprocess, sys, threadi
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait, Select
+from selenium.webdriver.support import expected_conditions as EC
 
 candidate, signature_path, target, base, diagnostics, port, app_bin = sys.argv[1:]
 candidate, out = pathlib.Path(candidate), pathlib.Path(diagnostics)
@@ -155,17 +156,23 @@ def check(d):
     d.find_element(By.ID,"check-updates").click(); wait(d,lambda x:x.find_element(By.ID,"check-updates").is_enabled()); return d.find_element(By.ID,"update-status").text
 def install_plugin(d):
     manifest=base64.b64encode(json.dumps({"id":"updater-persistence-test","name":"Plugin persistente","description":"Comprueba persistencia tras actualizar.","version":"1.0.0","apiVersion":1,"enabledByDefault":True,"entry":"index.js"}).encode()).decode()
-    module="export default {setup(context){context.ui.addAction({id:'alive',label:'Plugin persistente activo',run(){}});}};"
+    module="export default {setup(context){context.ui.addAction({id:'alive',label:'Plugin persistente activo',run(){context.ui.notify('Acción del plugin persistente ejecutada.');}});}};"
     module=base64.b64encode(module.encode()).decode()
     result=d.execute_async_script("const done=arguments[arguments.length-1];window.__TAURI__.core.invoke('install_plugin',{id:'updater-persistence-test',paths:['plugin.json','index.js'],contents:[arguments[0],arguments[1]]}).then(()=>done('ok'),e=>done(String(e)));",manifest,module)
     assert result=="ok",f"Plugin install bridge failed: {result}"
     d.refresh(); wait(d,lambda x:x.find_element(By.CSS_SELECTOR,"#editor .cm-content").is_displayed())
+def click_plugin_action(d):
+    d.find_element(By.ID,"menu-ver").click()
+    wait(d,lambda x:x.find_element(By.ID,"menu-ver-panel").is_displayed())
+    action=wait(d,EC.element_to_be_clickable((By.ID,"plugin-updater-persistence-test-alive")))
+    action.click()
 def verify_persistence(d):
-    open_settings(d,"Editor"); assert d.find_element(By.ID,"setting-editorFontSize").get_attribute("value")=="18","Editor preference did not persist"
+    open_settings(d,"Editor"); assert d.find_element(By.ID,"setting-editorFontSize").get_attribute("value")=="18","Editor font size preference did not persist"
     open_settings(d,"Extensiones"); wait(d,lambda x:"Plugin persistente" in x.find_element(By.ID,"plugin-list").text)
-    assert "Activo · 1.0.0" in d.find_element(By.CSS_SELECTOR,"[data-plugin-status='updater-persistence-test']").text
-    assert d.find_element(By.ID,"plugin-updater-persistence-test-alive").text=="Plugin persistente activo"
+    assert "Activo · 1.0.0" in d.find_element(By.CSS_SELECTOR,"[data-plugin-status='updater-persistence-test']").text,"Plugin remained installed and active after update"
     d.find_element(By.ID,"plugins-close").click()
+    click_plugin_action(d)
+    wait(d,lambda x:x.find_element(By.ID,"message").text=="Acción del plugin persistente ejecutada.")
 driver=None
 try:
     driver=connect(); wait(driver,lambda d:d.find_element(By.CSS_SELECTOR,"#editor .cm-content").is_displayed())
