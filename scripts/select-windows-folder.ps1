@@ -29,10 +29,7 @@ if ($null -eq $dialog) {
     throw "No apareció el selector nativo «$DialogTitle»."
 }
 
-$dialog.SetFocus()
-Start-Sleep -Milliseconds 200
-[System.Windows.Forms.SendKeys]::SendWait('^l')
-Start-Sleep -Milliseconds 150
+[System.Windows.Forms.SendKeys]::SendWait('^a')
 [System.Windows.Forms.SendKeys]::SendWait($FolderPath)
 [System.Windows.Forms.SendKeys]::SendWait('{ENTER}')
 
