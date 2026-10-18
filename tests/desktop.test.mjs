@@ -131,8 +131,10 @@ test('el flujo Linux publica el Debian firmado y prueba su actualización instal
   const smoke=await readFile('scripts/smoke-linux-installed.sh','utf8');
   const updaterE2E=await readFile('scripts/linux-updater-e2e.sh','utf8');
   const docker=await readFile('scripts/build-linux-deb-docker.ps1','utf8');
-  assert.ok(workflow.includes('createUpdaterArtifacts":false'));
-  assert.ok(workflow.includes('createUpdaterArtifacts":true'));
+  assert.match(workflow,/createUpdaterArtifacts": True/);
+  assert.match(workflow,/name: mermaid-bp-linux-deb-ci/);
+  assert.match(workflow,/name: mermaid-bp-linux-updater-ci/);
+  assert.match(workflow,/linux-production:[\s\S]*environment: release-signing/);
   assert.ok(workflow.includes('npm exec -- tauri build'));
   assert.ok(workflow.includes('-- --locked'));
   assert.match(workflow,/ubuntu-24\.04/);

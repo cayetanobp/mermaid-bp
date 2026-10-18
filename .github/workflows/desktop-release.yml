@@ -20,6 +20,7 @@ jobs:
     needs: rust-notices
     if: github.ref == 'refs/heads/main'
     runs-on: windows-2025
+    environment: release-signing
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

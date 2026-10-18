@@ -1,22 +1,17 @@
-# Protección de `main` en GitHub
+# Protección de ramas y publicación
 
-`apply-main-protection.ps1` prepara, aplica y verifica un ruleset activo para `main` en ambos repositorios. Requiere GitHub CLI autenticado con permisos de administración.
+`apply-main-protection.ps1 -Mode Plan` muestra los payloads sin mutaciones. `-Mode Apply` exige repositorios públicos y crea únicamente las reglas acordadas que falten; no sobrescribe reglas existentes. `-Mode Verify` comprueba las reglas efectivas de `main`, los patrones guardados, el bypass exclusivo del rol administrador, los checks de Actions y el archivo CODEOWNERS. No compila ni inicia Actions.
 
-Primero inspecciona el plan:
+Los nombres `core-main.json` y `plugins-main.json` se conservan por compatibilidad. Ahora incluyen la rama predeterminada y las ramas de integración/versiones. Las ramas de trabajo quedan fuera. Las nuevas ramas de integración o versiones deben coincidir con un patrón del payload o incorporarse al ruleset antes de recibir PR.
 
-```powershell
-./scripts/github-rulesets/apply-main-protection.ps1 -Mode Plan
-```
+Se exige PR, una aprobación del propietario del código, invalidación de aprobaciones anteriores, conversaciones resueltas y CI actualizado con el destino. `.github/CODEOWNERS` asigna todo a `@cayetanobp`; debe existir en cada rama de destino. El administrador conserva bypass completo. Los checks están vinculados a Actions (integración `15368`): core `web`, `rust-notices`, `windows`, `core-browser`, `deb-installed-smoke`; plugins `Plugin package` y `Clean core compatibility`.
 
-Después de completar la revisión final y publicar ambos repositorios, aplica y verifica los ajustes:
+Reglas ya guardadas el 19 de octubre: core `25360446`, plugins `25360452`. `Verify` fallará mientras CODEOWNERS no esté incorporado. No presentar ese estado como aprobación exclusiva operativa.
 
-```powershell
-./scripts/github-rulesets/apply-main-protection.ps1 -Mode Apply
-./scripts/github-rulesets/apply-main-protection.ps1 -Mode Verify
-```
+Tras la apertura pública que realizará el propietario, ejecutar `activate-public-gates.ps1` para exigir autorización de todo CI externo y configurar el entorno `release-signing` con aprobación de `cayetanobp` y una única rama permitida: `main`. Permite aprobar la ejecución propia para que el único mantenedor pueda publicar. El script nunca cambia visibilidad, mueve secretos o inicia workflows.
 
-`Apply` exige que cada repositorio ya sea público. Crea el ruleset específico `Issue 16 public main protection: mermaid-bp` si no existe. Nunca actualiza ni elimina rulesets preexistentes; se detiene ante nombres duplicados o si uno con ese nombre no aplica a `main`. `Verify` consulta tanto la configuración guardada como las reglas efectivas de `main`; informa error si la PR, los checks, cero aprobaciones obligatorias, la ausencia de bypasses, el bloqueo de borrado o el bloqueo de force-push no se cumplen.
+Después de incorporar los workflows corregidos y verificar ese entorno, transferir la clave existente al secreto de entorno homónimo directamente por stdin, comprobar su presencia por nombre y retirar el secreto de repositorio. La clave solo pertenece al core. CI usa claves efímeras por ejecución; firma real y publicación usan trabajos manuales de `main` y el entorno protegido. No trasladar la clave mientras el entorno no tenga revisor y restricción de rama comprobados.
 
-Las condiciones de PR permiten al propietario fusionar una PR propia después de que pasen los checks. Las aprobaciones son opcionales, así que otros colaboradores pueden revisar y aprobar las PR externas sin que se exija una aprobación ajena. No se añaden actores de bypass. Los checks están fijados a GitHub Actions (integración `15368`) y sus contextos se comprobaron en ejecuciones exitosas: núcleo `web`, `rust-notices`, `windows`, `core-browser`, `deb-installed-smoke`; plugins `Plugin package`, `Clean core compatibility`.
+Las etiquetas de versiones existentes tienen reglas independientes que bloquean actualización y borrado salvo administrador. La creación de etiquetas nuevas sigue permitida a quien tenga escritura; no se concedió bypass general a Actions. El alias móvil `beta` queda separado y conserva las comprobaciones de pertenencia del workflow.
 
-Referencias: [GitHub REST API para rulesets](https://docs.github.com/en/rest/repos/rules), especialmente las secciones de crear/actualizar rulesets y consultar las reglas efectivas de una rama.
+GitHub rechaza la política de CI externo mientras los repositorios sean privados y el plan actual no permite revisores obligatorios en entornos privados. Esos pendientes se activan y verifican al abrir. No se garantiza preparación completa hasta incorporar los archivos, proteger el entorno, migrar la clave y verificar el flujo.

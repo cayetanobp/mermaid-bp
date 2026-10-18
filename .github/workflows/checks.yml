@@ -73,20 +73,14 @@ jobs:
       - uses: swatinem/rust-cache@v2
         with:
           workspaces: desktop-app/src-tauri -> target
-      - name: Exigir la clave de firma antes de compilar en main
-        if: github.event_name != 'pull_request'
-        shell: pwsh
-        env:
-          SIGNING_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-        run: if ([string]::IsNullOrWhiteSpace($env:SIGNING_KEY)) { throw 'Falta TAURI_SIGNING_PRIVATE_KEY; no se compilará ni publicará un updater sin firma.' }
-      - name: Exigir la clave de firma para PRs internos
-        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
-        shell: pwsh
-        env:
-          SIGNING_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-        run: if ([string]::IsNullOrWhiteSpace($env:SIGNING_KEY)) { throw 'Falta TAURI_SIGNING_PRIVATE_KEY para producir el artefacto firmado de validación.' }
       - run: npm ci
       - run: npm ci --prefix desktop-app
+      - name: Generate a per-run CI-only Tauri updater key
+        run: node scripts/prepare-ci-updater-key.mjs
+      - name: Prepare CI updater public-key overlay
+        shell: pwsh
+        run: |
+          @{ plugins = @{ updater = @{ pubkey = $env:MERMAID_BP_CI_UPDATER_PUBKEY } } } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $env:RUNNER_TEMP 'tauri-ci.json')
       - name: Compilar la aplicación sin empaquetar en pull requests
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository
         working-directory: desktop-app
@@ -96,15 +90,10 @@ jobs:
         id: windows-updater
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         run: node scripts/windows-updater-e2e.mjs
-        env:
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
-      - name: Compilar y firmar el updater en main
+      - name: Compilar updater de CI con una clave efímera en main
         if: github.event_name != 'pull_request'
-        run: npm run desktop:build
-        env:
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
+        working-directory: desktop-app
+        run: npm exec -- tauri build --config "$env:RUNNER_TEMP/tauri-ci.json" -- --locked
       - run: node --test tests/desktop.test.mjs
       - name: Verificar contenido del instalador
         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository

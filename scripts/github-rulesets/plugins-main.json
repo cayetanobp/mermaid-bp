@@ -1,11 +1,27 @@
 {
-  "name": "Issue 16 public main protection: mermaid-bp",
+  "name": "Reviewed branches: mermaid-bp-plugins",
   "target": "branch",
   "enforcement": "active",
-  "bypass_actors": [],
+  "bypass_actors": [
+    {
+      "actor_id": 5,
+      "bypass_mode": "always",
+      "actor_type": "RepositoryRole"
+    }
+  ],
   "conditions": {
     "ref_name": {
-      "include": ["refs/heads/main"],
+      "include": [
+        "~DEFAULT_BRANCH",
+        "refs/heads/integration",
+        "refs/heads/integration/**/*",
+        "refs/heads/release",
+        "refs/heads/release/**/*",
+        "refs/heads/releases/**/*",
+        "refs/heads/beta",
+        "refs/heads/beta.*",
+        "refs/heads/codex/beta-integration"
+      ],
       "exclude": []
     }
   },
@@ -13,15 +29,19 @@
     {
       "type": "pull_request",
       "parameters": {
-        "allowed_merge_methods": ["merge", "squash", "rebase"],
+        "allowed_merge_methods": [
+          "merge",
+          "squash",
+          "rebase"
+        ],
         "dismiss_stale_reviews_on_push": true,
         "dismissal_restriction": {
           "enabled": false,
           "allowed_actors": []
         },
-        "require_code_owner_review": false,
+        "require_code_owner_review": true,
         "require_last_push_approval": false,
-        "required_approving_review_count": 0,
+        "required_approving_review_count": 1,
         "required_review_thread_resolution": true,
         "required_reviewers": []
       }
@@ -29,15 +49,25 @@
     {
       "type": "required_status_checks",
       "parameters": {
-        "do_not_enforce_on_create": false,
+        "do_not_enforce_on_create": true,
         "required_status_checks": [
-          { "context": "Plugin package", "integration_id": 15368 },
-          { "context": "Clean core compatibility", "integration_id": 15368 }
+          {
+            "context": "Plugin package",
+            "integration_id": 15368
+          },
+          {
+            "context": "Clean core compatibility",
+            "integration_id": 15368
+          }
         ],
         "strict_required_status_checks_policy": true
       }
     },
-    { "type": "deletion" },
-    { "type": "non_fast_forward" }
+    {
+      "type": "deletion"
+    },
+    {
+      "type": "non_fast_forward"
+    }
   ]
 }

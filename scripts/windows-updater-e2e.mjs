@@ -133,7 +133,9 @@ async function captureFailure(error){
 async function build(version,tag){
   phase=`build signed ${tag} installer`;
   const overlay=join(scratch,`${tag}.json`);
-  await writeFile(overlay,JSON.stringify({version,plugins:{updater:{endpoints:[endpoint],dangerousInsecureTransportProtocol:true}}}));
+  const pubkey=process.env.MERMAID_BP_CI_UPDATER_PUBKEY;
+  if(!pubkey)throw Error('Missing per-run CI updater public key.');
+  await writeFile(overlay,JSON.stringify({version,plugins:{updater:{pubkey,endpoints:[endpoint],dangerousInsecureTransportProtocol:true}}}));
   const npmCli=process.env.npm_execpath??join(dirname(process.execPath),'node_modules','npm','bin','npm-cli.js');
   await stat(npmCli);
   run(process.execPath,[npmCli,'exec','--','tauri','build','--features','tauri/devtools,updater-e2e-cdp','--config',overlay,'--','--locked'],{cwd:desktop,env:{...process.env,npm_execpath:npmCli,TAURI_SIGNING_PRIVATE_KEY:key,TAURI_SIGNING_PRIVATE_KEY_PASSWORD:''}});

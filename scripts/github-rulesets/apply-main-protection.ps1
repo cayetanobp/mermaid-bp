@@ -57,9 +57,17 @@ function Assert-EffectiveProtection {
 
     $detail = Invoke-GhJson -Arguments @('api', "repos/$FullName/rulesets/$RulesetId")
     if ($detail.enforcement -ne 'active') { throw "$FullName ruleset is not active." }
-    if (@($detail.bypass_actors).Count -ne 0) { throw "$FullName ruleset has bypass actors." }
-    if (@($detail.conditions.ref_name.include) -notcontains 'refs/heads/main') {
-        throw "$FullName ruleset does not target refs/heads/main."
+    $bypass = @($detail.bypass_actors)
+    if ($bypass.Count -ne 1 -or $bypass[0].actor_type -ne 'RepositoryRole' -or
+        $bypass[0].actor_id -ne 5 -or $bypass[0].bypass_mode -ne 'always') {
+        throw "$FullName does not have exactly the agreed administrator bypass."
+    }
+    $branchDifference = @(Compare-Object -ReferenceObject @($Payload.conditions.ref_name.include | Sort-Object) -DifferenceObject @($detail.conditions.ref_name.include | Sort-Object))
+    if ($branchDifference.Count -or @($detail.conditions.ref_name.exclude).Count) {
+        throw "$FullName protected branch patterns differ from the reviewed payload."
+    }
+    if (@($detail.conditions.ref_name.include) -notcontains '~DEFAULT_BRANCH') {
+        throw "$FullName ruleset does not target the default branch."
     }
 
     $effectiveRules = @(Invoke-GhJson -Arguments @('api', "repos/$FullName/rules/branches/main"))
@@ -81,13 +89,16 @@ function Assert-EffectiveProtection {
 
     $pullRequestRule = @(Get-RuleByType -Rules $effectiveRules -Type 'pull_request' -RulesetId $RulesetId)
     if ($pullRequestRule.Count -ne 1) { throw "$FullName pull request requirement is not effective on main." }
-    if ($pullRequestRule[0].parameters.required_approving_review_count -ne 0) {
-        throw "$FullName requires an approval before the owner can merge their own PR."
+    if ($pullRequestRule[0].parameters.required_approving_review_count -ne 1 -or
+        -not $pullRequestRule[0].parameters.require_code_owner_review -or
+        -not $pullRequestRule[0].parameters.dismiss_stale_reviews_on_push -or
+        -not $pullRequestRule[0].parameters.required_review_thread_resolution) {
+        throw "$FullName must require one code-owner approval, invalidate stale approvals, and resolve review threads."
     }
-    if (@($pullRequestRule[0].parameters.required_reviewers).Count -ne 0 -or
-        $pullRequestRule[0].parameters.require_code_owner_review -or
-        $pullRequestRule[0].parameters.require_last_push_approval) {
-        throw "$FullName has a reviewer requirement that may prevent an owner from merging their own PR."
+    $codeowners = Invoke-GhText -Arguments @('api', "repos/$FullName/contents/.github/CODEOWNERS?ref=main", '-H', 'Accept: application/vnd.github.raw+json')
+    $ownerRules = @($codeowners -split '\r?\n' | ForEach-Object { $_.Trim() } | Where-Object { $_ -and -not $_.StartsWith('#') })
+    if ($ownerRules.Count -ne 1 -or $ownerRules[0] -ne '* @cayetanobp') {
+        throw "$FullName CODEOWNERS must assign all files exclusively to @cayetanobp."
     }
 
     foreach ($requiredRule in @('deletion', 'non_fast_forward')) {
@@ -135,7 +146,7 @@ foreach ($repositoryKey in $Repository) {
     if ($matches.Count -eq 1) {
         $existing = Invoke-GhJson -Arguments @('api', "repos/$fullName/rulesets/$($matches[0].id)")
         if ($existing.target -ne 'branch' -or
-            @($existing.conditions.ref_name.include) -notcontains 'refs/heads/main') {
+            @($existing.conditions.ref_name.include) -notcontains '~DEFAULT_BRANCH') {
             throw "$fullName has a same-name ruleset outside main-branch scope; leaving it unchanged."
         }
     }
