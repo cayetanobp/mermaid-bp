@@ -44,11 +44,71 @@ def open_file_menu():
     driver.find_element(By.ID, "menu-archivo").click()
     wait.until(lambda d: d.find_element(By.ID, "menu-archivo-panel").is_displayed())
 
-def click_plugin_action():
-    driver.find_element(By.ID, "menu-ver").click()
-    wait.until(lambda d: d.find_element(By.ID, "menu-ver-panel").is_displayed())
-    action = wait.until(EC.element_to_be_clickable((By.ID, "plugin-installed-smoke-persisted")))
-    action.click()
+def capture_plugin_action_failure(phase, error):
+    diagnostics = {"phase": phase, "error": repr(error)}
+    try:
+        diagnostics["beforeSettings"] = driver.execute_script("""
+          const trigger = document.querySelector('#menu-ver');
+          const panel = document.querySelector('#menu-ver-panel');
+          const action = document.querySelector('#plugin-installed-smoke-persisted');
+          return {
+            url: location.href,
+            readyState: document.readyState,
+            activeElement: document.activeElement?.id || document.activeElement?.tagName,
+            triggerExpanded: trigger?.getAttribute('aria-expanded'),
+            panelHidden: panel?.hidden,
+            actionPresent: !!action,
+            actionText: action?.textContent,
+            actionConnected: action?.isConnected,
+            pluginActionChildren: Array.from(document.querySelector('#plugin-actions')?.children || []).map(node => ({id: node.id, text: node.textContent})),
+            pluginRows: Array.from(document.querySelectorAll('[data-plugin-status]')).map(node => ({id: node.dataset.pluginStatus, text: node.textContent})),
+            settingsOpen: document.querySelector('#settings-dialog')?.open,
+          };
+        """)
+        driver.save_screenshot(str(out / f"plugin-action-{phase}-failure.png"))
+        capture_desktop(f"plugin-action-{phase}-failure-desktop.png")
+    except Exception as diagnostic_error:
+        diagnostics["beforeSettingsError"] = repr(diagnostic_error)
+
+    try:
+        settings = driver.find_element(By.ID, "settings-dialog")
+        if not settings.get_attribute("open"):
+            config = driver.find_element(By.ID, "menu-configuracion")
+            if not driver.find_element(By.ID, "menu-configuracion-panel").is_displayed():
+                config.click()
+                wait.until(lambda d: d.find_element(By.ID, "menu-configuracion-panel").is_displayed())
+            driver.find_element(By.ID, "plugins-button").click()
+        wait.until(lambda d: not d.find_element(By.ID, "plugins-dialog").get_attribute("hidden"))
+        diagnostics["pluginSettings"] = driver.execute_script("""
+          return {
+            dialogOpen: document.querySelector('#plugins-dialog')?.open,
+            listText: document.querySelector('#plugin-list')?.innerText,
+            rows: Array.from(document.querySelectorAll('[data-plugin-status]')).map(node => ({id: node.dataset.pluginStatus, text: node.textContent})),
+            actions: Array.from(document.querySelectorAll('#plugin-actions > *')).map(node => ({id: node.id, text: node.textContent})),
+          };
+        """)
+        driver.save_screenshot(str(out / f"plugin-action-{phase}-settings.png"))
+    except Exception as diagnostic_error:
+        diagnostics["pluginSettingsError"] = repr(diagnostic_error)
+
+    (out / f"plugin-action-{phase}-failure.json").write_text(json.dumps(diagnostics, indent=2), encoding="utf-8")
+
+def click_plugin_action(phase):
+    action_id = "plugin-installed-smoke-persisted"
+    try:
+        # PluginHost.start() loads installed modules asynchronously after the
+        # editor mounts. Wait for registration before exposing the menu item.
+        action = wait.until(EC.presence_of_element_located((By.ID, action_id)))
+        trigger = driver.find_element(By.ID, "menu-ver")
+        panel = driver.find_element(By.ID, "menu-ver-panel")
+        if not panel.is_displayed():
+            trigger.click()
+            wait.until(lambda d: d.find_element(By.ID, "menu-ver-panel").is_displayed())
+        action = wait.until(EC.element_to_be_clickable((By.ID, action_id)))
+        action.click()
+    except Exception as error:
+        capture_plugin_action_failure(phase, error)
+        raise AssertionError(f"Installed plugin action was not registered/clickable during {phase}; diagnostics saved.") from error
 
 def open_plugins_settings():
     driver.find_element(By.ID, "menu-configuracion").click()
@@ -435,7 +495,7 @@ try:
     driver = start_driver()
     wait = WebDriverWait(driver, 60)
     wait.until(lambda d: d.find_element(By.CSS_SELECTOR, "#editor .cm-content"))
-    click_plugin_action()
+    click_plugin_action("after-webview-restart")
     wait.until(lambda d: d.find_element(By.ID, "message").text == "Installed plugin ran.")
 
     open_plugins_settings()
@@ -458,7 +518,7 @@ try:
 
     driver.find_element(By.ID, "plugins-close").click()
     wait.until(EC.invisibility_of_element_located((By.ID, "settings-dialog")))
-    click_plugin_action()
+    click_plugin_action("after-plugin-update")
     wait.until(lambda d: d.find_element(By.ID, "message").text == "Installed plugin ran.")
     open_plugins_settings()
     wait.until(EC.element_to_be_clickable((By.ID, "plugin-installed-smoke-remove"))).click()
