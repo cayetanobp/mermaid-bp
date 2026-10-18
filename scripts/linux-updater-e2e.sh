@@ -107,11 +107,11 @@ for _ in $(seq 1 60); do if curl --silent --fail http://127.0.0.1:4444/status >/
 curl --silent --fail http://127.0.0.1:4444/status >/dev/null || { cat "$diagnostics/tauri-driver.log"; exit 1; }
 
 python3 - "$candidate" "$candidate_signature" "$candidate_version" "$base_version" "$diagnostics" "$server_port" "$app_bin" <<'PY'
-import base64, http.server, json, pathlib, subprocess, sys, threading, time
+import base64, http.server, json, os, pathlib, subprocess, sys, threading, time
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait, Select
-from selenium.webdriver.common.action_chains import ActionChains
 
 candidate, signature_path, target, base, diagnostics, port, app_bin = sys.argv[1:]
 candidate, out = pathlib.Path(candidate), pathlib.Path(diagnostics)
@@ -159,6 +159,9 @@ def verify_persistence(d):
     assert "Activo · 1.0.0" in d.find_element(By.CSS_SELECTOR,"[data-plugin-status='updater-persistence-test']").text
     assert d.find_element(By.ID,"plugin-updater-persistence-test-alive").text=="Plugin persistente activo"
     d.find_element(By.ID,"plugins-close").click()
+def open_file_menu(d):
+    d.find_element(By.ID,"menu-archivo").click()
+    wait(d,lambda x:x.find_element(By.ID,"menu-archivo-panel").is_displayed())
 def visible_windows():
     result=subprocess.run(["xdotool","search","--onlyvisible","--name",".*"],capture_output=True,text=True)
     windows={}
@@ -171,65 +174,36 @@ def visible_windows():
 def active_window_title():
     active=subprocess.run(["xdotool","getactivewindow","getwindowname"],capture_output=True,text=True)
     return active.stdout.strip() if active.returncode==0 else ""
-def click_native_element(d,element):
-    focused=d.execute_script("arguments[0].focus();return document.activeElement===arguments[0]",element)
-    assert focused,"Open menu item did not accept keyboard focus"
-    active_window=active_window_title()
-    assert active_window=="Mermaid BP",f"Desktop app lost focus before opening the native chooser: {active_window!r}"
-    (out/"linux-updater-open-menu-hover.json").write_text(
-        json.dumps({"focusedElement":d.execute_script("return document.activeElement.id"),"activeWindow":active_window}),
-        encoding="utf-8",
-    )
-    subprocess.run(["scrot","-p","-o",str(out/"linux-updater-open-menu-hover.png")],check=True)
-    subprocess.run(["xdotool","key","--clearmodifiers","Return"],check=True)
-    subprocess.run(["scrot","-p","-o",str(out/"linux-updater-open-menu-after-click.png")],check=True)
-def import_document(d, document):
-    settings=d.find_element(By.ID,"settings-dialog")
-    if settings.get_attribute("open"):
-        d.find_element(By.ID,"plugins-close").click()
-        wait(d,lambda x:not x.find_element(By.ID,"settings-dialog").get_attribute("open"))
-    assert not d.find_element(By.ID,"confirm-dialog").get_attribute("open"),"An unsaved-document confirmation was already blocking the file menu"
+def save_document(d, document):
     before_title=active_window_title()
     before_windows=visible_windows()
-    d.find_element(By.ID,"menu-archivo").click()
-    wait(d,lambda x:x.find_element(By.ID,"menu-archivo-panel").is_displayed())
-    click_native_element(d,d.find_element(By.ID,"open"))
+    open_file_menu(d)
+    d.find_element(By.ID,"save").click()
     deadline=time.time()+15
     while time.time()<deadline:
         current_title=active_window_title()
         current_windows=visible_windows()
         new_windows=current_windows.keys()-before_windows.keys()
         if new_windows:
-            dialog_id=max(new_windows,key=int)
-            subprocess.run(["xdotool","windowactivate","--sync",dialog_id],check=True)
             break
         if current_title and current_title!=before_title: break
         time.sleep(.1)
     else:
-        subprocess.run(["scrot","-o",str(out/"linux-updater-document-chooser-missing.png")],check=True)
-        (out/"linux-updater-document-chooser-missing.windows.txt").write_text(
-            f"Before active window: {before_title!r}\nCurrent active window: {active_window_title()!r}\n"
-            f"Before visible windows: {before_windows!r}\nCurrent visible windows: {visible_windows()!r}\n",
-            encoding="utf-8",
-        )
-        raise AssertionError(
-            f"Native document chooser did not take focus; active window={active_window_title()!r}; "
-            f"visible windows={visible_windows()!r}"
-        )
+        subprocess.run(["scrot","-o",str(out/"linux-updater-document-save-dialog-missing.png")],check=True)
+        raise AssertionError(f"Native save dialog did not take focus; active window={active_window_title()!r}; visible windows={visible_windows()!r}")
+    subprocess.run(["scrot","-o",str(out/"linux-updater-document-save-dialog.png")],check=True)
+    # Match the GTK portal navigation already proven by smoke-linux-installed.sh.
+    subprocess.run(["xdotool","mousemove","1100","800","click","1"],check=True)
     subprocess.run(["xdotool","key","ctrl+l"],check=True)
     time.sleep(.3)
-    subprocess.run(["xdotool","type","--clearmodifiers","--delay","1",str(document)],check=True)
+    subprocess.run(["xdotool","key","ctrl+a"],check=True)
+    subprocess.run(["xdotool","type","--clearmodifiers","--delay","1",str(document.parent)],check=True)
     subprocess.run(["xdotool","key","Return"],check=True)
-    deadline=time.time()+30
-    while time.time()<deadline:
-        confirm=d.find_element(By.ID,"confirm-dialog")
-        if confirm.get_attribute("open"):
-            next(button for button in confirm.find_elements(By.TAG_NAME,"button") if button.text.strip()=="Continuar sin descargar").click()
-            break
-        if "updater-persistence-document.mmd" in d.find_element(By.ID,"message").text: break
-        time.sleep(.2)
-    wait(d,lambda x:"updater-persistence-document.mmd" in x.find_element(By.ID,"message").text,30)
-    assert "Documento disponible tras actualizar" in d.find_element(By.CSS_SELECTOR,"#editor .cm-content").text
+    time.sleep(.5)
+    subprocess.run(["xdotool","mousemove","600","123","click","1"],check=True)
+    subprocess.run(["xdotool","key","ctrl+a"],check=True)
+    subprocess.run(["xdotool","type","--clearmodifiers","--delay","1",document.name],check=True)
+    subprocess.run(["xdotool","key","Return"],check=True)
 
 driver=None
 try:
@@ -239,13 +213,21 @@ try:
     open_settings(driver,"Editor"); Select(driver.find_element(By.ID,"setting-editorFontSize")).select_by_value("18")
     wait(driver,lambda d:"Cambios guardados" in d.find_element(By.ID,"settings-status").text); install_plugin(driver)
     document=out/"updater-persistence-document.mmd"
-    document.write_text("flowchart LR\nA[Documento disponible tras actualizar] --> B[Se puede reabrir]\n",encoding="utf-8")
-    import_document(driver,document)
+    marker="LinuxUpdaterPersist-"+os.environ.get("GITHUB_RUN_ID","local")
+    editor=driver.find_element(By.CSS_SELECTOR,"#editor .cm-content")
+    editor.click(); editor.send_keys(Keys.CONTROL,"a"); editor.send_keys("flowchart LR"); editor.send_keys(Keys.ENTER)
+    editor.send_keys(f"  A[{marker}] --> B[Recovery check]")
+    wait(driver,lambda d:marker in d.find_element(By.CSS_SELECTOR,"#editor .cm-content").text)
+    save_document(driver,document)
+    deadline=time.time()+20
+    while time.time()<deadline and not document.exists(): time.sleep(.1)
+    assert document.exists(),f"Native save did not create {document}"
+    assert marker in document.read_text(encoding="utf-8"),"Saved document did not contain the unique persistence marker"
     mode["value"]="bad-signature"; open_updater(driver); driver.find_element(By.ID,"check-updates").click()
     wait(driver,lambda d:f"Nueva versión: {target}" in d.find_element(By.ID,"update-version").text)
     driver.find_element(By.ID,"install-update").click(); wait(driver,lambda d:"No se pudo instalar" in d.find_element(By.ID,"update-status").text,120)
     assert installed_version()==base,"Invalid signature changed the installed package"
-    assert "Documento disponible tras actualizar" in driver.find_element(By.CSS_SELECTOR,"#editor .cm-content").text,"Signature rejection damaged the open document"
+    assert marker in driver.find_element(By.CSS_SELECTOR,"#editor .cm-content").text,"Signature rejection damaged the open document"
     verify_persistence(driver)
     open_updater(driver); mode["value"]="candidate"; driver.find_element(By.ID,"check-updates").click()
     wait(driver,lambda d:f"Nueva versión: {target}" in d.find_element(By.ID,"update-version").text)
@@ -257,12 +239,13 @@ try:
     except Exception: pass
     driver=None; time.sleep(3); driver=connect()
     wait(driver,lambda d:d.find_element(By.CSS_SELECTOR,"#editor .cm-content").is_displayed(),120)
+    assert marker in driver.find_element(By.CSS_SELECTOR,"#editor .cm-content").text,"Document was not recovered after the signed update restart"
+    assert marker in document.read_text(encoding="utf-8"),"Saved document contents changed during update"
     open_updater(driver); mode["value"]="none"; assert check(driver)=="No hay actualizaciones disponibles."
     assert f"Versión instalada: {target}" in driver.find_element(By.ID,"update-current-version").text
     verify_persistence(driver)
-    import_document(driver,document)
     driver.save_screenshot(str(out/"linux-updater-after-install.png"))
-    print(f"Linux updater E2E passed: {base} -> {target}; network error, no update, bad signature, signed install/restart, preference/plugin persistence and document reopen verified.")
+    print(f"Linux updater E2E passed: {base} -> {target}; network error, no update, bad signature, signed install/restart, preference/plugin persistence and saved-document recovery verified.")
 except Exception:
     if driver is not None:
         try:
