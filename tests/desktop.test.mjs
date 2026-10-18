@@ -5,9 +5,12 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {spawnSync} from 'node:child_process';
 import vm from 'node:vm';
+import {createHash} from 'node:crypto';
 import {inspectBetaChannel} from '../scripts/validate-beta-channel.mjs';
 import {validateBetaVersionTagRefs} from '../scripts/validate-beta-version-tag.mjs';
 import {validateLinuxUpdaterAssetNames} from '../scripts/validate-linux-updater-asset.mjs';
+import {normalizeReleaseAssetName} from '../scripts/normalize-release-asset-name.mjs';
+import {prepareBetaReleaseAssets} from '../scripts/prepare-beta-release-assets.mjs';
 
 test('el puente conserva bytes UTF-8 y comunica la cancelación sin descargar una segunda copia',async()=>{
   const calls=[],alerts=[];
@@ -52,7 +55,7 @@ test('el manifiesto del canal beta publica artefactos firmados de Windows y Debi
     await writeFile(signature,signedFixture);
     await writeFile(linuxSignature,signedFixture);
     // The fixture checks signature serialization; production publishes Tauri NSIS and Debian artifacts.
-    const generated=spawnSync(process.execPath,['scripts/create-updater-manifest.mjs','--version','1.0.0-beta.1','--notes-file',notes,'--artifact-url','https://github.com/cayetanobp/mermaid-bp/releases/download/1.0.0-beta.1/Mermaid-BP-setup.exe','--signature-file',signature,'--linux-artifact-url','https://github.com/cayetanobp/mermaid-bp/releases/download/1.0.0-beta.1/Mermaid%20BP_1.0.0-beta.1_amd64.deb','--linux-signature-file',linuxSignature,'--output',output],{encoding:'utf8'});
+    const generated=spawnSync(process.execPath,['scripts/create-updater-manifest.mjs','--version','1.0.0-beta.1','--notes-file',notes,'--artifact-url','https://github.com/cayetanobp/mermaid-bp/releases/download/1.0.0-beta.1/Mermaid.BP_1.0.0-beta.1_x64-setup.exe','--signature-file',signature,'--linux-artifact-url','https://github.com/cayetanobp/mermaid-bp/releases/download/1.0.0-beta.1/Mermaid.BP_1.0.0-beta.1_amd64.deb','--linux-signature-file',linuxSignature,'--output',output],{encoding:'utf8'});
     assert.equal(generated.status,0,generated.stderr);
     const manifest=JSON.parse(await readFile(output,'utf8'));
     assert.match(Buffer.from(manifest.platforms['windows-x86_64'].signature,'base64').toString('utf8'),/trusted comment: timestamp:.*version:1\.0\.0-beta\.1/);
@@ -61,11 +64,11 @@ test('el manifiesto del canal beta publica artefactos firmados de Windows y Debi
     assert.match(manifest.pub_date,/^\d{4}-\d\d-\d\dT/);
     assert.deepEqual(manifest.platforms['windows-x86_64'],{
       signature:signedFixture.trim(),
-      url:'https://github.com/cayetanobp/mermaid-bp/releases/download/1.0.0-beta.1/Mermaid-BP-setup.exe',
+      url:'https://github.com/cayetanobp/mermaid-bp/releases/download/1.0.0-beta.1/Mermaid.BP_1.0.0-beta.1_x64-setup.exe',
     });
     assert.deepEqual(manifest.platforms['linux-x86_64-deb'],{
       signature:signedFixture.trim(),
-      url:'https://github.com/cayetanobp/mermaid-bp/releases/download/1.0.0-beta.1/Mermaid%20BP_1.0.0-beta.1_amd64.deb',
+      url:'https://github.com/cayetanobp/mermaid-bp/releases/download/1.0.0-beta.1/Mermaid.BP_1.0.0-beta.1_amd64.deb',
     });
   }finally{await rm(folder,{recursive:true,force:true});}
 });
@@ -208,4 +211,53 @@ test('la selección del paquete Debian usa el nombre real de Tauri y rechaza otr
   assert.throws(()=>validateLinuxUpdaterAssetNames(['Mermaid BP_1.0.0-beta.1_arm64.deb'],{
     productName:'Mermaid BP',version:'1.0.0-beta.1',architecture:'amd64',
   }),/amd64/);
+});
+
+test('los assets de Tauri se preparan byte a byte con SHA, firma, URL y nombres publicados por GitHub',async()=>{
+  const folder=await mkdtemp(join(tmpdir(),'mermaid-bp-release-assets-'));
+  try{
+    const windowsFile=join(folder,'Mermaid BP_1.0.0-beta.1_x64-setup.exe');
+    const windowsSignature=join(folder,'Mermaid BP_1.0.0-beta.1_x64-setup.exe.sig');
+    const linuxFile=join(folder,'Mermaid BP_1.0.0-beta.1_amd64.deb');
+    const linuxSignature=join(folder,'Mermaid BP_1.0.0-beta.1_amd64.deb.sig');
+    const outputDirectory=join(folder,'staged');
+    const signature=await readFile('tests/fixtures/updater-signature-sample.txt.sig');
+    await writeFile(windowsFile,Buffer.from('windows release bytes'));
+    await writeFile(windowsSignature,signature);
+    await writeFile(linuxFile,Buffer.from('debian release bytes'));
+    await writeFile(linuxSignature,signature);
+    const prepared=await prepareBetaReleaseAssets({windowsFile,windowsSignature,linuxFile,linuxSignature,outputDirectory});
+    for(const [source,asset] of [[windowsFile,prepared.windows],[linuxFile,prepared.linux]]){
+      assert.deepEqual(await readFile(source),await readFile(asset.path));
+      assert.deepEqual(await readFile(source+'.sig'),await readFile(asset.signaturePath));
+      const digest=createHash('sha256').update(await readFile(asset.path)).digest('hex');
+      assert.equal(asset.sha256,digest);
+      assert.equal(await readFile(asset.checksumPath,'utf8'),`${digest}  ${asset.name}`);
+    }
+    assert.equal(prepared.windows.name,'Mermaid.BP_1.0.0-beta.1_x64-setup.exe');
+    assert.equal(prepared.linux.name,'Mermaid.BP_1.0.0-beta.1_amd64.deb');
+    const notes=join(folder,'RELEASE.md'),manifestPath=join(folder,'latest.json');
+    await writeFile(notes,'Notas de release.');
+    const base='https://github.com/cayetanobp/mermaid-bp/releases/download/1.0.0-beta.1/';
+    const generated=spawnSync(process.execPath,['scripts/create-updater-manifest.mjs','--version','1.0.0-beta.1','--notes-file',notes,'--artifact-url',base+prepared.windows.name,'--signature-file',prepared.windows.signaturePath,'--linux-artifact-url',base+prepared.linux.name,'--linux-signature-file',prepared.linux.signaturePath,'--output',manifestPath],{encoding:'utf8'});
+    assert.equal(generated.status,0,generated.stderr);
+    const manifest=JSON.parse(await readFile(manifestPath,'utf8'));
+    assert.equal(manifest.platforms['windows-x86_64'].url,base+'Mermaid.BP_1.0.0-beta.1_x64-setup.exe');
+    assert.equal(manifest.platforms['linux-x86_64-deb'].url,base+'Mermaid.BP_1.0.0-beta.1_amd64.deb');
+    assert.equal(manifest.platforms['windows-x86_64'].signature,(await readFile(prepared.windows.signaturePath,'utf8')).trim());
+    assert.equal(manifest.platforms['linux-x86_64-deb'].signature,(await readFile(prepared.linux.signaturePath,'utf8')).trim());
+  }finally{await rm(folder,{recursive:true,force:true});}
+});
+
+test('la normalización de nombres de assets rechaza rutas y caracteres incompatibles con GitHub',()=>{
+  const windows=normalizeReleaseAssetName('Mermaid BP_1.0.0-beta.1_x64-setup.exe');
+  const linux=normalizeReleaseAssetName('Mermaid BP_1.0.0-beta.1_amd64.deb');
+  assert.equal(windows,'Mermaid.BP_1.0.0-beta.1_x64-setup.exe');
+  assert.equal(linux,'Mermaid.BP_1.0.0-beta.1_amd64.deb');
+  assert.throws(()=>normalizeReleaseAssetName('../Mermaid BP.deb'),/nombre de archivo simple/);
+  assert.throws(()=>normalizeReleaseAssetName('Mermaid BP_1.0.0-beta.1_amd64.deb?download=1'),/no seguros/);
+});
+
+test('una reejecución de publicación rechaza el tag exacto ya existente',()=>{
+  assert.throws(()=>validateBetaVersionTagRefs([[{ref:'refs/tags/1.0.0-beta.1'}]],'1.0.0-beta.1'),/Ya existe una etiqueta/);
 });
