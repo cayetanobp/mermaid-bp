@@ -103,7 +103,8 @@ jobs:
           $debFolder = 'desktop-app/src-tauri/target/release/bundle/deb'
           $linuxPackage = @(Get-ChildItem "$debFolder/*.deb")
           $linuxNamesPath = Join-Path $env:RUNNER_TEMP 'linux-updater-package-names.json'
-          @($linuxPackage.Name) | ConvertTo-Json | Set-Content -Encoding utf8 $linuxNamesPath
+          $linuxNamesJson = ConvertTo-Json -InputObject ([string[]]@($linuxPackage | ForEach-Object { $_.Name }))
+          $linuxNamesJson | Set-Content -Encoding utf8 $linuxNamesPath
           $expectedLinuxName = node scripts/validate-linux-updater-asset.mjs --names-file $linuxNamesPath --product-name $tauriConfig.productName --version $tag --architecture amd64
           if ($LASTEXITCODE -ne 0) { throw 'El artefacto Linux debe ser el paquete Debian amd64 de esta versión.' }
           if ($linuxPackage.Count -ne 1 -or $linuxPackage[0].Name -cne $expectedLinuxName) { throw 'El paquete Debian no coincide con el producto y metadatos de esta versión.' }
