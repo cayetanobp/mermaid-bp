@@ -8,6 +8,10 @@ Antes de concluir la especificación, comprueba cada ticket contra su criterio d
 
 ## Pruebas nativas
 
+Al cambiar un selector de archivos o un comando del puente nativo, revisa en el mismo cambio los arneses de navegador, Windows y Linux que lo usan. La migración de `plugin-folder-input` al selector nativo dejó pruebas de navegador y Windows buscando un control eliminado; validar solo el smoke Linux dejó esa incompatibilidad para la integración final.
+
+Acota cada escenario a los criterios de aceptación del ticket. Para comprobar persistencia durante una actualización, crea y guarda el documento mediante un flujo ya verificado y comprueba su contenido después del reinicio. Si una precondición adicional falla, determina si demuestra un requisito del ticket antes de invertir otra compilación en depurarla.
+
 Antes de lanzar una compilación nativa larga, comprueba espacio libre, ubicación de `target` y caché de Cargo, dependencias del runner y disponibilidad del motor Docker cuando corresponda. En Linux con diálogos de archivos de Tauri, comprueba sesión X11 con gestor de ventanas, DBus, portal de escritorio y directorio `XDG_RUNTIME_DIR` privado. Registra el SHA de la aplicación y el hash del artefacto instalado; reutiliza un instalador solo si los archivos que lo generan no han cambiado.
 
 Captura desde el primer fallo el log del proceso, la ventana nativa completa y la vista web. Para diálogos del sistema, usa una captura del escritorio; una captura WebDriver puede omitirlos. Adjunta al run los archivos de diagnóstico y señala el paso exacto que falló.

@@ -108,7 +108,7 @@ test('la aplicación de escritorio instala, actualiza y retira plugins locales c
  },selection);
  try{
   page.on('dialog',dialog=>dialog.accept());await page.goto('/');await ready(page);await command(page,'plugins-button');
-  const chooseFolder=page.getByRole('button',{name:'Seleccionar carpeta'});await chooseFolder.click();
+  const chooseFolder=page.locator('#plugin-folder-select');await expect(chooseFolder).toBeVisible();await chooseFolder.click();
   await expect(page.locator('#plugin-import-preview')).toContainText('Plugin escritorio');
   await expect(page.locator('#plugin-trust-warning')).toContainText('permisos de la aplicación');
   const install=page.getByRole('button',{name:'Instalar o actualizar plugin'});await expect(install).toBeDisabled();
