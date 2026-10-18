@@ -91,22 +91,24 @@ test('la distribución web permite al administrador cambiar carpetas sin recompi
 
 test('la aplicación de escritorio instala, actualiza y retira plugins locales con consentimiento explícito',async({page})=>{
  const importRoot=await mkdtemp(join(tmpdir(),'mermaid-desktop-plugin-')),pluginFolder=join(importRoot,'desktop-test');await mkdir(pluginFolder);await writeFile(join(pluginFolder,'plugin.json'),JSON.stringify({id:'desktop-test',name:'Plugin escritorio',description:'Comprueba gestión local',version:'1.0.0',apiVersion:1}));await writeFile(join(pluginFolder,'index.js'),'export default {setup(){throw Error("plugin defectuoso");}};');
+ const selection={folderName:'desktop-test',paths:['plugin.json','index.js'],contents:[Buffer.from(await readFile(join(pluginFolder,'plugin.json'))).toString('base64'),Buffer.from(await readFile(join(pluginFolder,'index.js'))).toString('base64')]};
  await page.route('**/__local/**',route=>{const path=new URL(route.request().url()).pathname;if(path.endsWith('/plugin.json'))return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({id:'desktop-test',name:'Plugin escritorio',description:'Comprueba gestión local',version:'1.0.0',apiVersion:1})});if(path.endsWith('/index.js'))return route.fulfill({status:200,contentType:'text/javascript',body:'export default {setup(){throw Error("plugin defectuoso");}};'});return route.fulfill({status:404});});
- await page.addInitScript(()=>{
-  const state={ids:[] as string[],calls:[] as any[]};
+ await page.addInitScript((selection:any)=>{
+  const state={ids:[] as string[],calls:[] as any[],selection};
   Object.defineProperty(window,'__TAURI__',{value:{core:{invoke:async(command:string,args:any={})=>{
    state.calls.push({command,args});
    if(command==='list_plugins')return state.ids.map(id=>({id,name:'Plugin escritorio',description:'Prueba',version:'1.0.0',apiVersion:1}));
    if(command==='plugins_root')return 'C:\\fake\\plugins';
+   if(command==='choose_plugin_folder')return state.selection;
    if(command==='install_plugin'){if(!state.ids.includes(args.id))state.ids.push(args.id);return;}
    if(command==='remove_plugin'){state.ids=state.ids.filter(id=>id!==args.id);return true;}
    return true;
   },convertFileSrc:(path:string)=>{const relative=path.split(/[/\\]/).slice(-2).join('/');return new URL('/__local/'+relative,location.href).href;}}},configurable:true});
   (window as any).__PLUGIN_TEST_STATE__=state;
- });
+ },selection);
  try{
   page.on('dialog',dialog=>dialog.accept());await page.goto('/');await ready(page);await command(page,'plugins-button');
-  const folderInput=page.locator('#plugin-folder-input');await folderInput.setInputFiles(pluginFolder);
+  const chooseFolder=page.locator('#plugin-folder-select');await expect(chooseFolder).toBeVisible();await chooseFolder.click();
   await expect(page.locator('#plugin-import-preview')).toContainText('Plugin escritorio');
   await expect(page.locator('#plugin-trust-warning')).toContainText('permisos de la aplicación');
   const install=page.getByRole('button',{name:'Instalar o actualizar plugin'});await expect(install).toBeDisabled();
@@ -114,7 +116,7 @@ test('la aplicación de escritorio instala, actualiza y retira plugins locales c
   await expect(page.locator('#plugin-local-status')).toContainText('instalado');
   await expect.poll(()=>page.evaluate(()=>((window as any).__PLUGIN_TEST_STATE__.calls as any[]).some(c=>c.command==='install_plugin'))).toBe(true);
   await expect(page.locator('#plugin-desktop-test-remove')).toBeVisible();
-  await writeFile(join(pluginFolder,'plugin.json'),JSON.stringify({id:'desktop-test',name:'Plugin escritorio',description:'Comprueba gestión local',version:'2.0.0',apiVersion:1}));await folderInput.setInputFiles(pluginFolder);
+  const updatedManifest=JSON.stringify({id:'desktop-test',name:'Plugin escritorio',description:'Comprueba gestión local',version:'2.0.0',apiVersion:1});await writeFile(join(pluginFolder,'plugin.json'),updatedManifest);await page.evaluate((contents:string)=>{(window as any).__PLUGIN_TEST_STATE__.selection.contents[0]=contents;},Buffer.from(updatedManifest).toString('base64'));await chooseFolder.click();
   await page.getByRole('checkbox',{name:/Entiendo que el plugin ejecutará código local/}).check();await install.click();
   await expect(page.locator('#plugin-local-status')).toContainText('actualizado');
   await expect.poll(()=>page.evaluate(()=>((window as any).__PLUGIN_TEST_STATE__.calls as any[]).filter(c=>c.command==='install_plugin').length)).toBe(2);
