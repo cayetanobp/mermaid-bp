@@ -29,8 +29,41 @@ if ($null -eq $dialog) {
     throw "No apareció el selector nativo «$DialogTitle»."
 }
 
-[System.Windows.Forms.SendKeys]::SendWait('^a')
-[System.Windows.Forms.SendKeys]::SendWait($FolderPath)
+$dialogBounds = $dialog.Current.BoundingRectangle
+$editCondition = [System.Windows.Automation.PropertyCondition]::new(
+    [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
+    [System.Windows.Automation.ControlType]::Edit
+)
+$edits = $dialog.FindAll([System.Windows.Automation.TreeScope]::Descendants, $editCondition)
+$folderField = $null
+foreach ($edit in $edits) {
+    $bounds = $edit.Current.BoundingRectangle
+    if ($edit.Current.IsEnabled -and $bounds.Height -gt 0 -and $bounds.Y -gt ($dialogBounds.Y + $dialogBounds.Height * 0.65)) {
+        if ($null -eq $folderField -or $bounds.Y -gt $folderField.Current.BoundingRectangle.Y) {
+            $folderField = $edit
+        }
+    }
+}
+
+if ($null -eq $folderField) {
+    $editDetails = @($edits | ForEach-Object {
+        $current = $_.Current
+        "name='$($current.Name)' id='$($current.AutomationId)' class='$($current.ClassName)' bounds=$($current.BoundingRectangle)"
+    }) -join ' | '
+    throw "No se encontró el campo Folder del selector nativo. Edits: $editDetails"
+}
+
+$valuePattern = $null
+try {
+    $valuePattern = $folderField.GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern)
+} catch { }
+if ($null -ne $valuePattern -and -not $valuePattern.Current.IsReadOnly) {
+    $valuePattern.SetValue($FolderPath)
+} else {
+    $folderField.SetFocus()
+    [System.Windows.Forms.SendKeys]::SendWait('^a')
+    [System.Windows.Forms.SendKeys]::SendWait($FolderPath)
+}
 [System.Windows.Forms.SendKeys]::SendWait('{ENTER}')
 
 $buttonCondition = [System.Windows.Automation.PropertyCondition]::new(
@@ -55,7 +88,10 @@ if ($null -eq $selectFolder) {
         [System.Windows.Automation.TreeScope]::Descendants,
         [System.Windows.Automation.Condition]::TrueCondition
     )
-    $names = @($controls | ForEach-Object { $_.Current.Name } | Where-Object { $_ }) -join ' | '
+    $names = @($controls | ForEach-Object {
+        $current = $_.Current
+        if ($current.Name) { "$($current.ControlType.ProgrammaticName):$($current.Name)" }
+    } | Where-Object { $_ }) -join ' | '
     throw "El selector nativo no mostró el botón de confirmar carpeta. Controles: $names"
 }
 
