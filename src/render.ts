@@ -37,7 +37,7 @@ export function renderDiagram(source: string, flow?: Flow): Promise<Rendered> {
           const node = flow.nodes.find(n => mermaidSourceId(group).startsWith(`flowchart-${n.id}-`));
           if (!node) continue;
           const b = group.getBBox();
-          const matrix = root.getCTM()!.inverse().multiply(group.getCTM()!);
+          const matrix = root.getScreenCTM()!.inverse().multiply(group.getScreenCTM()!);
           const center = new DOMPoint(b.x + b.width / 2, b.y + b.height / 2).matrixTransform(matrix);
           geometry.nodes[node.id] = { x: center.x, y: center.y };
         }
